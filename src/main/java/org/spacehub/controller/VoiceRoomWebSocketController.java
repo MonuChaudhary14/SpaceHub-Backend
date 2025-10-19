@@ -1,0 +1,97 @@
+package org.spacehub.controller;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import lombok.RequiredArgsConstructor;
+import org.spacehub.service.JanusService;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.stereotype.Controller;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+@Controller
+@RequiredArgsConstructor
+public class VoiceRoomWebSocketController {
+
+  private final JanusService janusService;
+  private final SimpMessagingTemplate messagingTemplate;
+
+  private final ConcurrentHashMap<String, String> userSessionMap = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, String> userHandleMap = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, String> userRoomMap = new ConcurrentHashMap<>();
+
+  @MessageMapping("/register")
+  public void registerUser(Map<String, String> payload) {
+    String userId = payload.get("userId");
+    String sessionId = payload.get("sessionId");
+    String handleId = payload.get("handleId");
+    String roomId = payload.get("roomId");
+
+    if (userId == null || sessionId == null || handleId == null || roomId == null) {
+      return;
+    }
+
+    userSessionMap.put(userId, sessionId);
+    userHandleMap.put(userId, handleId);
+    userRoomMap.put(userId, roomId);
+
+    Map<String, String> event = Map.of("type", "joined", "userId", userId);
+    messagingTemplate.convertAndSend("/topic/room/" + roomId + "/events", event);
+  }
+
+  @MessageMapping("/unregister")
+  public void unregisterUser(Map<String, String> payload) {
+    String userId = payload.get("userId");
+    if (userId == null) {
+      return;
+    }
+
+    String roomId = userRoomMap.remove(userId);
+    userSessionMap.remove(userId);
+    userHandleMap.remove(userId);
+
+    if (roomId != null) {
+      Map<String, String> event = Map.of("type", "left", "userId", userId);
+      messagingTemplate.convertAndSend("/topic/room/" + roomId + "/events", event);
+    }
+  }
+
+  @MessageMapping("/offer")
+  public void handleOffer(Map<String, String> payload) {
+    String userId = payload.get("userId");
+    String roomId = payload.get("roomId");
+    String sdp = payload.get("sdp");
+    if (userId == null || roomId == null || sdp == null) return;
+
+    String sessionId = userSessionMap.get(userId);
+    String handleId = userHandleMap.get(userId);
+    if (sessionId == null || handleId == null) {
+      Map<String, String> error = Map.of("type", "error", "message", "user not registered");
+      messagingTemplate.convertAndSend("/topic/room/" + roomId + "/answer/" + userId, error);
+      return;
+    }
+
+    JsonNode janusResponse = janusService.sendOffer(sessionId, handleId, sdp);
+    messagingTemplate.convertAndSend("/topic/room/" + roomId + "/answer/" + userId, janusResponse);
+  }
+
+  @MessageMapping("/ice")
+  public void handleIceCandidate(Map<String, Object> payload) {
+    String userId = (String) payload.get("userId");
+    String roomId = (String) payload.get("roomId");
+    Object candidateObj = payload.get("candidate");
+    if (userId == null || roomId == null || candidateObj == null) {
+      return;
+    }
+
+    String sessionId = userSessionMap.get(userId);
+    String handleId = userHandleMap.get(userId);
+    if (sessionId == null || handleId == null) {
+      return;
+    }
+
+    String candidateJson = String.valueOf(candidateObj);
+    janusService.sendIce(sessionId, handleId, candidateJson);
+  }
+}

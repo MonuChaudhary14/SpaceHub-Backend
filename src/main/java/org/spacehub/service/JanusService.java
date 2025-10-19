@@ -45,7 +45,7 @@ public class JanusService {
       "request", "create",
       "room", roomId,
       "description", "SpaceHub Voice Room",
-      "private", false
+      "is_private", false
     );
 
     Map<String, Object> request = Map.of(
@@ -94,6 +94,40 @@ public class JanusService {
       "janus", "message",
       "transaction", UUID.randomUUID().toString(),
       "body", body
+    );
+
+    String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
+    restTemplate.postForEntity(handleUrl, request, JsonNode.class);
+  }
+
+  public JsonNode sendOffer(String sessionId, String handleId, String sdpOffer) {
+    Map<String, Object> body = Map.of(
+      "request", "configure",
+      "muted", false,
+      "audio", true
+    );
+
+    Map<String, Object> request = Map.of(
+      "janus", "message",
+      "transaction", UUID.randomUUID().toString(),
+      "body", body,
+      "jsep", Map.of(
+        "type", "offer",
+        "sdp", sdpOffer
+      )
+    );
+
+    String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
+    ResponseEntity<JsonNode> response = restTemplate.postForEntity(handleUrl, request, JsonNode.class);
+
+    return response.getBody();
+  }
+
+  public void sendIce(String sessionId, String handleId, String candidate) {
+    Map<String, Object> request = Map.of(
+      "janus", "trickle",
+      "transaction", UUID.randomUUID().toString(),
+      "candidate", Map.of("candidate", candidate)
     );
 
     String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);

@@ -1,12 +1,10 @@
 package org.spacehub.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import org.spacehub.service.JanusService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 import java.util.Random;
@@ -43,6 +41,7 @@ public class VoiceRoomController {
       "message", "Joined room successfully",
       "roomId", roomId,
       "sessionId", sessionId,
+      "handleId", handleId,
       "status", token
     ));
   }
@@ -54,4 +53,13 @@ public class VoiceRoomController {
     return ResponseEntity.ok(Map.of("message", "Left the room successfully"));
   }
 
+  @PostMapping("/send-offer")
+  public ResponseEntity<?> sendOffer(@RequestBody Map<String, String> body) {
+    String sessionId = body.get("sessionId");
+    String handleId = body.get("handleId");
+    String sdp = body.get("sdp");
+
+    JsonNode janusResponse = janusService.sendOffer(sessionId, handleId, sdp);
+    return ResponseEntity.ok(janusResponse);
+  }
 }
