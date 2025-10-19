@@ -57,4 +57,47 @@ public class JanusService {
     String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
     restTemplate.postForEntity(handleUrl, request, JsonNode.class);
   }
+
+  public String joinAudioRoom(String sessionId, String handleId, int roomId, String displayName) {
+    Map<String, Object> body = Map.of(
+      "request", "join",
+      "room", roomId,
+      "display", displayName
+    );
+
+    Map<String, Object> request = Map.of(
+      "janus", "message",
+      "transaction", UUID.randomUUID().toString(),
+      "body", body
+    );
+
+    String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
+    ResponseEntity<JsonNode> response = restTemplate.postForEntity(handleUrl, request, JsonNode.class);
+
+    if (response.getBody() != null) {
+      String janusType = response.getBody().get("janus").asText();
+      if ("ack".equals(janusType) || "success".equals(janusType)) {
+        return "Joined room request acknowledged";
+      }
+    }
+
+    throw new RuntimeException("Failed to join audio room");
+  }
+
+
+  public void leaveRoom(String sessionId, String handleId) {
+    Map<String, Object> body = Map.of(
+      "request", "leave"
+    );
+
+    Map<String, Object> request = Map.of(
+      "janus", "message",
+      "transaction", UUID.randomUUID().toString(),
+      "body", body
+    );
+
+    String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
+    restTemplate.postForEntity(handleUrl, request, JsonNode.class);
+  }
+
 }
