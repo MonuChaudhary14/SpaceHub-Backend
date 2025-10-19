@@ -11,12 +11,9 @@ import org.springframework.stereotype.Service;
 @Service
 public class UserService implements UserDetailsService {
 
-  private final PasswordEncoder passwordEncoder;
-
   private final UserRepository userRepository;
 
-  public UserService(PasswordEncoder passwordEncoder, UserRepository userRepository) {
-    this.passwordEncoder = passwordEncoder;
+  public UserService(UserRepository userRepository) {
     this.userRepository = userRepository;
   }
 
@@ -32,13 +29,6 @@ public class UserService implements UserDetailsService {
   }
 
   public void save(User user) {
-    userRepository.save(user);
-  }
-
-  public void updatePassword(String email, String newPassword) {
-    User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new IllegalStateException("User not found"));
-    user.setPassword(passwordEncoder.encode(newPassword));
     userRepository.save(user);
   }
 

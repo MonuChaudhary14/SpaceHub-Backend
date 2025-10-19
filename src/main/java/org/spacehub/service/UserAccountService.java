@@ -129,7 +129,8 @@ public class UserAccountService {
       otpService.saveTempOtp(email, tempRegistration);
       otpService.sendOTP(email, OtpType.REGISTRATION);
 
-      String sessionToken = otpService.createRegistrationSessionToken(email);
+      String sessionToken = userNameService.generateRegistrationToken(email);
+      redisService.saveValue("REGISTRATION_SESSION_" + email, sessionToken, TEMP_TOKEN_EXPIRE);
 
       return new ApiResponse<>(200, "OTP sent. Complete registration by validating OTP.",
         sessionToken);
@@ -302,7 +303,9 @@ public class UserAccountService {
     }
 
     String normalizedEmail = emailValidator.normalize(email);
-    boolean sessionValid = otpService.validateRegistrationSessionToken(sessionToken, normalizedEmail);
+    String savedToken = redisService.getValue("REGISTRATION_SESSION_" + normalizedEmail);
+    boolean sessionValid = savedToken != null && savedToken.equals(sessionToken);
+
     if (!sessionValid) {
       return new ApiResponse<>(403, "Invalid or expired registration session token", null);
     }
@@ -325,7 +328,6 @@ public class UserAccountService {
 
     return new ApiResponse<>(200, "OTP resent successfully. Check your email.", null);
   }
-
 
   public ApiResponse<TokenResponse> validateForgotPasswordOtp(
     ValidateForgotOtpRequest request) {
