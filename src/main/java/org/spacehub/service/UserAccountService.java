@@ -361,6 +361,7 @@ public class UserAccountService {
     } catch (Exception e) {
       return new ApiResponse<>(400, "User not found", null);
     }
+
     String tempToken = userNameService.generateToken(user);
     redisService.saveValue("TEMP_RESET_" + email, tempToken, TEMP_TOKEN_EXPIRE);
     TokenResponse tokenResponse = new TokenResponse(tempToken, null);

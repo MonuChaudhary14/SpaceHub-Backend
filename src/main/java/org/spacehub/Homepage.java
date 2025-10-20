@@ -8,9 +8,9 @@ import org.springframework.scheduling.annotation.EnableAsync;
 @EnableAsync
 public class Homepage {
 
-  public static void main(String[] args) {
+    public static void main(String[] args) {
 
-    SpringApplication.run(Homepage.class, args);
-  }
+        SpringApplication.run(Homepage.class, args);
+    }
 
 }
