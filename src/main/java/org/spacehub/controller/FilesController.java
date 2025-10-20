@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.time.Duration;
 
 @RestController
-@RequestMapping("/files")
+@RequestMapping("api/v1/files")
 public class FilesController {
 
     private final S3Service s3Service;

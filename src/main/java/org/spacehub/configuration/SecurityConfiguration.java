@@ -47,15 +47,20 @@ public class SecurityConfiguration {
             .cors(withDefaults())
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
+                    // Allow preflight requests
                     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                    .requestMatchers("/api/v1/validateforgototp", "/api/v1/**","/files/**").permitAll()
-                    .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/v3/api-docs.yaml").permitAll()
-                    .anyRequest().authenticated()
+                    .requestMatchers("/api/v1/**").permitAll()
+                    .requestMatchers("/chat/**").permitAll()
+                    .requestMatchers(
+                            "/swagger-ui/**",
+                            "/v3/api-docs/**",
+                            "/v3/api-docs.yaml",
+                            "/files/**"
+                    ).permitAll()
+                    .anyRequest().permitAll()
             )
             .httpBasic(AbstractHttpConfigurer::disable)
-            .sessionManagement(
-                    session ->
-                            session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authenticationProvider(authenticationProvider)
             .addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class);
 

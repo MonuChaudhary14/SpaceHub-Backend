@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/rooms")
+@RequestMapping("api/v1/rooms")
 public class ChatRoomController {
 
     private final ChatRoomService chatRoomService;
@@ -18,7 +18,7 @@ public class ChatRoomController {
     }
 
     @PostMapping("/create")
-    public ChatRoom createRoom(@RequestParam String name) {
+    public ChatRoom createRoom(@RequestBody String name) {
         return chatRoomService.createRoom(name);
     }
 

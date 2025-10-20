@@ -28,4 +28,14 @@ public class ChatMessageService {
         return chatMessageRepository.findByRoomOrderByTimestampAsc(room);
     }
 
+    public void sendMessage(String roomCode, String senderEmail, String content) {
+        ChatMessage message = new ChatMessage();
+        message.setRoomCode(roomCode);
+        message.setSenderEmail(senderEmail);
+        message.setContent(content);
+        chatMessageRepository.save(message);
+
+        webSocketMessageSender.broadcastMessage(roomCode, message);
+    }
+
 }
