@@ -24,4 +24,8 @@ public class ChatMessageService {
         return chatMessageRepository.saveAll(messages);
     }
 
+    public List<ChatMessage> getMessagesForRoom(ChatRoom room) {
+        return chatMessageRepository.findByRoomOrderByTimestampAsc(room);
+    }
+
 }

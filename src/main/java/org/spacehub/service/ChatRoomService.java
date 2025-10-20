@@ -4,6 +4,7 @@ import org.spacehub.entities.ChatRoom;
 import org.spacehub.repository.ChatRoomRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -23,6 +24,10 @@ public class ChatRoomService {
 
     public Optional<ChatRoom> findByRoomCode(String roomCode){
         return chatRoomRepository.findByRoomCode(roomCode);
+    }
+
+    public List<ChatRoom> getAllRooms() {
+        return chatRoomRepository.findAll();
     }
 
 }
