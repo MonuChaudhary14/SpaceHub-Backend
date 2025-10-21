@@ -134,4 +134,21 @@ public class JanusService {
     restTemplate.postForEntity(handleUrl, request, JsonNode.class);
   }
 
+  public void setMute(String sessionId, String handleId, boolean mute) {
+    Map<String, Object> body = Map.of(
+      "request", "configure",
+      "audio", !mute,
+      "muted", mute
+    );
+
+    Map<String, Object> request = Map.of(
+      "janus", "message",
+      "transaction", UUID.randomUUID().toString(),
+      "body", body
+    );
+
+    String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
+    restTemplate.postForEntity(handleUrl, request, JsonNode.class);
+  }
+
 }

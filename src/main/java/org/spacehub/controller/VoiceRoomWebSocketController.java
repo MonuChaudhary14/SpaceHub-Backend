@@ -6,7 +6,7 @@ import org.spacehub.service.JanusService;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
-
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -94,4 +94,37 @@ public class VoiceRoomWebSocketController {
     String candidateJson = String.valueOf(candidateObj);
     janusService.sendIce(sessionId, handleId, candidateJson);
   }
+
+  @MessageMapping("/mute")
+  public void handleMute(Map<String, String> payload) {
+    String userId = payload.get("userId");
+    String roomId = payload.get("roomId");
+    String action = payload.get("action");
+
+    if (userId == null || roomId == null || action == null) {
+      return;
+    }
+
+    String sessionId = userSessionMap.get(userId);
+    String handleId = userHandleMap.get(userId);
+    if (sessionId == null || handleId == null) {
+      return;
+    }
+
+    boolean mute = action.equalsIgnoreCase("mute");
+    janusService.setMute(sessionId, handleId, mute);
+
+    Map<String, Object> event = new HashMap<>();
+    String type;
+    if (mute) {
+      type = "muted";
+    } else {
+      type = "unmuted";
+    }
+    event.put("type", type);
+    event.put("userId", userId);
+
+    messagingTemplate.convertAndSend("/topic/room/" + roomId + "/events", event);
+  }
+
 }
