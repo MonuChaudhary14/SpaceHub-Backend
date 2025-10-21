@@ -25,4 +25,6 @@ public class ChatMessage {
     @JoinColumn(name = "room_id")
     private ChatRoom room;
 
+    private String roomCode;
+
 }

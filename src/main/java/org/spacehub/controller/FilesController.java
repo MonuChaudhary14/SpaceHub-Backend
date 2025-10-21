@@ -1,5 +1,7 @@
 package org.spacehub.controller;
 
+import org.spacehub.DTO.PresignedRequestDTO;
+import org.spacehub.entities.ApiResponse;
 import org.spacehub.service.S3Service;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,27 +21,35 @@ public class FilesController {
     }
 
     @PostMapping("/upload")
-    public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) throws IOException {
+    public ResponseEntity<ApiResponse<String>> uploadFile(@RequestParam("file") MultipartFile file) throws IOException {
         String key = file.getOriginalFilename();
         s3Service.uploadFile(key, file.getInputStream(), file.getSize());
-        return ResponseEntity.ok("File uploaded: " + key);
+        return ResponseEntity.ok(new ApiResponse<>(200, "File uploaded successfully", key));
     }
 
-    @GetMapping("/presigned/upload")
-    public ResponseEntity<String> getPresignedUploadUrl(@RequestParam String key) {
-        String url = s3Service.generatePresignedUploadUrl(key, Duration.ofMinutes(10));
-        return ResponseEntity.ok(url);
+    @PostMapping("/presigned/upload")
+    public ResponseEntity<ApiResponse<String>> getPresignedUploadUrl(@RequestBody PresignedRequestDTO request) {
+        String key = request.getFile();
+        Duration duration = Duration.ofMinutes(10);
+        String url = s3Service.generatePresignedUploadUrl(key, duration);
+        return ResponseEntity.ok(new ApiResponse<>(200, "Presigned upload URL generated" , url));
     }
 
-    @GetMapping("/presigned/download")
-    public ResponseEntity<String> getPresignedDownloadUrl(@RequestParam String key) {
-        String url = s3Service.generatePresignedDownloadUrl(key, Duration.ofMinutes(10));
-        return ResponseEntity.ok(url);
+    @PostMapping("/presigned/download")
+    public ResponseEntity<ApiResponse<String>> getPresignedDownloadUrl(@RequestBody PresignedRequestDTO request) {
+        String key = request.getFile();
+
+        Duration duration = Duration.ofMinutes(10);
+        String url = s3Service.generatePresignedDownloadUrl(key, duration);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(200, "Presigned download URL generated successfully", url)
+        );
     }
 
     @DeleteMapping("/delete")
-    public ResponseEntity<String> deleteFile(@RequestParam String key) {
+    public ResponseEntity<ApiResponse<String>> deleteFile(@RequestParam String key) {
         s3Service.deleteFile(key);
-        return ResponseEntity.ok("File deleted: " + key);
+        return ResponseEntity.ok(new ApiResponse<>(200, "File deleted successfully", key));
     }
 }

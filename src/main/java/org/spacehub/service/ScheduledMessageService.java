@@ -1,5 +1,6 @@
 package org.spacehub.service;
 
+import org.spacehub.entities.ChatMessage;
 import org.spacehub.entities.ScheduledMessage;
 import org.spacehub.repository.ScheduledMessageRepository;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -12,11 +13,12 @@ import java.util.List;
 public class ScheduledMessageService {
 
     private final ScheduledMessageRepository scheduledMessageRepository;
-    private final ChatMessageService chatMessageService;
+    private final ChatMessageQueue chatMessageQueue;
 
-    public ScheduledMessageService(ScheduledMessageRepository scheduledMessageRepository, ChatMessageService chatMessageService) {
+    public ScheduledMessageService(ScheduledMessageRepository scheduledMessageRepository,
+                                   ChatMessageQueue chatMessageQueue) {
         this.scheduledMessageRepository = scheduledMessageRepository;
-        this.chatMessageService = chatMessageService;
+        this.chatMessageQueue = chatMessageQueue;
     }
 
     public ScheduledMessage addScheduledMessage(ScheduledMessage message) {
@@ -26,14 +28,17 @@ public class ScheduledMessageService {
 
     @Scheduled(fixedRate = 60000)
     public void sendScheduledMessage() {
-        List<ScheduledMessage> scheduled = scheduledMessageRepository.findPendingMessagesBefore(LocalDateTime.now());
+        List<ScheduledMessage> scheduled = scheduledMessageRepository.findBySentFalseAndScheduledTimeBefore(LocalDateTime.now());
 
         for (ScheduledMessage message : scheduled) {
-            chatMessageService.sendMessage(
-                    message.getRoomCode(),
-                    message.getSenderEmail(),
-                    message.getMessage()
-            );
+            ChatMessage chatMessage = new ChatMessage();
+            chatMessage.setRoomCode(message.getRoomCode());
+            chatMessage.setSenderId(message.getSenderEmail());
+            chatMessage.setMessage(message.getMessage());
+            chatMessage.setTimestamp(System.currentTimeMillis());
+
+            chatMessageQueue.enqueue(chatMessage);
+
             message.setSent(true);
             scheduledMessageRepository.save(message);
         }
