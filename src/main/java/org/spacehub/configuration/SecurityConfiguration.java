@@ -51,11 +51,12 @@ public class SecurityConfiguration {
                     .requestMatchers("/api/v1/validateforgototp", "/api/v1/**", "/api/**", "/ws/**",
                       "/swagger-ui/**", "/v3/api-docs/**", "/v3/api-docs.yaml").permitAll()
                     .anyRequest().authenticated()
+                    .requestMatchers("/chat/**").permitAll()
+                    .requestMatchers("/files/**").permitAll()
+                    .anyRequest().permitAll()
             )
             .httpBasic(AbstractHttpConfigurer::disable)
-            .sessionManagement(
-                    session ->
-                            session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authenticationProvider(authenticationProvider)
             .addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class);
 

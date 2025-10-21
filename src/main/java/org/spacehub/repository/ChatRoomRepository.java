@@ -1,15 +1,14 @@
 package org.spacehub.repository;
 
-import org.spacehub.entities.User;
+import org.spacehub.entities.ChatRoom;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
 @Repository
-public interface UserRepository extends JpaRepository<User, Long> {
+public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long>{
 
-  Optional<User> findByEmail(String email);
+    Optional<ChatRoom> findByRoomCode(String roomCode);
 
-  boolean existsByEmail(String email);
 }

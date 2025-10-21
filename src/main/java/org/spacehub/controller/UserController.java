@@ -8,6 +8,8 @@ import org.spacehub.service.UserAccountService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping(path = "api/v1")
 public class UserController {
@@ -71,5 +73,12 @@ public class UserController {
     ApiResponse<String> resp = accountService.resendForgotPasswordOtp(request.getTempToken());
     return ResponseEntity.status(resp.getStatus()).body(resp);
   }
+
+  @PostMapping("/signal")
+  public ResponseEntity<String> handleSignal(@RequestBody Map<String, Object> payload) {
+    System.out.println("Received signal: " + payload);
+    return ResponseEntity.ok("Signal received");
+  }
+
 
 }
