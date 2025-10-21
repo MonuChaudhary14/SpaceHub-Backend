@@ -27,9 +27,15 @@ public class ChatRoomController {
         return chatRoomService.getAllRooms();
     }
 
-    @GetMapping("/{roomCode}")
+    @GetMapping("/getRoom/{roomCode}")
     public Optional<ChatRoom> getRoomByCode(@PathVariable String roomCode) {
         return chatRoomService.findByRoomCode(roomCode);
+    }
+
+    @DeleteMapping("/delete/{roomCode}")
+    public String deleteRoom(@PathVariable String roomCode) {
+        boolean deleted = chatRoomService.deleteRoom(roomCode);
+        return deleted ? "Room deleted successfully" : "Room not found";
     }
 
 }
