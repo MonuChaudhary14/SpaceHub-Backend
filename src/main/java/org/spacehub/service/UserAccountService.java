@@ -321,9 +321,13 @@ public class UserAccountService {
         " seconds before requesting OTP again.", null);
     }
 
-    otpService.sendOTP(normalizedEmail, OtpType.REGISTRATION);
+    try {
+      otpService.sendOTP(normalizedEmail, OtpType.REGISTRATION);
+      return new ApiResponse<>(200, "OTP resent successfully. Check your email.", null);
+    } catch (RuntimeException e) {
+      return new ApiResponse<>(429, e.getMessage(), null);
+    }
 
-    return new ApiResponse<>(200, "OTP resent successfully. Check your email.", null);
   }
 
 
@@ -386,8 +390,11 @@ public class UserAccountService {
       return new ApiResponse<>(404, "User not found", null);
     }
 
-    String newTempToken = otpService.sendOTPWithTempToken(user, OtpType.FORGOT_PASSWORD);
-
-    return new ApiResponse<>(200, "OTP resent successfully. Check your email.", newTempToken);
+    try {
+      String newTempToken = otpService.sendOTPWithTempToken(user, OtpType.FORGOT_PASSWORD);
+      return new ApiResponse<>(200, "OTP resent successfully. Check your email.", newTempToken);
+    } catch (RuntimeException e) {
+      return new ApiResponse<>(429, e.getMessage(), null);
+    }
   }
 }

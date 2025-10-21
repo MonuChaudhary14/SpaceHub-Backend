@@ -16,7 +16,8 @@ public class OTPService {
   private final VerificationService verificationService;
   private static final SecureRandom random = new SecureRandom();
   private final ObjectMapper objectMapper = new ObjectMapper();
-
+  private static final int OTP_GENERATE_LIMIT = 5;
+  private static final int OTP_LIMIT_WINDOW_SECONDS = 900;
   private static final int OTP_EXPIRE_SECONDS = 300;
   private static final int COOLDOWN_SECONDS = 30;
   private static final int TEMP_REGISTRATION_EXPIRE = 600;
@@ -36,6 +37,11 @@ public class OTPService {
   }
 
   public void sendOTP(String email, OtpType type) {
+    if (hasExceededOtpLimit(email, type)) {
+      long remaining = remainingLimitTime(email, type);
+      throw new RuntimeException("OTP request limit exceeded. Try again after " + remaining + " seconds.");
+    }
+
     String usedKey = "OTP_USED_" + type + "_" + email;
     redisService.deleteValue(usedKey);
 
@@ -174,4 +180,22 @@ public class OTPService {
     String key = "REG_SESSION_" + token;
     redisService.deleteValue(key);
   }
+
+  private String otpLimitKey(String email, OtpType type) {
+    return "OTP_LIMIT_" + type + "_" + email;
+  }
+
+  private boolean hasExceededOtpLimit(String email, OtpType type) {
+    String limitKey = otpLimitKey(email, type);
+    Long attempts = redisService.incrementValue(limitKey);
+    if (attempts == 1) {
+      redisService.setExpiry(limitKey, OTP_LIMIT_WINDOW_SECONDS);
+    }
+    return attempts > OTP_GENERATE_LIMIT;
+  }
+
+  private long remainingLimitTime(String email, OtpType type) {
+    return redisService.getLiveTime(otpLimitKey(email, type));
+  }
+
 }
