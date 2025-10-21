@@ -72,4 +72,18 @@ public class ChatRoomController {
         }
     }
 
+    @PostMapping("/join")
+    public ResponseEntity<ApiResponse<String>> joinRoom(@RequestBody RoomRequestDTO requestDTO) {
+        Optional<ChatRoom> OptionalRoom = chatRoomService.findByRoomCode(requestDTO.getRoomCode());
+        if (OptionalRoom.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ApiResponse<>(404, "Room not found", null));
+        }
+
+        chatRoomUserService.addUserToRoom(OptionalRoom.get(), requestDTO.getUserId(), Role.MEMBER);
+
+        return ResponseEntity.ok(new ApiResponse<>(200, "User added to room successfully",
+                "User " + requestDTO.getUserId() + " added to room " + requestDTO.getRoomCode()));
+    }
+
 }

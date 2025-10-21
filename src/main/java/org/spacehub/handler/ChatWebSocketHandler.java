@@ -192,4 +192,39 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         }
         return map;
     }
+
+    public void broadcastMessageToRoom(ChatMessage message) {
+        String roomCode = message.getRoomCode();
+        Set<WebSocketSession> sessions = rooms.getOrDefault(roomCode, ConcurrentHashMap.newKeySet());
+
+        Map<String, Object> payload = Map.of(
+                "senderId", message.getSenderId(),
+                "message", message.getMessage(),
+                "timestamp", message.getTimestamp()
+        );
+
+        String json;
+        try {
+            json = objectMapper.writeValueAsString(payload);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            return;
+        }
+
+        sessions.removeIf(s -> !s.isOpen());
+
+        for (WebSocketSession session : sessions) {
+            if (session.isOpen()) {
+                try {
+                    session.sendMessage(new TextMessage(json));
+                }
+                catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+
 }
