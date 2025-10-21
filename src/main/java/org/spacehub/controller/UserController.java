@@ -1,10 +1,18 @@
 package org.spacehub.controller;
 
 import jakarta.validation.Valid;
-import org.spacehub.DTO.*;
+import org.spacehub.DTO_auth.ForgotPasswordRequest;
+import org.spacehub.DTO_auth.LoginRequest;
+import org.spacehub.DTO_auth.OTPRequest;
+import org.spacehub.DTO_auth.RefreshRequest;
+import org.spacehub.DTO_auth.ResendForgotOtpRequest;
+import org.spacehub.DTO_auth.ResendOtpRequest;
+import org.spacehub.DTO_auth.ResetPasswordRequest;
+import org.spacehub.DTO_auth.TokenResponse;
+import org.spacehub.DTO_auth.ValidateForgotOtpRequest;
 import org.spacehub.entities.ApiResponse;
 import org.spacehub.entities.RegistrationRequest;
-import org.spacehub.service.UserAccountService;
+import org.spacehub.service_auth.UserAccountService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

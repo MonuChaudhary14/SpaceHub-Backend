@@ -1,4 +1,4 @@
-package org.spacehub.service;
+package org.spacehub.service_auth;
 
 import org.spacehub.entities.RefreshToken;
 import org.spacehub.entities.User;

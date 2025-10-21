@@ -1,4 +1,4 @@
-package org.spacehub.service;
+package org.spacehub.service_auth;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.spacehub.entities.OtpType;

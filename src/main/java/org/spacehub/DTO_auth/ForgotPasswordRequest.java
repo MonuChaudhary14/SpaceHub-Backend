@@ -1,5 +1,5 @@
 
-package org.spacehub.DTO;
+package org.spacehub.DTO_auth;
 
 import lombok.Getter;
 import lombok.Setter;

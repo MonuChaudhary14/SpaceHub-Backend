@@ -1,4 +1,4 @@
-package org.spacehub.service;
+package org.spacehub.service_auth;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

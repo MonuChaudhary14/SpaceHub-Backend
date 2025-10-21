@@ -1,6 +1,6 @@
-package org.spacehub.service;
+package org.spacehub.service_auth;
 
-import org.spacehub.DTO.TokenResponse;
+import org.spacehub.DTO_auth.TokenResponse;
 import org.spacehub.entities.User;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;

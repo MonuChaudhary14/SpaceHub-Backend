@@ -1,4 +1,4 @@
-package org.spacehub.DTO;
+package org.spacehub.DTO_auth;
 
 import lombok.Data;
 import org.spacehub.entities.OtpType;

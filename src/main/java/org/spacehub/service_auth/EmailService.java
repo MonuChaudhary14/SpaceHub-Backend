@@ -1,4 +1,4 @@
-package org.spacehub.service;
+package org.spacehub.service_auth;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
