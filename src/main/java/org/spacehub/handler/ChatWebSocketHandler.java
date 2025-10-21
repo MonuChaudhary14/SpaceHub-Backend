@@ -3,6 +3,8 @@ package org.spacehub.handler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.spacehub.entities.ChatMessage;
 import org.spacehub.entities.ChatRoom;
+import org.spacehub.entities.ChatRoomUser;
+import org.spacehub.entities.Role;
 import org.spacehub.service.ChatMessageQueue;
 import org.spacehub.service.ChatRoomService;
 import org.spacehub.service.ChatRoomUserService;
@@ -50,25 +52,47 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
+        Optional<ChatRoom> OptionalRoom = chatRoomService.findByRoomCode(roomCode);
+        if (OptionalRoom.isEmpty()) {
+            session.close();
+            return;
+        }
+
+        ChatRoom room = OptionalRoom.get();
+
+        List<ChatRoomUser> members = chatRoomUserService.getMembers(room);
+        boolean isMember = false;
+
+        for (ChatRoomUser member : members) {
+            if (member.getUserId().equals(userId)) {
+                isMember = true;
+                break;
+            }
+        }
+        if (!isMember) {
+            session.close();
+            return;
+        }
+
         rooms.computeIfAbsent(roomCode, k -> ConcurrentHashMap.newKeySet()).add(session);
         sessionRoom.put(session, roomCode);
         userSessions.put(session, userId);
 
-        chatRoomUserService.addUserToRoom(roomCode, userId);
+        List<ChatMessage> messages = chatMessageQueue.getMessagesForRoom(room);
 
-        ChatRoom room = chatRoomService.findByRoomCode(roomCode).orElse(null);
-        if (room != null) {
-            chatMessageQueue.getMessagesForRoom(room).forEach(message -> {
-                try {
-                    session.sendMessage(new TextMessage(objectMapper.writeValueAsString(Map.of(
-                            "senderId", message.getSenderId(),
-                            "message", message.getMessage(),
-                            "timestamp", message.getTimestamp()
-                    ))));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            });
+        for (ChatMessage message : messages) {
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("senderId", message.getSenderId());
+            payload.put("message", message.getMessage());
+            payload.put("timestamp", message.getTimestamp());
+
+            try {
+                String json = objectMapper.writeValueAsString(payload);
+                session.sendMessage(new TextMessage(json));
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -79,8 +103,26 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
         if (userId == null || roomCode == null) return;
 
-        ChatRoom room = chatRoomService.findByRoomCode(roomCode).orElse(null);
-        if (room == null) return;
+        Optional<ChatRoom> OptionalRoom = chatRoomService.findByRoomCode(roomCode);
+        if (OptionalRoom.isEmpty()) return;
+
+        ChatRoom room = OptionalRoom.get();
+
+        List<ChatRoomUser> members = chatRoomUserService.getMembers(room);
+
+        boolean canSend = false;
+
+        for (ChatRoomUser people : members) {
+            if (people.getUserId().equals(userId)) {
+                Role role = people.getRole();
+                if (role == Role.ADMIN || role == Role.WORKSPACE_OWNER || role == Role.MEMBER) {
+                    canSend = true;
+                    break;
+                }
+            }
+        }
+
+        if (!canSend) return;
 
         ChatMessage chatMessage = ChatMessage.builder()
                 .senderId(userId)
@@ -96,6 +138,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
                 "message", message.getPayload(),
                 "timestamp", chatMessage.getTimestamp()
         );
+
         String json;
         try {
             json = objectMapper.writeValueAsString(broadcast);
@@ -124,12 +167,15 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         String userId = userSessions.remove(session);
 
         if (roomCode != null && userId != null) {
-            chatRoomUserService.removeUserFromRoom(roomCode, userId);
-            Set<WebSocketSession> sessions = rooms.getOrDefault(roomCode, ConcurrentHashMap.newKeySet());
-            sessions.remove(session);
-            if (sessions.isEmpty()) {
-                rooms.remove(roomCode);
-            }
+            Optional<ChatRoom> roomOpt = chatRoomService.findByRoomCode(roomCode);
+            roomOpt.ifPresent(room -> {
+                chatRoomUserService.removeUserFromRoom(room, userId);
+                Set<WebSocketSession> sessions = rooms.getOrDefault(roomCode, ConcurrentHashMap.newKeySet());
+                sessions.remove(session);
+                if (sessions.isEmpty()) {
+                    rooms.remove(roomCode);
+                }
+            });
         }
     }
 

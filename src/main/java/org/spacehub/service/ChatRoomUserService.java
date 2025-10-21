@@ -1,28 +1,39 @@
 package org.spacehub.service;
 
+import org.spacehub.entities.ChatRoom;
+import org.spacehub.entities.ChatRoomUser;
+import org.spacehub.entities.Role;
+import org.spacehub.repository.ChatRoomUserRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.List;
+import java.util.Optional;
 
 @Service
 public class ChatRoomUserService {
 
-    private final Map<String, Set<String>> roomUsers = new ConcurrentHashMap<>();
+    private final ChatRoomUserRepository repository;
 
-    public void addUserToRoom(String roomCode, String userId) {
-        roomUsers.computeIfAbsent(roomCode, k -> ConcurrentHashMap.newKeySet()).add(userId);
+    public ChatRoomUserService(ChatRoomUserRepository repository) {
+        this.repository = repository;
     }
 
-    public void removeUserFromRoom(String roomCode, String userId) {
-        Set<String> users = roomUsers.get(roomCode);
-        if (users != null) {
-            users.remove(userId);
-            if (users.isEmpty()) {
-                roomUsers.remove(roomCode);
-            }
-        }
+    public void addUserToRoom(ChatRoom room, String userId, Role role) {
+        ChatRoomUser user = ChatRoomUser.builder().userId(userId).room(room).role(role).build();
+        repository.save(user);
+    }
+
+    public void removeUserFromRoom(ChatRoom room, String userId) {
+        repository.findByRoomAndUserId(room, userId)
+                .ifPresent(repository::delete);
+    }
+
+    public List<ChatRoomUser> getMembers(ChatRoom room) {
+        return repository.findByRoom(room);
+    }
+
+    public Optional<ChatRoomUser> getUserInRoom(ChatRoom room, String userId) {
+        return repository.findByRoomAndUserId(room, userId);
     }
 
 }

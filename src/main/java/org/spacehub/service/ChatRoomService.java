@@ -1,8 +1,11 @@
 package org.spacehub.service;
 
 import org.spacehub.entities.ChatRoom;
+import org.spacehub.entities.ChatRoomUser;
+import org.spacehub.entities.Role;
 import org.spacehub.repository.ChatMessageRepository;
 import org.spacehub.repository.ChatRoomRepository;
+import org.spacehub.repository.ChatRoomUserRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,11 +17,14 @@ public class ChatRoomService {
 
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
+    private final ChatRoomUserRepository chatRoomUserRepository;
 
     public ChatRoomService(ChatRoomRepository chatRoomRepository,
-                           ChatMessageRepository chatMessageRepository) {
+                           ChatMessageRepository chatMessageRepository,
+                           ChatRoomUserRepository chatRoomUserRepository) {
         this.chatRoomRepository = chatRoomRepository;
         this.chatMessageRepository = chatMessageRepository;
+        this.chatRoomUserRepository = chatRoomUserRepository;
     }
 
     public ChatRoom createRoom(String name){
@@ -26,7 +32,7 @@ public class ChatRoomService {
         return chatRoomRepository.save(room);
     }
 
-    public Optional<ChatRoom> findByRoomCode(String roomCode){
+    public Optional<ChatRoom> findByRoomCode(String roomCode) {
         return chatRoomRepository.findByRoomCode(roomCode);
     }
 
@@ -34,17 +40,26 @@ public class ChatRoomService {
         return chatRoomRepository.findAll();
     }
 
-    public boolean deleteRoom(String roomCode) {
+    public boolean deleteRoom(String roomCode, String userId) {
         Optional<ChatRoom> OptionalRoom = chatRoomRepository.findByRoomCode(roomCode);
-        if (OptionalRoom.isPresent()) {
-            ChatRoom room = OptionalRoom.get();
+        if (OptionalRoom.isEmpty()) return false;
 
-            chatMessageRepository.deleteAll(chatMessageRepository.findByRoomOrderByTimestampAsc(room));
+        ChatRoom room = OptionalRoom.get();
 
-            chatRoomRepository.delete(room);
-            return true;
+        Optional<ChatRoomUser> userRoomOpt = chatRoomUserRepository.findByRoomAndUserId(room, userId);
+
+        if (userRoomOpt.isEmpty()) return false;
+
+        Role role = userRoomOpt.get().getRole();
+        if (role != Role.ADMIN && role != Role.WORKSPACE_OWNER) {
+            return false;
         }
-        return false;
+
+        chatMessageRepository.deleteAll(chatMessageRepository.findByRoomOrderByTimestampAsc(room));
+        chatRoomUserRepository.deleteByRoom(room);
+        chatRoomRepository.delete(room);
+
+        return true;
     }
 
 }
