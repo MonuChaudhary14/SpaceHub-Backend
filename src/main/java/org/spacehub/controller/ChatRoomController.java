@@ -1,10 +1,12 @@
 package org.spacehub.controller;
 
 import org.spacehub.DTO.CreateRoomRequest;
+import org.spacehub.DTO.RoomMemberAction;
 import org.spacehub.DTO.RoomRequestDTO;
 import org.spacehub.DTO.RoomResponseDTO;
 import org.spacehub.entities.ApiResponse;
 import org.spacehub.entities.ChatRoom;
+import org.spacehub.entities.ChatRoomUser;
 import org.spacehub.entities.Role;
 import org.spacehub.service.ChatRoomService;
 import org.spacehub.service.ChatRoomUserService;
@@ -84,6 +86,12 @@ public class ChatRoomController {
 
         return ResponseEntity.ok(new ApiResponse<>(200, "User added to room successfully",
                 "User " + requestDTO.getUserId() + " added to room " + requestDTO.getRoomCode()));
+    }
+
+    @PostMapping("/removeMember")
+    public ResponseEntity<ApiResponse<String>> removeMember(@RequestBody RoomMemberAction requestDTO) {
+        ApiResponse<String> response = chatRoomService.removeMember(requestDTO);
+        return ResponseEntity.status(response.getStatus()).body(response);
     }
 
 }

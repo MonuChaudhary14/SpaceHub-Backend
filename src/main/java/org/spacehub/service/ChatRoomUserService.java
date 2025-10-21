@@ -24,8 +24,7 @@ public class ChatRoomUserService {
     }
 
     public void removeUserFromRoom(ChatRoom room, String userId) {
-        repository.findByRoomAndUserId(room, userId)
-                .ifPresent(repository::delete);
+        repository.deleteByRoomAndUserId(room, userId);
     }
 
     public List<ChatRoomUser> getMembers(ChatRoom room) {
