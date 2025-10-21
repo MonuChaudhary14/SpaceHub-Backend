@@ -302,17 +302,12 @@ public class UserAccountService {
     }
 
     String normalizedEmail = emailValidator.normalize(email);
-    boolean sessionValid = otpService.validateRegistrationSessionToken(sessionToken, normalizedEmail);
-    if (!sessionValid) {
+    if (!otpService.validateRegistrationSessionToken(sessionToken, normalizedEmail)) {
       return new ApiResponse<>(403, "Invalid or expired registration session token", null);
     }
 
-    try {
-      User existingUser = userService.getUserByEmail(normalizedEmail);
-      if (existingUser != null && Boolean.TRUE.equals(existingUser.getEnabled())) {
-        return new ApiResponse<>(400, "User already verified. No OTP needed.", null);
-      }
-    } catch (Exception ignored) {
+    if (isUserAlreadyVerified(normalizedEmail)) {
+      return new ApiResponse<>(400, "User already verified. No OTP needed.", null);
     }
 
     if (otpService.isInCooldown(normalizedEmail, OtpType.REGISTRATION)) {
@@ -321,15 +316,8 @@ public class UserAccountService {
         " seconds before requesting OTP again.", null);
     }
 
-    try {
-      otpService.sendOTP(normalizedEmail, OtpType.REGISTRATION);
-      return new ApiResponse<>(200, "OTP resent successfully. Check your email.", null);
-    } catch (RuntimeException e) {
-      return new ApiResponse<>(429, e.getMessage(), null);
-    }
-
+    return attemptSendOtp(normalizedEmail);
   }
-
 
   public ApiResponse<TokenResponse> validateForgotPasswordOtp(
     ValidateForgotOtpRequest request) {
@@ -393,6 +381,24 @@ public class UserAccountService {
     try {
       String newTempToken = otpService.sendOTPWithTempToken(user, OtpType.FORGOT_PASSWORD);
       return new ApiResponse<>(200, "OTP resent successfully. Check your email.", newTempToken);
+    } catch (RuntimeException e) {
+      return new ApiResponse<>(429, e.getMessage(), null);
+    }
+  }
+
+  private boolean isUserAlreadyVerified(String email) {
+    try {
+      User existingUser = userService.getUserByEmail(email);
+      return existingUser != null && Boolean.TRUE.equals(existingUser.getEnabled());
+    } catch (Exception ignored) {
+      return false;
+    }
+  }
+
+  private ApiResponse<String> attemptSendOtp(String email) {
+    try {
+      otpService.sendOTP(email, OtpType.REGISTRATION);
+      return new ApiResponse<>(200, "OTP resent successfully. Check your email.", null);
     } catch (RuntimeException e) {
       return new ApiResponse<>(429, e.getMessage(), null);
     }
