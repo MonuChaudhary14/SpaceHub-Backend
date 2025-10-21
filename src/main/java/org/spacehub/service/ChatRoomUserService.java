@@ -35,4 +35,8 @@ public class ChatRoomUserService {
         return repository.findByRoomAndUserId(room, userId);
     }
 
+    public void saveUser(ChatRoomUser user) {
+        repository.save(user);
+    }
+
 }
