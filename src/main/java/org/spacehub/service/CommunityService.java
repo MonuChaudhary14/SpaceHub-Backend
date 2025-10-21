@@ -1,8 +1,8 @@
 package org.spacehub.service;
 
 import org.spacehub.DTO.*;
-import org.spacehub.entities.Community;
-import org.spacehub.entities.User;
+import org.spacehub.entities.Community.Community;
+import org.spacehub.entities.User.User;
 import org.spacehub.repository.CommunityRepository;
 import org.spacehub.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;

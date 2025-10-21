@@ -1,10 +1,10 @@
 package org.spacehub.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.spacehub.entities.ChatMessage;
-import org.spacehub.entities.ChatRoom;
-import org.spacehub.entities.ChatRoomUser;
-import org.spacehub.entities.Role;
+import org.spacehub.entities.ChatRoom.ChatMessage;
+import org.spacehub.entities.ChatRoom.ChatRoom;
+import org.spacehub.entities.ChatRoom.ChatRoomUser;
+import org.spacehub.entities.Community.Role;
 import org.spacehub.service.ChatMessageQueue;
 import org.spacehub.service.ChatRoomService;
 import org.spacehub.service.ChatRoomUserService;

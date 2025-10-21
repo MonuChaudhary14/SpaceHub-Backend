@@ -1,8 +1,8 @@
 package org.spacehub.service;
 
-import org.spacehub.entities.ChatRoom;
-import org.spacehub.entities.ChatRoomUser;
-import org.spacehub.entities.Role;
+import org.spacehub.entities.ChatRoom.ChatRoom;
+import org.spacehub.entities.ChatRoom.ChatRoomUser;
+import org.spacehub.entities.Community.Role;
 import org.spacehub.repository.ChatRoomUserRepository;
 import org.springframework.stereotype.Service;
 

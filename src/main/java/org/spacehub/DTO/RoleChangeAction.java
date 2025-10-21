@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.spacehub.entities.Role;
+import org.spacehub.entities.Community.Role;
 
 @Data
 @NoArgsConstructor

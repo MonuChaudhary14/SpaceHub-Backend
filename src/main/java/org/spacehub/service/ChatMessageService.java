@@ -1,7 +1,7 @@
 package org.spacehub.service;
 
-import org.spacehub.entities.ChatMessage;
-import org.spacehub.entities.ChatRoom;
+import org.spacehub.entities.ChatRoom.ChatMessage;
+import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.repository.ChatMessageRepository;
 import org.springframework.stereotype.Service;
 

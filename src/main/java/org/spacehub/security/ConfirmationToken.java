@@ -9,7 +9,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
 import lombok.Data;
-import org.spacehub.entities.User;
+import org.spacehub.entities.User.User;
 
 import java.time.LocalDateTime;
 

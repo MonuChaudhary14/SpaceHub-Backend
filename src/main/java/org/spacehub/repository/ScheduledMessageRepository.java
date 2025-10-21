@@ -1,6 +1,6 @@
 package org.spacehub.repository;
 
-import org.spacehub.entities.ScheduledMessage;
+import org.spacehub.entities.ScheduledMessage.ScheduledMessage;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

@@ -1,8 +1,8 @@
 package org.spacehub.service;
 
 import org.spacehub.DTO.UserOutput;
-import org.spacehub.entities.Friends;
-import org.spacehub.entities.User;
+import org.spacehub.entities.Friends.Friends;
+import org.spacehub.entities.User.User;
 import org.spacehub.repository.FriendsRepository;
 import org.spacehub.repository.UserRepository;
 import org.springframework.stereotype.Service;

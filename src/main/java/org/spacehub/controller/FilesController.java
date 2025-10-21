@@ -1,7 +1,7 @@
 package org.spacehub.controller;
 
 import org.spacehub.DTO.PresignedRequestDTO;
-import org.spacehub.entities.ApiResponse;
+import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.service.S3Service;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

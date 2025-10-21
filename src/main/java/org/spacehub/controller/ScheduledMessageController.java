@@ -1,6 +1,6 @@
 package org.spacehub.controller;
 
-import org.spacehub.entities.ScheduledMessage;
+import org.spacehub.entities.ScheduledMessage.ScheduledMessage;
 import org.spacehub.service.ScheduledMessageService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

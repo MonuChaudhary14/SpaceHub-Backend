@@ -1,7 +1,7 @@
 package org.spacehub.repository;
 
-import org.spacehub.entities.ChatRoom;
-import org.spacehub.entities.ChatRoomUser;
+import org.spacehub.entities.ChatRoom.ChatRoom;
+import org.spacehub.entities.ChatRoom.ChatRoomUser;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

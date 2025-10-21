@@ -1,8 +1,8 @@
 package org.spacehub.service;
 
-import org.spacehub.entities.ChatMessage;
-import org.spacehub.entities.ChatRoom;
-import org.spacehub.entities.ScheduledMessage;
+import org.spacehub.entities.ChatRoom.ChatMessage;
+import org.spacehub.entities.ChatRoom.ChatRoom;
+import org.spacehub.entities.ScheduledMessage.ScheduledMessage;
 import org.spacehub.repository.ScheduledMessageRepository;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
