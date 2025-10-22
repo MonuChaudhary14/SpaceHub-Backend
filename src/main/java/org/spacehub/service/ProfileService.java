@@ -56,6 +56,8 @@ public class ProfileService {
     }
 
     public User uploadAvatar(Long userId, MultipartFile file) throws IOException {
+        validateImage(file);
+
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
 
         String key = "avatars/" + file.getOriginalFilename();
@@ -66,6 +68,8 @@ public class ProfileService {
     }
 
     public User uploadCoverPhoto(Long userId, MultipartFile file) throws IOException {
+        validateImage(file);
+
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
 
         String key = "covers/" + file.getOriginalFilename();
@@ -73,6 +77,21 @@ public class ProfileService {
 
         user.setCoverPhotoUrl(key);
         return userRepository.save(user);
+    }
+
+    private void validateImage(MultipartFile file) {
+        if (file.isEmpty()) {
+            throw new RuntimeException("File is empty");
+        }
+
+        if (file.getSize() > 2 * 1024 * 1024) {
+            throw new RuntimeException("File size exceeds 2 MB");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new RuntimeException("Only image files are allowed");
+        }
     }
 
 }
