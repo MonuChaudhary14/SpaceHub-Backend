@@ -8,14 +8,14 @@ import java.time.LocalDateTime;
 @Entity
 public class ScheduledMessage {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    private String roomCode;
-    private String senderEmail;
-    private String message;
-    private LocalDateTime scheduledTime;
-    private boolean sent = false;
+  private String roomCode;
+  private String senderEmail;
+  private String message;
+  private LocalDateTime scheduledTime;
+  private boolean sent = false;
 
 }

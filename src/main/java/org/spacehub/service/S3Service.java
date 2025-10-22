@@ -17,53 +17,53 @@ import java.time.Duration;
 @Service
 public class S3Service {
 
-    private final S3Client s3Client;
-    private final S3Presigner s3Presigner;
+  private final S3Client s3Client;
+  private final S3Presigner s3Presigner;
 
-    @Value("${aws.s3.bucket}")
-    private String bucketName;
+  @Value("${aws.s3.bucket}")
+  private String bucketName;
 
-    public S3Service(S3Client s3Client, S3Presigner s3Presigner) {
-        this.s3Client = s3Client;
-        this.s3Presigner = s3Presigner;
-    }
+  public S3Service(S3Client s3Client, S3Presigner s3Presigner) {
+    this.s3Client = s3Client;
+    this.s3Presigner = s3Presigner;
+  }
 
-    public void uploadFile(String key, InputStream inputStream, long contentLength) {
-        PutObjectRequest request = PutObjectRequest.builder()
-                .bucket(bucketName)
-                .key(key)
-                .build();
-        s3Client.putObject(request, RequestBody.fromInputStream(inputStream, contentLength));
-    }
+  public void uploadFile(String key, InputStream inputStream, long contentLength) {
+    PutObjectRequest request = PutObjectRequest.builder()
+            .bucket(bucketName)
+            .key(key)
+            .build();
+    s3Client.putObject(request, RequestBody.fromInputStream(inputStream, contentLength));
+  }
 
-    public void deleteFile(String key) {
-        DeleteObjectRequest request = DeleteObjectRequest.builder()
-                .bucket(bucketName)
-                .key(key)
-                .build();
-        s3Client.deleteObject(request);
-    }
+  public void deleteFile(String key) {
+    DeleteObjectRequest request = DeleteObjectRequest.builder()
+            .bucket(bucketName)
+            .key(key)
+            .build();
+    s3Client.deleteObject(request);
+  }
 
-    public String generatePresignedUploadUrl(String key, Duration duration) {
-        PutObjectRequest request = PutObjectRequest.builder()
-                .bucket(bucketName)
-                .key(key)
-                .build();
+  public String generatePresignedUploadUrl(String key, Duration duration) {
+    PutObjectRequest request = PutObjectRequest.builder()
+            .bucket(bucketName)
+            .key(key)
+            .build();
 
-        PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
-                .signatureDuration(duration)
-                .putObjectRequest(request)
-                .build();
+    PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
+            .signatureDuration(duration)
+            .putObjectRequest(request)
+            .build();
 
-        return s3Presigner.presignPutObject(presignRequest).url().toString();
-    }
+    return s3Presigner.presignPutObject(presignRequest).url().toString();
+  }
 
-    public String generatePresignedDownloadUrl(String key, Duration duration) {
-        GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-                .getObjectRequest(b -> b.bucket(bucketName).key(key))
-                .signatureDuration(duration)
-                .build();
+  public String generatePresignedDownloadUrl(String key, Duration duration) {
+    GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
+            .getObjectRequest(b -> b.bucket(bucketName).key(key))
+            .signatureDuration(duration)
+            .build();
 
-        return s3Presigner.presignGetObject(presignRequest).url().toString();
-    }
+    return s3Presigner.presignGetObject(presignRequest).url().toString();
+  }
 }

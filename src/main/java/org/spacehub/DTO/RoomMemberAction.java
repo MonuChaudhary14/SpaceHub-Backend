@@ -9,8 +9,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class RoomMemberAction {
 
-    private String roomCode;
-    private String userId;
-    private String targetUserId;
+  private String roomCode;
+  private String userId;
+  private String targetUserId;
 
 }

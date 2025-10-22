@@ -10,13 +10,13 @@ import lombok.*;
 @Builder
 public class ChatRoom {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    private String name;
+  private String name;
 
-    @Column(unique = true, nullable = false)
-    private String roomCode;
+  @Column(unique = true, nullable = false)
+  private String roomCode;
 
 }

@@ -10,22 +10,18 @@ import java.util.List;
 @Service
 public class ChatMessageService {
 
-    private final ChatMessageRepository chatMessageRepository;
+  private final ChatMessageRepository chatMessageRepository;
 
-    public ChatMessageService(ChatMessageRepository chatMessageRepository) {
-        this.chatMessageRepository = chatMessageRepository;
-    }
+  public ChatMessageService(ChatMessageRepository chatMessageRepository) {
+    this.chatMessageRepository = chatMessageRepository;
+  }
 
-    public ChatMessage saveMessage(ChatMessage message) {
-        return chatMessageRepository.save(message);
-    }
+  public void saveAll(List<ChatMessage> messages) {
+    chatMessageRepository.saveAll(messages);
+  }
 
-    public List<ChatMessage> saveAll(List<ChatMessage> messages) {
-        return chatMessageRepository.saveAll(messages);
-    }
-
-    public List<ChatMessage> getMessagesForRoom(ChatRoom room) {
-        return chatMessageRepository.findByRoomOrderByTimestampAsc(room);
-    }
+  public List<ChatMessage> getMessagesForRoom(ChatRoom room) {
+    return chatMessageRepository.findByRoomOrderByTimestampAsc(room);
+  }
 
 }

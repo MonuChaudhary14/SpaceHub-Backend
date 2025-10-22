@@ -9,16 +9,16 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("api/v1/schedule")
 public class ScheduledMessageController {
 
-    private final ScheduledMessageService scheduledMessageService;
+  private final ScheduledMessageService scheduledMessageService;
 
-    public ScheduledMessageController(ScheduledMessageService scheduledMessageService) {
-        this.scheduledMessageService = scheduledMessageService;
-    }
+  public ScheduledMessageController(ScheduledMessageService scheduledMessageService) {
+    this.scheduledMessageService = scheduledMessageService;
+  }
 
-    @PostMapping("/message")
-    public ResponseEntity<ScheduledMessage> scheduleMessage(@RequestBody ScheduledMessage message) {
-        ScheduledMessage saved = scheduledMessageService.addScheduledMessage(message);
-        return ResponseEntity.ok(saved);
-    }
+  @PostMapping("/message")
+  public ResponseEntity<ScheduledMessage> scheduleMessage(@RequestBody ScheduledMessage message) {
+    ScheduledMessage saved = scheduledMessageService.addScheduledMessage(message);
+    return ResponseEntity.ok(saved);
+  }
 
 }

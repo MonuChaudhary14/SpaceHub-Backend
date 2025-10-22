@@ -5,7 +5,7 @@ import lombok.Data;
 @Data
 public class LeaveCommunity {
 
-    private String communityName;
-    private String userEmail;
+  private String communityName;
+  private String userEmail;
 
 }

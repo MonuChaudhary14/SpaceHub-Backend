@@ -11,11 +11,10 @@ import java.util.Optional;
 @Repository
 public interface ChatRoomUserRepository extends JpaRepository<ChatRoomUser, Long> {
 
-    List<ChatRoomUser> findByRoom(ChatRoom room);
+  List<ChatRoomUser> findByRoom(ChatRoom room);
 
-    Optional<ChatRoomUser> findByRoomAndUserId(ChatRoom room, String userId);
+  Optional<ChatRoomUser> findByRoomAndUserId(ChatRoom room, String userId);
 
-    void deleteByRoom(ChatRoom room);
+  void deleteByRoomAndUserId(ChatRoom room, String userId);
 
-    void deleteByRoomAndUserId(ChatRoom room, String userId);
 }

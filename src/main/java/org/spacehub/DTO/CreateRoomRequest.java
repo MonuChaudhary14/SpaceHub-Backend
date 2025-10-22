@@ -7,7 +7,7 @@ import lombok.Data;
 @Builder
 public class CreateRoomRequest {
 
-    private String name;
-    private String userId;
+  private String name;
+  private String userId;
 
 }

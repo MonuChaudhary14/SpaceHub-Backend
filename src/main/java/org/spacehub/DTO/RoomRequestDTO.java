@@ -7,7 +7,8 @@ import lombok.Data;
 @Builder
 public class RoomRequestDTO {
 
-    private String name;
-    private String userId;
-    private String roomCode;
+  private String name;
+  private String userId;
+  private String roomCode;
+
 }
