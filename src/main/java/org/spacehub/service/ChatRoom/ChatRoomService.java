@@ -72,10 +72,18 @@ public class ChatRoomService {
     }
 
     public ApiResponse<String> joinRoomResponse(String roomCode, String userId) {
+
         Optional<ChatRoom> optionalRoom = chatRoomRepository.findByRoomCode(roomCode);
         if (optionalRoom.isEmpty()) return new ApiResponse<>(404, "Room not found", null);
 
-        chatRoomUserService.addUserToRoom(optionalRoom.get(), userId, Role.MEMBER);
+        ChatRoom room = optionalRoom.get();
+
+        Optional<ChatRoomUser> existingUser = chatRoomUserService.getUserInRoom(room, userId);
+        if (existingUser.isPresent()) {
+            return new ApiResponse<>(400, "User already in the room", null);
+        }
+
+        chatRoomUserService.addUserToRoom(room, userId, Role.MEMBER);
         return new ApiResponse<>(200, "User added to room successfully", "User " + userId + " added to room " + roomCode);
     }
 
@@ -143,6 +151,24 @@ public class ChatRoomService {
 
     public Optional<ChatRoom> findByRoomCode(String roomCode) {
         return chatRoomRepository.findByRoomCode(roomCode);
+    }
+
+    public ApiResponse<String> leaveRoom(LeaveRoomRequest requestDTO) {
+
+        Optional<ChatRoom> optionalRoom = chatRoomRepository.findByRoomCode(requestDTO.getRoomCode());
+        if (optionalRoom.isEmpty()) {
+            return new ApiResponse<>(404, "Room not found", null);
+        }
+
+        ChatRoom room = optionalRoom.get();
+
+        Optional<ChatRoomUser> optionalUser = chatRoomUserService.getUserInRoom(room, requestDTO.getUserId());
+        if (optionalUser.isEmpty()) {
+            return new ApiResponse<>(400, "You are not a member of this room", null);
+        }
+
+        chatRoomUserService.removeUserFromRoom(room, requestDTO.getUserId());
+        return new ApiResponse<>(200, "Left room successfully", "User " + requestDTO.getUserId() + " has left room " + room.getRoomCode());
     }
 
 }

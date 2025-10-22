@@ -16,10 +16,6 @@ public class ChatMessageService {
         this.chatMessageRepository = chatMessageRepository;
     }
 
-    public ChatMessage saveMessage(ChatMessage message) {
-        return chatMessageRepository.save(message);
-    }
-
     public List<ChatMessage> saveAll(List<ChatMessage> messages) {
         return chatMessageRepository.saveAll(messages);
     }

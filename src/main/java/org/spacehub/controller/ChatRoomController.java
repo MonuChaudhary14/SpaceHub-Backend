@@ -55,4 +55,9 @@ public class ChatRoomController {
         return ResponseEntity.status(200).body(chatRoomService.changeRole(requestDTO));
     }
 
+    @PostMapping("/leave")
+    public ApiResponse<String> leaveRoom(@RequestBody LeaveRoomRequest requestDTO) {
+        return chatRoomService.leaveRoom(requestDTO);
+    }
+
 }
