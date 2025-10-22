@@ -168,4 +168,8 @@ public class ChatRoomService {
         return new ApiResponse<>(403, "You are not authorized to change roles", null);
     }
 
+    public Optional<ChatRoom> findByRoomCode(String roomCode) {
+        return chatRoomRepository.findByRoomCode(roomCode);
+    }
+
 }

@@ -10,7 +10,7 @@ import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.User.User;
 import org.spacehub.entities.Auth.RegistrationRequest;
 import org.spacehub.entities.OTP.OtpType;
-import UserRole;
+import org.spacehub.entities.User.UserRole;
 import org.spacehub.security.EmailValidator;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
