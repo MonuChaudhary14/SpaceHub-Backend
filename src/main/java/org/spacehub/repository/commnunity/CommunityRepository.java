@@ -1,4 +1,4 @@
-package org.spacehub.repository;
+package org.spacehub.repository.commnunity;
 
 import org.spacehub.entities.Community.Community;
 import org.spacehub.entities.User.User;

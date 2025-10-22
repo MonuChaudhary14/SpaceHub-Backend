@@ -1,9 +1,13 @@
-package org.spacehub.service;
+package org.spacehub.service.community;
 
 import org.spacehub.DTO.*;
+import org.spacehub.DTO.Community.CommunityDTO;
+import org.spacehub.DTO.Community.DeleteCommunityDTO;
+import org.spacehub.DTO.Community.JoinCommunity;
+import org.spacehub.DTO.Community.LeaveCommunity;
 import org.spacehub.entities.Community.Community;
 import org.spacehub.entities.User.User;
-import org.spacehub.repository.CommunityRepository;
+import org.spacehub.repository.commnunity.CommunityRepository;
 import org.spacehub.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;

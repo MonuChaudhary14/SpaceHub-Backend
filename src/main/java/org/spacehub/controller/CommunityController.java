@@ -1,7 +1,11 @@
 package org.spacehub.controller;
 
 import org.spacehub.DTO.*;
-import org.spacehub.service.CommunityService;
+import org.spacehub.DTO.Community.CommunityDTO;
+import org.spacehub.DTO.Community.DeleteCommunityDTO;
+import org.spacehub.DTO.Community.JoinCommunity;
+import org.spacehub.DTO.Community.LeaveCommunity;
+import org.spacehub.service.community.CommunityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
