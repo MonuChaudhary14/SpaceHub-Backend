@@ -2,19 +2,12 @@ package org.spacehub.controller;
 
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.ChatRoom.ChatPoll;
-import org.spacehub.entities.ChatRoom.ChatRoom;
-import org.spacehub.entities.ChatRoom.ChatRoomUser;
-import org.spacehub.entities.Community.Role;
 import org.spacehub.service.ChatRoom.ChatPollService;
-import org.spacehub.service.ChatRoom.ChatRoomService;
-import org.spacehub.service.ChatRoom.ChatRoomUserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-
 
 @RestController
 @RequestMapping("/api/v1/chat/polls")

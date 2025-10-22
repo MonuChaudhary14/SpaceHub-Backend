@@ -1,6 +1,7 @@
 package org.spacehub.controller;
 
-import org.spacehub.DTO.*;
+import jakarta.validation.Valid;
+import org.spacehub.DTO.chatroom.*;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.service.ChatRoom.ChatRoomService;
@@ -20,45 +21,38 @@ public class ChatRoomController {
     }
 
     @PostMapping("/create")
-    public ResponseEntity<ApiResponse<RoomResponseDTO>> createRoom(@RequestBody CreateRoomRequest requestDTO) {
-        ApiResponse<RoomResponseDTO> response = chatRoomService.createRoom(requestDTO);
-        return ResponseEntity.status(response.getStatus()).body(response);
+    public ResponseEntity<ApiResponse<RoomResponseDTO>> createRoom(@Valid @RequestBody CreateRoomRequest requestDTO) {
+        return ResponseEntity.status(200).body(chatRoomService.createRoom(requestDTO));
     }
 
     @GetMapping("/all")
     public ResponseEntity<ApiResponse<List<ChatRoom>>> getAllRooms() {
-        ApiResponse<List<ChatRoom>> response = chatRoomService.getAllRoomsData();
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(chatRoomService.getAllRoomsData());
     }
 
     @PostMapping("/getRoom")
-    public ResponseEntity<ApiResponse<ChatRoom>> getRoomByCode(@RequestBody RoomRequestDTO requestDTO) {
-        ApiResponse<ChatRoom> response = chatRoomService.getRoomByCodeData(requestDTO.getRoomCode());
-        return ResponseEntity.status(response.getStatus()).body(response);
+    public ResponseEntity<ApiResponse<ChatRoom>> getRoomByCode(@Valid @RequestBody RoomRequestDTO requestDTO) {
+        return ResponseEntity.status(200).body(chatRoomService.getRoomByCodeData(requestDTO.getRoomCode()));
     }
 
     @PostMapping("/deleteRoom")
-    public ResponseEntity<ApiResponse<String>> deleteRoom(@RequestBody RoomRequestDTO requestDTO) {
-        ApiResponse<String> response = chatRoomService.deleteRoomResponse(requestDTO.getRoomCode(), requestDTO.getUserId());
-        return ResponseEntity.status(response.getStatus()).body(response);
+    public ResponseEntity<ApiResponse<String>> deleteRoom(@Valid @RequestBody RoomRequestDTO requestDTO) {
+        return ResponseEntity.status(200).body(chatRoomService.deleteRoomResponse(requestDTO.getRoomCode(), requestDTO.getUserId()));
     }
 
     @PostMapping("/join")
-    public ResponseEntity<ApiResponse<String>> joinRoom(@RequestBody RoomRequestDTO requestDTO) {
-        ApiResponse<String> response = chatRoomService.joinRoomResponse(requestDTO.getRoomCode(), requestDTO.getUserId());
-        return ResponseEntity.status(response.getStatus()).body(response);
+    public ResponseEntity<ApiResponse<String>> joinRoom(@Valid @RequestBody RoomRequestDTO requestDTO) {
+        return ResponseEntity.status(200).body(chatRoomService.joinRoomResponse(requestDTO.getRoomCode(), requestDTO.getUserId()));
     }
 
     @PostMapping("/removeMember")
-    public ResponseEntity<ApiResponse<String>> removeMember(@RequestBody RoomMemberAction requestDTO) {
-        ApiResponse<String> response = chatRoomService.removeMember(requestDTO);
-        return ResponseEntity.status(response.getStatus()).body(response);
+    public ResponseEntity<ApiResponse<String>> removeMember(@Valid @RequestBody RemoveMemberRequest requestDTO) {
+        return ResponseEntity.status(200).body(chatRoomService.removeMember(requestDTO));
     }
 
-    @PostMapping("/changerole")
-    public ResponseEntity<ApiResponse<String>> changeRole(@RequestBody RoleChangeAction requestDTO) {
-        ApiResponse<String> response = chatRoomService.changeRole(requestDTO);
-        return ResponseEntity.status(response.getStatus()).body(response);
+    @PostMapping("/changeRole")
+    public ResponseEntity<ApiResponse<String>> changeRole(@Valid @RequestBody ChangeRoleRequest requestDTO) {
+        return ResponseEntity.status(200).body(chatRoomService.changeRole(requestDTO));
     }
 
 }

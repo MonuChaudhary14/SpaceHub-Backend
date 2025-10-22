@@ -1,9 +1,6 @@
 package org.spacehub.service.ChatRoom;
 
-import org.spacehub.DTO.CreateRoomRequest;
-import org.spacehub.DTO.RoleChangeAction;
-import org.spacehub.DTO.RoomMemberAction;
-import org.spacehub.DTO.RoomResponseDTO;
+import org.spacehub.DTO.chatroom.*;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.ChatRoom.ChatRoomUser;
@@ -32,25 +29,18 @@ public class ChatRoomService {
     }
 
     public ApiResponse<RoomResponseDTO> createRoom(CreateRoomRequest requestDTO) {
-
-        ChatRoom room = ChatRoom.builder().name(requestDTO.getName()).roomCode(UUID.randomUUID().toString()).build();
+        ChatRoom room = ChatRoom.builder().roomName(requestDTO.getRoomName()).roomCode(UUID.randomUUID().toString())
+                .createdBy(requestDTO.getCreatedBy())
+                .build();
         chatRoomRepository.save(room);
-
-        chatRoomUserService.addUserToRoom(room, requestDTO.getUserId(), Role.ADMIN);
-
-        RoomResponseDTO responseDTO = RoomResponseDTO.builder().roomCode(room.getRoomCode()).name(room.getName()).message("Room created successfully").build();
-
-        return new ApiResponse<>(200, "Room created successfully", responseDTO);
+        chatRoomUserService.addUserToRoom(room, requestDTO.getCreatedBy(), Role.ADMIN);
+        return new ApiResponse<>(200, "Room created successfully", RoomResponseDTO.fromEntity(room));
     }
 
     public ApiResponse<ChatRoom> getRoomByCodeData(String roomCode) {
         Optional<ChatRoom> optionalRoom = chatRoomRepository.findByRoomCode(roomCode);
-        if (optionalRoom.isPresent()) {
-            return new ApiResponse<>(200, "Room fetched successfully", optionalRoom.get());
-        }
-        else {
-            return new ApiResponse<>(404, "Room not found", null);
-        }
+        return optionalRoom.map(room -> new ApiResponse<>(200, "Room fetched successfully", room))
+                .orElseGet(() -> new ApiResponse<>(404, "Room not found", null));
     }
 
     public ApiResponse<List<ChatRoom>> getAllRoomsData() {
@@ -59,20 +49,22 @@ public class ChatRoomService {
     }
 
     public ApiResponse<String> deleteRoomResponse(String roomCode, String userId) {
+
         Optional<ChatRoom> optionalRoom = chatRoomRepository.findByRoomCode(roomCode);
-        if (optionalRoom.isEmpty()) return new ApiResponse<>(403, "Room not found", null);
+        if (optionalRoom.isEmpty()) return new ApiResponse<>(404, "Room not found", null);
 
         ChatRoom room = optionalRoom.get();
 
-        Optional<ChatRoomUser> userOpt = chatRoomUserService.getUserInRoom(room, userId);
-        if (userOpt.isEmpty()) return new ApiResponse<>(403, "You are not a member of this room", null);
+        Optional<ChatRoomUser> optionalUser = chatRoomUserService.getUserInRoom(room, userId);
+        if (optionalUser.isEmpty()) return new ApiResponse<>(403, "You are not a member of this room", null);
 
-        Role role = userOpt.get().getRole();
-        if (role != Role.ADMIN && role != Role.WORKSPACE_OWNER) {
+        Role role = optionalUser.get().getRole();
+
+        if (role != Role.ADMIN && role != Role.WORKSPACE_OWNER)
             return new ApiResponse<>(403, "You are not authorized to delete this room", null);
-        }
 
         chatMessageRepository.deleteAll(chatMessageRepository.findByRoomOrderByTimestampAsc(room));
+
         chatRoomUserService.getMembers(room).forEach(user -> chatRoomUserService.removeUserFromRoom(room, user.getUserId()));
         chatRoomRepository.delete(room);
 
@@ -84,42 +76,32 @@ public class ChatRoomService {
         if (optionalRoom.isEmpty()) return new ApiResponse<>(404, "Room not found", null);
 
         chatRoomUserService.addUserToRoom(optionalRoom.get(), userId, Role.MEMBER);
-        return new ApiResponse<>(200, "User added to room successfully","User " + userId + " added to room " + roomCode);
+        return new ApiResponse<>(200, "User added to room successfully", "User " + userId + " added to room " + roomCode);
     }
 
-    public ApiResponse<String> removeMember(RoomMemberAction requestDTO) {
+    public ApiResponse<String> removeMember(RemoveMemberRequest requestDTO) {
 
         Optional<ChatRoom> optionalRoom = chatRoomRepository.findByRoomCode(requestDTO.getRoomCode());
         if (optionalRoom.isEmpty()) return new ApiResponse<>(404, "Room not found", null);
 
         ChatRoom room = optionalRoom.get();
 
-        Optional<ChatRoomUser> OptionalRequestor = chatRoomUserService.getUserInRoom(room, requestDTO.getUserId());
-        if (OptionalRequestor.isEmpty()) return new ApiResponse<>(403, "You are not a member of this room", null);
+        Optional<ChatRoomUser> optionalRequester = chatRoomUserService.getUserInRoom(room, requestDTO.getRequesterId());
+        if (optionalRequester.isEmpty()) return new ApiResponse<>(403, "You are not a member of this room", null);
 
-        ChatRoomUser requester = OptionalRequestor.get();
+        ChatRoomUser requester = optionalRequester.get();
         Role requesterRole = requester.getRole();
 
-        Optional<ChatRoomUser> OptionalTarget = chatRoomUserService.getUserInRoom(room, requestDTO.getTargetUserId());
-        if (OptionalTarget.isEmpty()) return new ApiResponse<>(404, "Target user not found in this room", null);
+        Optional<ChatRoomUser> optionalTarget = chatRoomUserService.getUserInRoom(room, requestDTO.getTargetUserId());
+        if (optionalTarget.isEmpty()) return new ApiResponse<>(404, "Target user not found in this room", null);
 
-        ChatRoomUser target = OptionalTarget.get();
+        ChatRoomUser target = optionalTarget.get();
         Role targetRole = target.getRole();
 
-        if (requestDTO.getUserId().equals(requestDTO.getTargetUserId())) {
+        if (requestDTO.getRequesterId().equals(requestDTO.getTargetUserId()))
             return new ApiResponse<>(400, "You cannot remove yourself from the room", null);
-        }
 
-        if (requesterRole == Role.ADMIN) {
-            chatRoomUserService.removeUserFromRoom(room, requestDTO.getTargetUserId());
-            return new ApiResponse<>(200, "Member removed successfully",
-                    "User " + target.getUserId() + " removed from room " + room.getRoomCode());
-        }
-
-        if (requesterRole == Role.WORKSPACE_OWNER) {
-            if (targetRole == Role.ADMIN || targetRole == Role.WORKSPACE_OWNER) {
-                return new ApiResponse<>(403, "Workspace owner cannot remove Admin or another Workspace Owner", null);
-            }
+        if (requesterRole == Role.ADMIN || (requesterRole == Role.WORKSPACE_OWNER && targetRole != Role.ADMIN && targetRole != Role.WORKSPACE_OWNER)) {
             chatRoomUserService.removeUserFromRoom(room, requestDTO.getTargetUserId());
             return new ApiResponse<>(200, "Member removed successfully","User " + target.getUserId() + " removed from room " + room.getRoomCode());
         }
@@ -127,39 +109,30 @@ public class ChatRoomService {
         return new ApiResponse<>(403, "You are not authorized to remove members", null);
     }
 
-    public ApiResponse<String> changeRole(RoleChangeAction requestDTO) {
+    public ApiResponse<String> changeRole(ChangeRoleRequest requestDTO) {
 
         Optional<ChatRoom> optionalRoom = chatRoomRepository.findByRoomCode(requestDTO.getRoomCode());
         if (optionalRoom.isEmpty()) return new ApiResponse<>(404, "Room not found", null);
 
         ChatRoom room = optionalRoom.get();
 
-        Optional<ChatRoomUser> OptionalRequestor = chatRoomUserService.getUserInRoom(room, requestDTO.getRequesterId());
-        if (OptionalRequestor.isEmpty()) return new ApiResponse<>(403, "You are not a member of this room", null);
+        Optional<ChatRoomUser> optionalRequester = chatRoomUserService.getUserInRoom(room, requestDTO.getRequesterId());
+        if (optionalRequester.isEmpty()) return new ApiResponse<>(403, "You are not a member of this room", null);
 
-        ChatRoomUser requester = OptionalRequestor.get();
+        ChatRoomUser requester = optionalRequester.get();
         Role requesterRole = requester.getRole();
 
-        Optional<ChatRoomUser> OptionalTarget = chatRoomUserService.getUserInRoom(room, requestDTO.getTargetUserId());
-        if (OptionalTarget.isEmpty()) return new ApiResponse<>(404, "Target user not found in this room", null);
+        Optional<ChatRoomUser> optionalTarget = chatRoomUserService.getUserInRoom(room, requestDTO.getTargetUserId());
+        if (optionalTarget.isEmpty()) return new ApiResponse<>(404, "Target user not found in this room", null);
 
-        ChatRoomUser target = OptionalTarget.get();
+        ChatRoomUser target = optionalTarget.get();
         Role targetRole = target.getRole();
 
-        if (requestDTO.getRequesterId().equals(requestDTO.getTargetUserId())) {
+        if (requestDTO.getRequesterId().equals(requestDTO.getTargetUserId()))
             return new ApiResponse<>(400, "You cannot change your own role", null);
-        }
 
-        if (requesterRole == Role.ADMIN) {
-            target.setRole(requestDTO.getNewRole());
-            chatRoomUserService.saveUser(target);
-            return new ApiResponse<>(200, "Role updated successfully","User " + target.getUserId() + " is now " + target.getRole());
-        }
-
-        if (requesterRole == Role.WORKSPACE_OWNER) {
-            if (targetRole == Role.ADMIN || targetRole == Role.WORKSPACE_OWNER) {
-                return new ApiResponse<>(403, "Workspace owner cannot change the role of Admin or another Workspace Owner", null);
-            }
+        if (requesterRole == Role.ADMIN ||
+                (requesterRole == Role.WORKSPACE_OWNER && targetRole != Role.ADMIN && targetRole != Role.WORKSPACE_OWNER)) {
             target.setRole(requestDTO.getNewRole());
             chatRoomUserService.saveUser(target);
             return new ApiResponse<>(200, "Role updated successfully","User " + target.getUserId() + " is now " + target.getRole());

@@ -1,0 +1,23 @@
+package org.spacehub.DTO.chatroom;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class CreateRoomRequest {
+
+    @NotBlank(message = "Room name is required")
+    @Size(min = 3, max = 50, message = "Room name must be between 3 and 50 characters")
+    private String roomName;
+
+    @NotBlank(message = "Creator ID is required")
+    private String createdBy;
+
+}
