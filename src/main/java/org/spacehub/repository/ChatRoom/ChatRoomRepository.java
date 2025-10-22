@@ -1,4 +1,4 @@
-package org.spacehub.repository;
+package org.spacehub.repository.ChatRoom;
 
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.springframework.data.jpa.repository.JpaRepository;

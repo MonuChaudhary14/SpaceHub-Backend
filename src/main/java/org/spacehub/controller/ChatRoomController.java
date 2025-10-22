@@ -3,7 +3,7 @@ package org.spacehub.controller;
 import org.spacehub.DTO.*;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.ChatRoom.ChatRoom;
-import org.spacehub.service.ChatRoomService;
+import org.spacehub.service.ChatRoom.ChatRoomService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

@@ -4,6 +4,8 @@ import org.spacehub.entities.ChatRoom.ChatMessage;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.ScheduledMessage.ScheduledMessage;
 import org.spacehub.repository.ScheduledMessageRepository;
+import org.spacehub.service.ChatRoom.ChatMessageQueue;
+import org.spacehub.service.ChatRoom.ChatRoomService;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 

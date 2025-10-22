@@ -1,4 +1,4 @@
-package org.spacehub.service;
+package org.spacehub.service.ChatRoom;
 
 import org.spacehub.DTO.CreateRoomRequest;
 import org.spacehub.DTO.RoleChangeAction;
@@ -8,8 +8,8 @@ import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.ChatRoom.ChatRoomUser;
 import org.spacehub.entities.Community.Role;
-import org.spacehub.repository.ChatMessageRepository;
-import org.spacehub.repository.ChatRoomRepository;
+import org.spacehub.repository.ChatRoom.ChatMessageRepository;
+import org.spacehub.repository.ChatRoom.ChatRoomRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

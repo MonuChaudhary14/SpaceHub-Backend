@@ -1,4 +1,4 @@
-package org.spacehub.service;
+package org.spacehub.service.ChatRoom;
 
 import org.spacehub.entities.ChatRoom.ChatMessage;
 import org.spacehub.entities.ChatRoom.ChatRoom;
@@ -58,7 +58,8 @@ public class ChatMessageQueue {
         for (ChatMessage message : batch) {
             try {
                 chatWebSocketHandler.broadcastMessageToRoom(message);
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 e.printStackTrace();
             }
         }

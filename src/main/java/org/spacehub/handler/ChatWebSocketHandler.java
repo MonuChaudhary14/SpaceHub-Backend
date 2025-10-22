@@ -2,12 +2,14 @@ package org.spacehub.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.spacehub.entities.ChatRoom.ChatMessage;
+import org.spacehub.entities.ChatRoom.ChatPoll;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.ChatRoom.ChatRoomUser;
 import org.spacehub.entities.Community.Role;
-import org.spacehub.service.ChatMessageQueue;
-import org.spacehub.service.ChatRoomService;
-import org.spacehub.service.ChatRoomUserService;
+import org.spacehub.service.ChatRoom.ChatMessageQueue;
+import org.spacehub.service.ChatRoom.ChatPollService;
+import org.spacehub.service.ChatRoom.ChatRoomService;
+import org.spacehub.service.ChatRoom.ChatRoomUserService;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -29,14 +31,17 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     private final ChatRoomService chatRoomService;
     private final ChatMessageQueue chatMessageQueue;
     private final ChatRoomUserService chatRoomUserService;
+    private final ChatPollService chatPollService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public ChatWebSocketHandler(ChatRoomService chatRoomService,
                                 ChatMessageQueue chatMessageQueue,
-                                ChatRoomUserService chatRoomUserService) {
+                                ChatRoomUserService chatRoomUserService,
+                                ChatPollService chatPollService) {
         this.chatRoomService = chatRoomService;
         this.chatMessageQueue = chatMessageQueue;
         this.chatRoomUserService = chatRoomUserService;
+        this.chatPollService = chatPollService;
     }
 
     @Override
@@ -78,26 +83,28 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         sessionRoom.put(session, roomCode);
         userSessions.put(session, userId);
 
-        List<ChatMessage> messages = chatMessageQueue.getMessagesForRoom(room);
+        for (ChatMessage message : chatMessageQueue.getMessagesForRoom(room)) {
+            sendJson(session, Map.of(
+                    "type", "message",
+                    "senderId", message.getSenderId(),
+                    "message", message.getMessage(),
+                    "timestamp", message.getTimestamp()
+            ));
+        }
 
-        for (ChatMessage message : messages) {
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("senderId", message.getSenderId());
-            payload.put("message", message.getMessage());
-            payload.put("timestamp", message.getTimestamp());
-
-            try {
-                String json = objectMapper.writeValueAsString(payload);
-                session.sendMessage(new TextMessage(json));
-            }
-            catch (Exception e) {
-                e.printStackTrace();
-            }
+        for (ChatPoll poll : chatPollService.getPollsForRoom(roomCode)) {
+            sendJson(session, Map.of(
+                    "type", "poll",
+                    "pollId", poll.getId(),
+                    "question", poll.getQuestion(),
+                    "options", poll.getOptions(),
+                    "timestamp", poll.getTimestamp()
+            ));
         }
     }
 
     @Override
-    protected void handleTextMessage(WebSocketSession session, TextMessage message) {
+    protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         String userId = userSessions.get(session);
         String roomCode = sessionRoom.get(session);
 
@@ -107,57 +114,13 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         if (OptionalRoom.isEmpty()) return;
 
         ChatRoom room = OptionalRoom.get();
+        Map<String, Object> payload = objectMapper.readValue(message.getPayload(), Map.class);
+        String type = (String) payload.get("type");
 
-        List<ChatRoomUser> members = chatRoomUserService.getMembers(room);
-
-        boolean canSend = false;
-
-        for (ChatRoomUser people : members) {
-            if (people.getUserId().equals(userId)) {
-                Role role = people.getRole();
-                if (role == Role.ADMIN || role == Role.WORKSPACE_OWNER || role == Role.MEMBER) {
-                    canSend = true;
-                    break;
-                }
-            }
-        }
-
-        if (!canSend) return;
-
-        ChatMessage chatMessage = ChatMessage.builder()
-                .senderId(userId)
-                .message(message.getPayload())
-                .timestamp(System.currentTimeMillis())
-                .room(room)
-                .build();
-
-        chatMessageQueue.enqueue(chatMessage);
-
-        Map<String, Object> broadcast = Map.of(
-                "senderId", userId,
-                "message", message.getPayload(),
-                "timestamp", chatMessage.getTimestamp()
-        );
-
-        String json;
-        try {
-            json = objectMapper.writeValueAsString(broadcast);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return;
-        }
-
-        Set<WebSocketSession> sessions = rooms.getOrDefault(roomCode, ConcurrentHashMap.newKeySet());
-        sessions.removeIf(s -> !s.isOpen());
-
-        for (WebSocketSession s : sessions) {
-            if (s.isOpen()) {
-                try {
-                    s.sendMessage(new TextMessage(json));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
+        switch (type) {
+            case "message" -> handleChatMessage(userId, room, (String) payload.get("message"));
+            case "poll" -> handlePollCreation(userId, roomCode, payload);
+            case "vote" -> handleVote(userId, roomCode, payload);
         }
     }
 
@@ -167,15 +130,9 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         String userId = userSessions.remove(session);
 
         if (roomCode != null && userId != null) {
-            Optional<ChatRoom> roomOpt = chatRoomService.findByRoomCode(roomCode);
-            roomOpt.ifPresent(room -> {
-                chatRoomUserService.removeUserFromRoom(room, userId);
-                Set<WebSocketSession> sessions = rooms.getOrDefault(roomCode, ConcurrentHashMap.newKeySet());
-                sessions.remove(session);
-                if (sessions.isEmpty()) {
-                    rooms.remove(roomCode);
-                }
-            });
+            Set<WebSocketSession> sessions = rooms.getOrDefault(roomCode, ConcurrentHashMap.newKeySet());
+            sessions.remove(session);
+            if (sessions.isEmpty()) rooms.remove(roomCode);
         }
     }
 
@@ -193,38 +150,96 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         return map;
     }
 
-    public void broadcastMessageToRoom(ChatMessage message) {
-        String roomCode = message.getRoomCode();
-        Set<WebSocketSession> sessions = rooms.getOrDefault(roomCode, ConcurrentHashMap.newKeySet());
+    private void handleChatMessage(String userId, ChatRoom room, String messageText) {
 
-        Map<String, Object> payload = Map.of(
-                "senderId", message.getSenderId(),
-                "message", message.getMessage(),
-                "timestamp", message.getTimestamp()
-        );
+        boolean canSend = chatRoomUserService.getMembers(room).stream().anyMatch(member -> member.getUserId().equals(userId) &&
+                        (member.getRole() == Role.ADMIN || member.getRole() == Role.WORKSPACE_OWNER || member.getRole() == Role.MEMBER));
 
+        if (!canSend) return;
+
+        ChatMessage chatMessage = ChatMessage.builder()
+                .senderId(userId)
+                .message(messageText)
+                .timestamp(System.currentTimeMillis())
+                .room(room)
+                .build();
+
+        chatMessageQueue.enqueue(chatMessage);
+
+        broadcastToRoom(room.getRoomCode(), Map.of(
+                "type", "message",
+                "senderId", userId,
+                "message", messageText,
+                "timestamp", chatMessage.getTimestamp()
+        ));
+    }
+
+    private void handlePollCreation(String userId, String roomCode, Map<String, Object> message) {
+        try {
+            ChatPoll poll = chatPollService.createPoll(roomCode, userId, message);
+            broadcastToRoom(roomCode, Map.of(
+                    "type", "poll",
+                    "pollId", poll.getId(),
+                    "question", poll.getQuestion(),
+                    "options", poll.getOptions(),
+                    "timestamp", poll.getTimestamp()
+            ));
+        }
+        catch (RuntimeException ignored) {
+        }
+    }
+
+    private void handleVote(String userId, String roomCode, Map<String, Object> message) {
+        try {
+            chatPollService.vote(roomCode, userId, message);
+            broadcastToRoom(roomCode, Map.of(
+                    "type", "vote",
+                    "pollId", message.get("pollId"),
+                    "userId", userId,
+                    "optionIndex", message.get("optionIndex")
+            ));
+        }
+        catch (RuntimeException ignored) {
+        }
+    }
+
+    private void broadcastToRoom(String roomCode, Map<String, Object> data) {
         String json;
         try {
-            json = objectMapper.writeValueAsString(payload);
-        }
-        catch (Exception e) {
+            json = objectMapper.writeValueAsString(data);
+        } catch (Exception e) {
             e.printStackTrace();
             return;
         }
 
-        sessions.removeIf(s -> !s.isOpen());
+        Set<WebSocketSession> sessions = rooms.getOrDefault(roomCode, ConcurrentHashMap.newKeySet());
+        sessions.removeIf(session -> !session.isOpen());
 
         for (WebSocketSession session : sessions) {
-            if (session.isOpen()) {
-                try {
-                    session.sendMessage(new TextMessage(json));
-                }
-                catch (Exception e) {
-                    e.printStackTrace();
-                }
+            try {
+                if (session.isOpen()) session.sendMessage(new TextMessage(json));
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
     }
 
+    private void sendJson(WebSocketSession session, Map<String, Object> data) {
+        try {
+            session.sendMessage(new TextMessage(objectMapper.writeValueAsString(data)));
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void broadcastMessageToRoom(ChatMessage message) {
+        broadcastToRoom(message.getRoom().getRoomCode(), Map.of(
+                "type", "message",
+                "senderId", message.getSenderId(),
+                "message", message.getMessage(),
+                "timestamp", message.getTimestamp()
+        ));
+    }
 
 }
