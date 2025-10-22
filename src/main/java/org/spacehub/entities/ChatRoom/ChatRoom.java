@@ -20,7 +20,7 @@ public class ChatRoom {
     @Column(unique = true, nullable = false)
     private String roomCode;
 
-    @NotBlank
+    @Column(nullable = false)
     private String createdBy;
 
 }

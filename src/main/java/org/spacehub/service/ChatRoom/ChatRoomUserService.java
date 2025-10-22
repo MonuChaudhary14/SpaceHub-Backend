@@ -32,7 +32,9 @@ public class ChatRoomUserService {
     }
 
     public Optional<ChatRoomUser> getUserInRoom(ChatRoom room, String userId) {
-        return repository.findByRoomAndUserId(room, userId);
+        List<ChatRoomUser> users = repository.findByRoomAndUserId(room, userId);
+        if (users.isEmpty()) return Optional.empty();
+        return Optional.of(users.get(0));
     }
 
     public void saveUser(ChatRoomUser user) {
