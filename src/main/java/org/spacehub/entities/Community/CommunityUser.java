@@ -29,4 +29,6 @@ public class CommunityUser {
 
     private boolean isBanned = false;
 
+    private boolean isBlocked = false;
+
 }

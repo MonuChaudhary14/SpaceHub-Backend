@@ -77,4 +77,9 @@ public class CommunityController {
         return communityService.getCommunityMembers(request.getCommunityId());
     }
 
+    @PostMapping("/blockMember")
+    public ResponseEntity<?> blockOrUnblockMember(@RequestBody CommunityBlockRequest request) {
+        return communityService.blockOrUnblockMember(request);
+    }
+
 }

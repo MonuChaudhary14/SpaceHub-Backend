@@ -6,7 +6,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.spacehub.entities.Community.Role;
 import org.spacehub.entities.User.User;
-import org.spacehub.entities.User.UserRole;
 
 import java.time.LocalDateTime;
 

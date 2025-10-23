@@ -414,4 +414,45 @@ public class CommunityService {
         return ResponseEntity.ok(response);
     }
 
+    public ResponseEntity<?> blockOrUnblockMember(CommunityBlockRequest request) {
+
+        if(request.getCommunityId() == null || request.getRequesterEmail() == null || request.getTargetUserEmail() == null){
+            return ResponseEntity.badRequest().body("Check the fields");
+        }
+
+        Optional<Community> optionalCommunity = communityRepository.findById(request.getCommunityId());
+
+        if(optionalCommunity.isEmpty()) return ResponseEntity.badRequest().body("Community not found");
+
+        Community community = optionalCommunity.get();
+
+        Optional<User> optionalRequester = userRepository.findByEmail(request.getRequesterEmail());
+        Optional<User> optionalTarget = userRepository.findByEmail(request.getTargetUserEmail());
+
+        if (optionalRequester.isEmpty() || optionalTarget.isEmpty()) return ResponseEntity.badRequest().body("User not found");
+
+        User requester = optionalRequester.get();
+        User target = optionalTarget.get();
+
+        if (!community.getCreatedBy().getId().equals(requester.getId())) {
+            return ResponseEntity.status(403).body("Only community creator can block or unblock members");
+        }
+
+        Optional<CommunityUser> optionalCommunityUser = community.getCommunityUsers().stream()
+                .filter(communityUser -> communityUser.getUser().getId().equals(target.getId()))
+                .findFirst();
+
+        if (optionalCommunityUser.isEmpty()) {
+            return ResponseEntity.badRequest().body("User is not a member of this community");
+        }
+
+        CommunityUser communityUser = optionalCommunityUser.get();
+
+        communityUser.setBanned(request.isBlock());
+        communityUserRepository.save(communityUser);
+
+        String blocked = request.isBlock() ? "blocked" : "unblocked";
+        return ResponseEntity.ok("User " + target.getEmail() + " has been " + blocked + " successfully");
+
+    }
 }
