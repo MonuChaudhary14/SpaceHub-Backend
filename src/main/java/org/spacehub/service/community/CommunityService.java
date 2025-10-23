@@ -455,4 +455,22 @@ public class CommunityService {
         return ResponseEntity.ok("User " + target.getEmail() + " has been " + blocked + " successfully");
 
     }
+
+    public ResponseEntity<?> updateCommunityInfo(UpdateCommunityDTO dto) {
+
+        Optional<Community> optionalCommunity = communityRepository.findById(dto.getCommunityId());
+        if (optionalCommunity.isEmpty()) {
+            return ResponseEntity.badRequest().body("Community not found");
+        }
+
+        Community community = optionalCommunity.get();
+
+        if (dto.getName() != null) community.setName(dto.getName());
+        if (dto.getDescription() != null) community.setDescription(dto.getDescription());
+
+        communityRepository.save(community);
+
+        return ResponseEntity.ok(community);
+    }
+
 }

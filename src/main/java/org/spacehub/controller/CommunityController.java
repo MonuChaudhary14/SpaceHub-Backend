@@ -82,4 +82,9 @@ public class CommunityController {
         return communityService.blockOrUnblockMember(request);
     }
 
+    @PostMapping("/updateInfo")
+    public ResponseEntity<?> updateCommunityInfo(@RequestBody UpdateCommunityDTO dto) {
+        return communityService.updateCommunityInfo(dto);
+    }
+
 }
