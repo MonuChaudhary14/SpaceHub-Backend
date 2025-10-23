@@ -60,4 +60,9 @@ public class ChatRoomController {
         return chatRoomService.leaveRoom(requestDTO);
     }
 
+    @PostMapping("/community/rooms")
+    public ResponseEntity<ApiResponse<List<ChatRoom>>> getRoomsByCommunity(@RequestBody Long communityId) {
+        return ResponseEntity.ok(chatRoomService.getRoomsByCommunity(communityId));
+    }
+
 }

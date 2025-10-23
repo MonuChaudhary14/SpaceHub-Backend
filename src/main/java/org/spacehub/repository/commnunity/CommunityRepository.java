@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface CommunityRepository extends JpaRepository<Community, Integer> {
+public interface CommunityRepository extends JpaRepository<Community, Long> {
 
     List<Community> findByCreatedBy(User user);
 

@@ -5,8 +5,10 @@ import org.spacehub.DTO.Community.CommunityDTO;
 import org.spacehub.DTO.Community.DeleteCommunityDTO;
 import org.spacehub.DTO.Community.JoinCommunity;
 import org.spacehub.DTO.Community.LeaveCommunity;
+import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.Community.Community;
 import org.spacehub.entities.User.User;
+import org.spacehub.repository.ChatRoom.ChatRoomRepository;
 import org.spacehub.repository.commnunity.CommunityRepository;
 import org.spacehub.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +17,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -25,6 +30,9 @@ public class CommunityService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private ChatRoomRepository chatRoomRepository;
 
     public ResponseEntity<?> createCommunity(@RequestBody CommunityDTO community) {
 
@@ -253,6 +261,26 @@ public class CommunityService {
 
         return ResponseEntity.ok().body("Join request rejected successfully");
 
+    }
+
+    public ResponseEntity<?> getCommunityWithRooms(Long communityId) {
+
+        Optional<Community> optionalCommunity = communityRepository.findById(communityId);
+        if (optionalCommunity.isEmpty()) {
+            return ResponseEntity.badRequest().body("Community not found");
+        }
+
+        Community community = optionalCommunity.get();
+
+        List<ChatRoom> rooms = chatRoomRepository.findByCommunityId(communityId);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("communityId", community.getId());
+        response.put("communityName", community.getName());
+        response.put("description", community.getDescription());
+        response.put("rooms", rooms);
+
+        return ResponseEntity.ok(response);
     }
 
 }

@@ -2,10 +2,12 @@ package org.spacehub.entities.Community;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.User.User;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Data
@@ -43,5 +45,8 @@ public class Community {
     private LocalDateTime createdAt = LocalDateTime.now();
 
     private LocalDateTime updatedAt = LocalDateTime.now();
+
+    @OneToMany(mappedBy = "community", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<ChatRoom> chatRooms = new HashSet<>();
 
 }

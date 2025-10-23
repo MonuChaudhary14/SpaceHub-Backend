@@ -4,9 +4,11 @@ import org.spacehub.DTO.chatroom.*;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.ChatRoom.ChatRoomUser;
+import org.spacehub.entities.Community.Community;
 import org.spacehub.entities.Community.Role;
 import org.spacehub.repository.ChatRoom.ChatMessageRepository;
 import org.spacehub.repository.ChatRoom.ChatRoomRepository;
+import org.spacehub.repository.commnunity.CommunityRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -19,13 +21,16 @@ public class ChatRoomService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final ChatRoomUserService chatRoomUserService;
+    private final CommunityRepository communityRepository;
 
     public ChatRoomService(ChatRoomRepository chatRoomRepository,
                            ChatMessageRepository chatMessageRepository,
-                           ChatRoomUserService chatRoomUserService) {
+                           ChatRoomUserService chatRoomUserService,
+                           CommunityRepository communityRepository) {
         this.chatRoomRepository = chatRoomRepository;
         this.chatMessageRepository = chatMessageRepository;
         this.chatRoomUserService = chatRoomUserService;
+        this.communityRepository = communityRepository;
     }
 
     public ApiResponse<RoomResponseDTO> createRoom(CreateRoomRequest requestDTO) {
@@ -171,4 +176,19 @@ public class ChatRoomService {
         return new ApiResponse<>(200, "Left room successfully", "User " + requestDTO.getUserId() + " has left room " + room.getRoomCode());
     }
 
+    public ApiResponse<List<ChatRoom>> getRoomsByCommunity(Long communityId) {
+
+        Optional<Community> optionalCommunity = communityRepository.findById(communityId);
+        if (optionalCommunity.isEmpty()) {
+            return new ApiResponse<>(404, "Community not found", null);
+        }
+
+        List<ChatRoom> rooms = chatRoomRepository.findByCommunityId(communityId);
+
+        if (rooms.isEmpty()) {
+            return new ApiResponse<>(200, "No chat rooms found in this community", List.of());
+        }
+
+        return new ApiResponse<>(200, "Chat rooms fetched successfully", rooms);
+    }
 }

@@ -1,10 +1,7 @@
 package org.spacehub.controller;
 
 import org.spacehub.DTO.*;
-import org.spacehub.DTO.Community.CommunityDTO;
-import org.spacehub.DTO.Community.DeleteCommunityDTO;
-import org.spacehub.DTO.Community.JoinCommunity;
-import org.spacehub.DTO.Community.LeaveCommunity;
+import org.spacehub.DTO.Community.*;
 import org.spacehub.service.community.CommunityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +9,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("api/v1/community")
@@ -54,5 +53,14 @@ public class CommunityController {
     public ResponseEntity<?> rejectRequest(@RequestBody RejectRequest rejectRequest){
         return ResponseEntity.status(200).body(communityService.rejectRequest(rejectRequest));
     }
+
+    @PostMapping("/getCommunityRooms")
+    public ResponseEntity<?> getCommunityRooms(@RequestBody CommunityRoomsRequest request) {
+        if (request.getCommunityId() == null) {
+            return ResponseEntity.badRequest().body("communityId is required");
+        }
+        return communityService.getCommunityWithRooms(request.getCommunityId());
+    }
+
 
 }

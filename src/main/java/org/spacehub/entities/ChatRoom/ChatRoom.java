@@ -3,6 +3,7 @@ package org.spacehub.entities.ChatRoom;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
+import org.spacehub.entities.Community.Community;
 
 @Entity
 @Data
@@ -22,5 +23,9 @@ public class ChatRoom {
 
     @Column(nullable = false)
     private String createdBy;
+
+    @ManyToOne
+    @JoinColumn(name = "community_id", nullable = false)
+    private Community community;
 
 }
