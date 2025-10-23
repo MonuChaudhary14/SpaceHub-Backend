@@ -5,6 +5,7 @@ import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.ChatRoom.ChatRoomUser;
 import org.spacehub.entities.Community.Community;
+import org.spacehub.entities.Community.CommunityUser;
 import org.spacehub.entities.Community.Role;
 import org.spacehub.repository.ChatRoom.ChatMessageRepository;
 import org.spacehub.repository.ChatRoom.ChatRoomRepository;
@@ -82,6 +83,18 @@ public class ChatRoomService {
         if (optionalRoom.isEmpty()) return new ApiResponse<>(404, "Room not found", null);
 
         ChatRoom room = optionalRoom.get();
+
+        Community community = room.getCommunity();
+        Optional<CommunityUser> communityUserOptional = community.getCommunityUsers().stream()
+                .filter(communityUser -> communityUser.getUser().getId().equals(userId)).findFirst();
+
+        if (communityUserOptional.isEmpty()) {
+            return new ApiResponse<>(403, "You are not a member of this community", null);
+        }
+
+        if (communityUserOptional.get().isBanned()) {
+            return new ApiResponse<>(403, "You are blocked in this community and cannot join rooms", null);
+        }
 
         Optional<ChatRoomUser> existingUser = chatRoomUserService.getUserInRoom(room, userId);
         if (existingUser.isPresent()) {

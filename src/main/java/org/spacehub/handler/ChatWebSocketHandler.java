@@ -5,11 +5,13 @@ import org.spacehub.entities.ChatRoom.ChatMessage;
 import org.spacehub.entities.ChatRoom.ChatPoll;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.ChatRoom.ChatRoomUser;
+import org.spacehub.entities.Community.CommunityUser;
 import org.spacehub.entities.Community.Role;
 import org.spacehub.service.ChatRoom.ChatMessageQueue;
 import org.spacehub.service.ChatRoom.ChatPollService;
 import org.spacehub.service.ChatRoom.ChatRoomService;
 import org.spacehub.service.ChatRoom.ChatRoomUserService;
+import org.spacehub.service.community.CommunityService;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -32,16 +34,19 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     private final ChatMessageQueue chatMessageQueue;
     private final ChatRoomUserService chatRoomUserService;
     private final ChatPollService chatPollService;
+    private final CommunityService communityService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public ChatWebSocketHandler(ChatRoomService chatRoomService,
                                 ChatMessageQueue chatMessageQueue,
                                 ChatRoomUserService chatRoomUserService,
-                                ChatPollService chatPollService) {
+                                ChatPollService chatPollService,
+                                CommunityService communityService) {
         this.chatRoomService = chatRoomService;
         this.chatMessageQueue = chatMessageQueue;
         this.chatRoomUserService = chatRoomUserService;
         this.chatPollService = chatPollService;
+        this.communityService = communityService;
     }
 
     @Override
@@ -57,6 +62,16 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
+        Long userIdLong;
+        try {
+            userIdLong = Long.parseLong(userId);
+        }
+        catch (NumberFormatException e) {
+            session.sendMessage(new TextMessage("{\"error\":\"Invalid userId.\"}"));
+            session.close();
+            return;
+        }
+
         Optional<ChatRoom> OptionalRoom = chatRoomService.findByRoomCode(roomCode);
         if (OptionalRoom.isEmpty()) {
             session.close();
@@ -65,15 +80,23 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
         ChatRoom room = OptionalRoom.get();
 
-        List<ChatRoomUser> members = chatRoomUserService.getMembers(room);
-        boolean isMember = false;
+        List<CommunityUser> communityMembers = (List<CommunityUser>) (communityService.getCommunityMembers(room.getCommunity().getId()).getBody());
+        if (communityMembers == null) communityMembers = List.of();
 
-        for (ChatRoomUser member : members) {
-            if (member.getUserId().equals(userId)) {
-                isMember = true;
-                break;
-            }
+        boolean isBanned = communityMembers.stream()
+                .anyMatch(member -> member.getUser().getId().equals(userIdLong) && member.isBanned());
+
+        boolean isBlocked = communityMembers.stream()
+                .anyMatch(member -> member.getUser().getId().equals(userIdLong) && member.isBlocked());
+
+        if (isBanned || isBlocked) {
+            session.sendMessage(new TextMessage("{\"error\":\"You are banned or blocked from this room.\"}"));
+            session.close();
+            return;
         }
+
+        List<ChatRoomUser> members = chatRoomUserService.getMembers(room);
+        boolean isMember = members.stream().anyMatch(member -> member.getUserId().equals(userId));
         if (!isMember) {
             session.close();
             return;
@@ -114,6 +137,12 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         if (OptionalRoom.isEmpty()) return;
 
         ChatRoom room = OptionalRoom.get();
+
+        if (isUserBlockedInRoom(userId, room)) {
+            session.sendMessage(new TextMessage("{error:You are blocked from sending messages.}"));
+            return;
+        }
+
         Map<String, Object> payload = objectMapper.readValue(message.getPayload(), Map.class);
         String type = (String) payload.get("type");
 
@@ -150,7 +179,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         return map;
     }
 
-    private void handleChatMessage(String userId, ChatRoom room, String messageText) {
+    private void handleChatMessage(String userId, ChatRoom room, String messageText) throws Exception{
+
 
         boolean canSend = chatRoomUserService.getMembers(room).stream().anyMatch(member -> member.getUserId().equals(userId) &&
                         (member.getRole() == Role.ADMIN || member.getRole() == Role.WORKSPACE_OWNER || member.getRole() == Role.MEMBER));
@@ -241,5 +271,22 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
                 "timestamp", message.getTimestamp()
         ));
     }
+
+    private boolean isUserBlockedInRoom(String userIdStr, ChatRoom room) {
+        Long userId;
+        try {
+            userId = Long.parseLong(userIdStr);
+        }
+        catch (NumberFormatException e) {
+            return true;
+        }
+
+        List<CommunityUser> communityMembers = (List<CommunityUser>) (communityService.getCommunityMembers(room.getCommunity().getId()).getBody());
+        if (communityMembers == null) communityMembers = List.of();
+
+        return communityMembers.stream().filter(member -> member.getUser().getId().equals(userId))
+                .anyMatch(member -> member.isBanned() || member.isBlocked());
+    }
+
 
 }

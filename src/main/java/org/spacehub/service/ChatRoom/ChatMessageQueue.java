@@ -2,6 +2,8 @@ package org.spacehub.service.ChatRoom;
 
 import org.spacehub.entities.ChatRoom.ChatMessage;
 import org.spacehub.entities.ChatRoom.ChatRoom;
+import org.spacehub.entities.Community.Community;
+import org.spacehub.entities.Community.CommunityUser;
 import org.spacehub.handler.ChatWebSocketHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
@@ -10,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class ChatMessageQueue {
@@ -31,7 +34,21 @@ public class ChatMessageQueue {
         this.chatWebSocketHandler = chatWebSocketHandler;
     }
 
-    public synchronized void enqueue(ChatMessage message) {
+    public synchronized void enqueue(ChatMessage message) throws Exception {
+        ChatRoom room = message.getRoom();
+        String userId = message.getSenderId();
+
+        Optional<CommunityUser> optionalCommunityUser = room.getCommunity().getCommunityUsers().stream()
+                .filter(communityUser -> communityUser.getUser().getId().toString().equals(userId)).findFirst();
+
+        if (optionalCommunityUser.isEmpty()) {
+            throw new Exception("You are not a member of this community");
+        }
+
+        if (optionalCommunityUser.get().isBanned()) {
+            throw new Exception("You are blocked in this community and cannot send messages");
+        }
+
         queue.add(message);
         sendBatchIfSizeReached();
     }

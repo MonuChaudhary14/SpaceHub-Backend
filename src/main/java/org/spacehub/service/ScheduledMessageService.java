@@ -34,7 +34,7 @@ public class ScheduledMessageService {
     }
 
     @Scheduled(cron = "0 * * * * *")
-    public void sendScheduledMessage() {
+    public void sendScheduledMessage() throws Exception{
         List<ScheduledMessage> scheduled = scheduledMessageRepository.findBySentFalseAndScheduledTimeBefore(LocalDateTime.now());
 
         for (ScheduledMessage message : scheduled) {
