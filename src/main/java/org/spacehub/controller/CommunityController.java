@@ -62,5 +62,14 @@ public class CommunityController {
         return communityService.getCommunityWithRooms(request.getCommunityId());
     }
 
+    @PostMapping("/removeMember")
+    public ResponseEntity<?> removeMember(@RequestBody CommunityMemberRequest request) {
+        return communityService.removeMemberFromCommunity(request);
+    }
+
+    @PostMapping("/changeRole")
+    public ResponseEntity<?> changeRole(@RequestBody CommunityChangeRoleRequest request) {
+        return communityService.changeMemberRole(request);
+    }
 
 }

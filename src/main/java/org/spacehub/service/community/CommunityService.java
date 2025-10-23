@@ -1,10 +1,7 @@
 package org.spacehub.service.community;
 
 import org.spacehub.DTO.*;
-import org.spacehub.DTO.Community.CommunityDTO;
-import org.spacehub.DTO.Community.DeleteCommunityDTO;
-import org.spacehub.DTO.Community.JoinCommunity;
-import org.spacehub.DTO.Community.LeaveCommunity;
+import org.spacehub.DTO.Community.*;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.Community.Community;
 import org.spacehub.entities.User.User;
@@ -34,7 +31,7 @@ public class CommunityService {
     @Autowired
     private ChatRoomRepository chatRoomRepository;
 
-    public ResponseEntity<?> createCommunity(@RequestBody CommunityDTO community) {
+    public ResponseEntity<?> createCommunity(CommunityDTO community) {
 
         if(community.getName() == null || community.getDescription() == null){
             return ResponseEntity.badRequest().body("Check the fields");
@@ -60,7 +57,7 @@ public class CommunityService {
 
     }
 
-    public ResponseEntity<?> deleteCommunityByName(@RequestBody DeleteCommunityDTO deleteCommunity) {
+    public ResponseEntity<?> deleteCommunityByName(DeleteCommunityDTO deleteCommunity) {
 
         String name = deleteCommunity.getName();
         String userEmail = deleteCommunity.getUserEmail();
@@ -85,7 +82,7 @@ public class CommunityService {
         return ResponseEntity.ok().body("Community deleted successfully");
     }
 
-    public ResponseEntity<?> requestToJoinCommunity(@RequestBody JoinCommunity joinCommunity){
+    public ResponseEntity<?> requestToJoinCommunity(JoinCommunity joinCommunity){
 
         if (joinCommunity.getCommunityName() == null || joinCommunity.getCommunityName().isEmpty() || joinCommunity.getUserEmail() == null || joinCommunity.getUserEmail().isEmpty()) {
             return ResponseEntity.badRequest().body("Check the fields");
@@ -116,7 +113,7 @@ public class CommunityService {
 
     }
 
-    public ResponseEntity<?> cancelRequestCommunity(@RequestBody CancelJoinRequest cancelJoinRequest){
+    public ResponseEntity<?> cancelRequestCommunity(CancelJoinRequest cancelJoinRequest){
 
         if(cancelJoinRequest.getCommunityName() == null || cancelJoinRequest.getCommunityName().isEmpty() || cancelJoinRequest.getUserEmail() == null || cancelJoinRequest.getUserEmail().isEmpty()){
             return  ResponseEntity.badRequest().body("Check the fields");
@@ -161,10 +158,10 @@ public class CommunityService {
         if (community == null)
             return ResponseEntity.badRequest().body("Community not found");
 
-        Optional<User> optionalCreator = userRepository.findByEmail(acceptRequest.getUserEmail());
+        Optional<User> optionalCreator = userRepository.findByEmail(acceptRequest.getCreatorEmail());
 
         if(optionalCreator.isEmpty()){
-            return ResponseEntity.badRequest().body("creator not found");
+            return ResponseEntity.badRequest().body("Creator not found");
         }
 
         User creator = optionalCreator.get();
@@ -281,6 +278,60 @@ public class CommunityService {
         response.put("rooms", rooms);
 
         return ResponseEntity.ok(response);
+    }
+
+    public ResponseEntity<?> removeMemberFromCommunity(CommunityMemberRequest request) {
+
+        if (request.getCommunityId() == null || request.getUserEmail() == null || request.getRequesterEmail() == null) {
+            return ResponseEntity.badRequest().body("Check the fields");
+        }
+
+        Community community = communityRepository.findById(request.getCommunityId()).orElse(null);
+        if (community == null) return ResponseEntity.badRequest().body("Community not found");
+
+        Optional<User> optionalRequester = userRepository.findByEmail(request.getRequesterEmail());
+        Optional<User> optionalTarget = userRepository.findByEmail(request.getUserEmail());
+        if (optionalRequester.isEmpty() || optionalTarget.isEmpty()) return ResponseEntity.badRequest().body("User not found");
+
+        User requester = optionalRequester.get();
+        User target = optionalTarget.get();
+
+        if (!community.getCreatedBy().getId().equals(requester.getId())) {
+            return ResponseEntity.status(403).body("Only the community creator can remove members");
+        }
+
+        if (!community.getMembers().contains(target)) {
+            return ResponseEntity.badRequest().body("User is not a member");
+        }
+
+        community.getMembers().remove(target);
+        communityRepository.save(community);
+
+        return ResponseEntity.ok("Member removed successfully");
+    }
+
+    public ResponseEntity<?> changeMemberRole(CommunityChangeRoleRequest request) {
+
+        if (request.getCommunityId() == null || request.getTargetUserEmail() == null || request.getRequesterEmail() == null || request.getNewRole() == null) {
+            return ResponseEntity.badRequest().body("Check the fields");
+        }
+
+        Community community = communityRepository.findById(request.getCommunityId()).orElse(null);
+        if (community == null) return ResponseEntity.badRequest().body("Community not found");
+
+        Optional<User> optionalRequester = userRepository.findByEmail(request.getRequesterEmail());
+
+        Optional<User> optionalTarget = userRepository.findByEmail(request.getTargetUserEmail());
+        if (optionalRequester.isEmpty() || optionalTarget.isEmpty()) return ResponseEntity.badRequest().body("User not found");
+
+        User requester = optionalRequester.get();
+        User target = optionalTarget.get();
+
+        if (!community.getCreatedBy().getId().equals(requester.getId())) {
+            return ResponseEntity.status(403).body("Only the community creator can change roles");
+        }
+
+        return ResponseEntity.ok("Role of " + target.getEmail() + " changed to " + request.getNewRole());
     }
 
 }
