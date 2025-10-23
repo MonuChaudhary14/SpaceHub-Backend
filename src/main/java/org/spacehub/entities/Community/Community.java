@@ -34,13 +34,8 @@ public class Community {
     )
     private Set<User> pendingRequests = new HashSet<>();
 
-    @ManyToMany
-    @JoinTable(
-            name = "community_members",
-            joinColumns = @JoinColumn(name = "community_id"),
-            inverseJoinColumns = @JoinColumn(name = "user_id")
-    )
-    private Set<User> members = new HashSet<>();
+    @OneToMany(mappedBy = "community", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<CommunityUser> communityUsers = new HashSet<>();
 
     private LocalDateTime createdAt = LocalDateTime.now();
 

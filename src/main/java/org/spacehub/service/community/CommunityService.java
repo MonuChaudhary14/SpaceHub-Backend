@@ -4,20 +4,20 @@ import org.spacehub.DTO.*;
 import org.spacehub.DTO.Community.*;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.Community.Community;
+import org.spacehub.entities.Community.CommunityUser;
+import org.spacehub.entities.Community.Role;
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.ChatRoom.ChatRoomRepository;
 import org.spacehub.repository.commnunity.CommunityRepository;
 import org.spacehub.repository.UserRepository;
+import org.spacehub.repository.commnunity.CommunityUserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.RequestBody;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class CommunityService {
@@ -30,6 +30,9 @@ public class CommunityService {
 
     @Autowired
     private ChatRoomRepository chatRoomRepository;
+
+    @Autowired
+    private CommunityUserRepository communityUserRepository;
 
     public ResponseEntity<?> createCommunity(CommunityDTO community) {
 
@@ -52,6 +55,15 @@ public class CommunityService {
         infoCommunity.setCreatedAt(LocalDateTime.now());
 
         Community savedCommunity = communityRepository.save(infoCommunity);
+
+        CommunityUser communityUser = new CommunityUser();
+        communityUser.setCommunity(savedCommunity);
+        communityUser.setUser(creator);
+        communityUser.setRole(Role.ADMIN);
+        communityUser.setJoinDate(LocalDateTime.now());
+        communityUser.setBanned(false);
+
+        communityUserRepository.save(communityUser);
 
         return ResponseEntity.ok().body(savedCommunity);
 
@@ -84,7 +96,7 @@ public class CommunityService {
 
     public ResponseEntity<?> requestToJoinCommunity(JoinCommunity joinCommunity){
 
-        if (joinCommunity.getCommunityName() == null || joinCommunity.getCommunityName().isEmpty() || joinCommunity.getUserEmail() == null || joinCommunity.getUserEmail().isEmpty()) {
+        if (joinCommunity.getCommunityName() == null || joinCommunity.getUserEmail() == null) {
             return ResponseEntity.badRequest().body("Check the fields");
         }
 
@@ -102,21 +114,20 @@ public class CommunityService {
 
         User user = optionalUser.get();
 
-        if(community.getMembers().contains(user)){
-            return ResponseEntity.status(403).body("You are already in this community");
-        }
+        boolean isMember = community.getCommunityUsers().stream().anyMatch(communityUser -> communityUser.getUser().getId().equals(user.getId()));
+
+        if (isMember) return ResponseEntity.status(403).body("You are already in this community");
 
         community.getPendingRequests().add(user);
         communityRepository.save(community);
 
         return ResponseEntity.ok().body("Request send to community");
-
     }
 
     public ResponseEntity<?> cancelRequestCommunity(CancelJoinRequest cancelJoinRequest){
 
-        if(cancelJoinRequest.getCommunityName() == null || cancelJoinRequest.getCommunityName().isEmpty() || cancelJoinRequest.getUserEmail() == null || cancelJoinRequest.getUserEmail().isEmpty()){
-            return  ResponseEntity.badRequest().body("Check the fields");
+        if (cancelJoinRequest.getCommunityName() == null || cancelJoinRequest.getUserEmail() == null) {
+            return ResponseEntity.badRequest().body("Check the fields");
         }
 
         Community community = communityRepository.findByName(cancelJoinRequest.getCommunityName());
@@ -146,11 +157,8 @@ public class CommunityService {
 
     public ResponseEntity<?> acceptRequest(AcceptRequest acceptRequest){
 
-        if(acceptRequest.getUserEmail() == null || acceptRequest.getUserEmail().isEmpty() ||
-                acceptRequest.getCommunityName() == null ||  acceptRequest.getCommunityName().isEmpty() ||
-                acceptRequest.getCreatorEmail() == null || acceptRequest.getCreatorEmail().isEmpty()){
-
-                return ResponseEntity.badRequest().body("Check the fields");
+        if (acceptRequest.getUserEmail() == null || acceptRequest.getCommunityName() == null || acceptRequest.getCreatorEmail() == null) {
+            return ResponseEntity.badRequest().body("Check the fields");
         }
 
         Community community = communityRepository.findByName(acceptRequest.getCommunityName());
@@ -180,9 +188,14 @@ public class CommunityService {
         }
 
         community.getPendingRequests().remove(user);
-        community.getMembers().add(user);
 
-        communityRepository.save(community);
+        CommunityUser communityUser = new CommunityUser();
+        communityUser.setCommunity(community);
+        communityUser.setUser(user);
+        communityUser.setRole(Role.MEMBER);
+        communityUser.setJoinDate(LocalDateTime.now());
+        communityUser.setBanned(false);
+        communityUserRepository.save(communityUser);
 
         return ResponseEntity.ok("User has been added to the community successfully");
 
@@ -190,7 +203,7 @@ public class CommunityService {
 
     public ResponseEntity<?> leaveCommunity(LeaveCommunity leaveCommunity){
 
-        if(leaveCommunity.getCommunityName() == null || leaveCommunity.getCommunityName().isEmpty() || leaveCommunity.getUserEmail() == null || leaveCommunity.getUserEmail().isEmpty()){
+        if (leaveCommunity.getCommunityName() == null || leaveCommunity.getUserEmail() == null) {
             return ResponseEntity.badRequest().body("Check the fields");
         }
 
@@ -210,12 +223,13 @@ public class CommunityService {
             return ResponseEntity.status(403).body("Community creator cannot leave their own community");
         }
 
-        if (!community.getMembers().contains(user)) {
-            return ResponseEntity.badRequest().body("You are not a member of this community");
-        }
+        Optional<CommunityUser> optionalCommunityUser = community.getCommunityUsers().stream()
+                .filter(communityUser -> communityUser.getUser().getId().equals(user.getId()))
+                .findFirst();
 
-        community.getMembers().remove(user);
-        communityRepository.save(community);
+        if (optionalCommunityUser.isEmpty()) return ResponseEntity.badRequest().body("You are not a member of this community");
+
+        communityUserRepository.delete(optionalCommunityUser.get());
 
         return ResponseEntity.ok().body("You have left the community successfully");
 
@@ -223,7 +237,7 @@ public class CommunityService {
 
     public ResponseEntity<?> rejectRequest(RejectRequest rejectRequest){
 
-        if(rejectRequest.getCommunityName() == null || rejectRequest.getCommunityName().isBlank() || rejectRequest.getUserEmail() == null || rejectRequest.getUserEmail().isBlank() || rejectRequest.getCreatorEmail().isBlank() || rejectRequest.getCreatorEmail() ==  null){
+        if (rejectRequest.getCommunityName() == null || rejectRequest.getUserEmail() == null || rejectRequest.getCreatorEmail() == null) {
             return ResponseEntity.badRequest().body("Check the fields");
         }
 
@@ -277,6 +291,15 @@ public class CommunityService {
         response.put("description", community.getDescription());
         response.put("rooms", rooms);
 
+        List<Map<String, Object>> members = new ArrayList<>();
+        for (CommunityUser communityUser : community.getCommunityUsers()) {
+            Map<String, Object> memberData = new HashMap<>();
+            memberData.put("email", communityUser.getUser().getEmail());
+            memberData.put("role", communityUser.getRole());
+            members.add(memberData);
+        }
+        response.put("members", members);
+
         return ResponseEntity.ok(response);
     }
 
@@ -300,19 +323,23 @@ public class CommunityService {
             return ResponseEntity.status(403).body("Only the community creator can remove members");
         }
 
-        if (!community.getMembers().contains(target)) {
+        Optional<CommunityUser> communityUserOptional = community.getCommunityUsers()
+                .stream().filter(communityUser -> communityUser.getUser().getId().equals(target.getId()))
+                .findFirst();
+
+        if (communityUserOptional.isEmpty()) {
             return ResponseEntity.badRequest().body("User is not a member");
         }
 
-        community.getMembers().remove(target);
+        community.getCommunityUsers().remove(communityUserOptional.get());
         communityRepository.save(community);
 
         return ResponseEntity.ok("Member removed successfully");
     }
 
     public ResponseEntity<?> changeMemberRole(CommunityChangeRoleRequest request) {
-
-        if (request.getCommunityId() == null || request.getTargetUserEmail() == null || request.getRequesterEmail() == null || request.getNewRole() == null) {
+        if (request.getCommunityId() == null || request.getTargetUserEmail() == null ||
+                request.getRequesterEmail() == null || request.getNewRole() == null) {
             return ResponseEntity.badRequest().body("Check the fields");
         }
 
@@ -320,9 +347,10 @@ public class CommunityService {
         if (community == null) return ResponseEntity.badRequest().body("Community not found");
 
         Optional<User> optionalRequester = userRepository.findByEmail(request.getRequesterEmail());
-
         Optional<User> optionalTarget = userRepository.findByEmail(request.getTargetUserEmail());
-        if (optionalRequester.isEmpty() || optionalTarget.isEmpty()) return ResponseEntity.badRequest().body("User not found");
+
+        if (optionalRequester.isEmpty() || optionalTarget.isEmpty())
+            return ResponseEntity.badRequest().body("User not found");
 
         User requester = optionalRequester.get();
         User target = optionalTarget.get();
@@ -331,7 +359,59 @@ public class CommunityService {
             return ResponseEntity.status(403).body("Only the community creator can change roles");
         }
 
-        return ResponseEntity.ok("Role of " + target.getEmail() + " changed to " + request.getNewRole());
+        Optional<CommunityUser> communityUserOptional = community.getCommunityUsers()
+                .stream()
+                .filter(communityUser -> communityUser.getUser().getId().equals(target.getId()))
+                .findFirst();
+
+        if (communityUserOptional.isEmpty()) {
+            return ResponseEntity.badRequest().body("User is not a member");
+        }
+
+        CommunityUser communityUser = communityUserOptional.get();
+
+        Role newRole;
+        try {
+            newRole = Role.valueOf(request.getNewRole().toUpperCase());
+        }
+        catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Invalid role: " + request.getNewRole());
+        }
+
+        communityUser.setRole(newRole);
+        communityUserRepository.save(communityUser);
+
+        return ResponseEntity.ok("Role of " + target.getEmail() + " changed to " + newRole);
+    }
+
+    public ResponseEntity<?> getCommunityMembers(Long communityId) {
+        Optional<Community> optionalCommunity = communityRepository.findById(communityId);
+        if (optionalCommunity.isEmpty()) {
+            return ResponseEntity.badRequest().body("Community not found");
+        }
+        Community community = optionalCommunity.get();
+        
+        List<CommunityUser> communityUsers = communityUserRepository.findByCommunityId(communityId);
+        
+        List<CommunityMemberDTO> members = communityUsers.stream().map(communityUser -> {
+            User user = communityUser.getUser();
+            return CommunityMemberDTO.builder()
+                    .memberId(user.getId())
+                    .username(user.getUsername())
+                    .email(user.getEmail())
+                    .role(communityUser.getRole())
+                    .joinDate(communityUser.getJoinDate())
+                    .isBanned(communityUser.isBanned())
+                    .build();
+        }).collect(Collectors.toList());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("communityId", community.getId());
+        response.put("communityName", community.getName());
+        response.put("totalMembers", members.size());
+        response.put("members", members);
+
+        return ResponseEntity.ok(response);
     }
 
 }

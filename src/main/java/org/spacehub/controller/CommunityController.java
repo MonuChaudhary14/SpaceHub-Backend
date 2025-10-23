@@ -72,4 +72,9 @@ public class CommunityController {
         return communityService.changeMemberRole(request);
     }
 
+    @PostMapping("/members")
+    public ResponseEntity<?> getCommunityMembers(@RequestBody CommunityMemberListRequest request) {
+        return communityService.getCommunityMembers(request.getCommunityId());
+    }
+
 }
