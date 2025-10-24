@@ -1,6 +1,6 @@
 package org.spacehub.ExceptionHandler;
 
-import org.spacehub.entities.ApiResponse;
+import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

@@ -5,9 +5,9 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.spacehub.entities.User;
-import org.spacehub.service.UserNameService;
-import org.spacehub.service.UserService;
+import org.spacehub.entities.User.User;
+import org.spacehub.service.service_auth.UserNameService;
+import org.spacehub.service.service_auth.UserService;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -28,6 +28,13 @@ public class Filters extends OncePerRequestFilter {
     this.usernameService = usernameService;
     this.userService = userService;
   }
+
+  @Override
+  protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+    String path = request.getRequestURI();
+    return path.startsWith("/files/") || path.startsWith("/swagger-ui/") || path.startsWith("/v3/api-docs/");
+  }
+
 
   @Override
   protected void doFilterInternal(

@@ -1,0 +1,15 @@
+package org.spacehub.repository.ChatRoom;
+
+import org.spacehub.entities.ChatRoom.ChatMessage;
+import org.spacehub.entities.ChatRoom.ChatRoom;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long>{
+
+    List<ChatMessage> findByRoomOrderByTimestampAsc(ChatRoom room);
+
+}
