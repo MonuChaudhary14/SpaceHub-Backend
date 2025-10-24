@@ -3,7 +3,6 @@ package org.spacehub.controller;
 import org.spacehub.DTO.ChatMessage;
 import org.spacehub.service.AiService;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/api/chat")
@@ -16,11 +15,14 @@ public class ChatController {
   }
 
   @PostMapping
-  public Mono<ChatMessage> chat(@RequestBody ChatMessage request) {
-    return aiService.ask(request.getMessage())
-      .map(reply -> new ChatMessage("Assistant", reply))
-      .onErrorResume(e -> Mono.just(new ChatMessage("Assistant",
-        "Sorry, something went wrong.")));
+  public ChatMessage chat(@RequestBody ChatMessage request) {
+    String reply;
+    try {
+      reply = aiService.ask(request.getMessage()).block();
+    } catch (Exception e) {
+      reply = "Sorry, something went wrong.";
+    }
+    return new ChatMessage("Assistant", reply);
   }
 }
 
