@@ -1,5 +1,6 @@
 package org.spacehub.service.community;
 
+import org.spacehub.service.S3Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.spacehub.DTO.*;
 import org.spacehub.DTO.Community.*;
@@ -16,6 +17,7 @@ import org.spacehub.repository.commnunity.CommunityUserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -35,6 +37,9 @@ public class CommunityService {
 
     @Autowired
     private CommunityUserRepository communityUserRepository;
+
+    @Autowired
+    private S3Service s3Service;
 
     @Transactional
     public ResponseEntity<ApiResponse<Community>> createCommunity(CommunityDTO community) {
@@ -523,6 +528,36 @@ public class CommunityService {
         communityRepository.save(community);
 
         return ResponseEntity.ok(new ApiResponse<>(200, "Community info updated successfully", community));
+    }
+
+    @Transactional
+    public ResponseEntity<ApiResponse<String>> uploadCommunityImage(Long communityId, MultipartFile file) {
+
+        if (communityId == null || file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Community ID and file are required", null));
+        }
+
+        Optional<Community> optionalCommunity = communityRepository.findById(communityId);
+        if (optionalCommunity.isEmpty()) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Community not found", null));
+        }
+
+        Community community = optionalCommunity.get();
+        String fileName = file.getOriginalFilename();
+
+        try {
+            String imageUrl = s3Service.uploadCommunityImage(communityId, fileName, file.getInputStream(), file.getSize());
+
+            community.setImageUrl(imageUrl);
+            communityRepository.save(community);
+
+            return ResponseEntity.ok(new ApiResponse<>(200, "Community image uploaded successfully", imageUrl));
+        }
+        catch (Exception e) {
+            return ResponseEntity.status(500).body(new ApiResponse<>(500, "Failed to upload image: " + e.getMessage(), null));
+        }
+
+
     }
 
 }
