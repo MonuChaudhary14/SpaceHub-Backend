@@ -1,5 +1,6 @@
 package org.spacehub.entities.ChatRoom;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
@@ -26,6 +27,7 @@ public class ChatRoom {
 
     @ManyToOne
     @JoinColumn(name = "community_id", nullable = false)
+    @JsonIgnore
     private Community community;
 
 }

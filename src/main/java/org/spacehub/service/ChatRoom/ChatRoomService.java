@@ -35,8 +35,11 @@ public class ChatRoomService {
     }
 
     public ApiResponse<RoomResponseDTO> createRoom(CreateRoomRequest requestDTO) {
+
+        Community community = communityRepository.findById(requestDTO.getCommunityId()).orElseThrow(() -> new RuntimeException("Community not found"));
+
         ChatRoom room = ChatRoom.builder().roomName(requestDTO.getRoomName()).roomCode(UUID.randomUUID().toString())
-                .createdBy(requestDTO.getCreatedBy())
+                .createdBy(requestDTO.getCreatedBy()).community(community)
                 .build();
         chatRoomRepository.save(room);
         chatRoomUserService.addUserToRoom(room, requestDTO.getCreatedBy(), Role.ADMIN);

@@ -43,7 +43,7 @@ public class CommunityService {
         Optional<User> userOptional = userRepository.findByEmail(community.getCreatedByEmail());
 
         if(userOptional.isEmpty()){
-            return ResponseEntity.badRequest().body("Not created");
+            return ResponseEntity.badRequest().body("User does not exist");
         }
 
         User creator = userOptional.get();

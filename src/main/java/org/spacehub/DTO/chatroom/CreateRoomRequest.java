@@ -20,4 +20,6 @@ public class CreateRoomRequest {
     @NotBlank(message = "Creator ID is required")
     private String createdBy;
 
+    private Long communityId;
+
 }
