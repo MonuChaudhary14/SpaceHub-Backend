@@ -1,5 +1,6 @@
 package org.spacehub.service.community;
 
+import org.springframework.transaction.annotation.Transactional;
 import org.spacehub.DTO.*;
 import org.spacehub.DTO.Community.*;
 import org.spacehub.entities.ApiResponse.ApiResponse;
@@ -35,19 +36,23 @@ public class CommunityService {
     @Autowired
     private CommunityUserRepository communityUserRepository;
 
+    @Transactional
     public ResponseEntity<ApiResponse<Community>> createCommunity(CommunityDTO community) {
 
-        if(community.getName() == null || community.getDescription() == null){
-            return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Check the fields", null));
+        if (community.getName() == null || community.getName().trim().isEmpty() || community.getDescription() == null || community.getDescription().trim().isEmpty() || community.getCreatedByEmail() == null) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Community name, description, and creator email are required", null));
         }
 
-        Optional<User> userOptional = userRepository.findByEmail(community.getCreatedByEmail());
-
-        if(userOptional.isEmpty()){
-            return ResponseEntity.badRequest().body(new ApiResponse<>(400, "User does not exist", null));
+        if (communityRepository.findByName(community.getName()) != null) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Community name already exists", null));
         }
 
-        User creator = userOptional.get();
+        Optional<User> optionalCreator = userRepository.findByEmail(community.getCreatedByEmail());
+        if (optionalCreator.isEmpty()) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Creator not found", null));
+        }
+
+        User creator = optionalCreator.get();
 
         Community infoCommunity = new Community();
         infoCommunity.setName(community.getName());
@@ -70,54 +75,80 @@ public class CommunityService {
 
     }
 
+    @Transactional
     public ResponseEntity<ApiResponse<String>> deleteCommunityByName(DeleteCommunityDTO deleteCommunity) {
 
-        String name = deleteCommunity.getName();
-        String userEmail = deleteCommunity.getUserEmail();
+        if (deleteCommunity.getName() == null || deleteCommunity.getName().trim().isEmpty() || deleteCommunity.getUserEmail() == null || deleteCommunity.getUserEmail().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Community name and user email are required", null));
+        }
 
-        Community community = communityRepository.findByName(name);
+        Community community = communityRepository.findByName(deleteCommunity.getName().trim());
         if (community == null) {
             return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Community not found", null));
         }
 
-        Optional<User> userOptional = userRepository.findByEmail(userEmail);
-        if (userOptional.isEmpty()) {
+        Optional<User> optionalUser = userRepository.findByEmail(deleteCommunity.getUserEmail().trim());
+        if (optionalUser.isEmpty()) {
             return ResponseEntity.badRequest().body(new ApiResponse<>(400, "User not found", null));
         }
 
-        User user = userOptional.get();
+        User user = optionalUser.get();
 
         if (!community.getCreatedBy().getId().equals(user.getId())) {
             return ResponseEntity.status(403).body(new ApiResponse<>(403, "You are not authorized to delete this community", null));
+        }
+
+        List<ChatRoom> chatRooms = chatRoomRepository.findByCommunityId(community.getId());
+        if (!chatRooms.isEmpty()) {
+            chatRoomRepository.deleteAll(chatRooms);
+        }
+
+        List<CommunityUser> members = communityUserRepository.findByCommunityId(community.getId());
+        if (!members.isEmpty()) {
+            communityUserRepository.deleteAll(members);
         }
 
         communityRepository.delete(community);
         return ResponseEntity.ok(new ApiResponse<>(200, "Community deleted successfully", null));
     }
 
+    @Transactional
     public ResponseEntity<ApiResponse<String>> requestToJoinCommunity(JoinCommunity joinCommunity){
 
-        if (joinCommunity.getCommunityName() == null || joinCommunity.getUserEmail() == null) {
-            return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Check the fields", null));
+        if (joinCommunity.getCommunityName() == null || joinCommunity.getCommunityName().trim().isEmpty() ||
+                joinCommunity.getUserEmail() == null || joinCommunity.getUserEmail().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Community name and user email are required", null));
         }
 
-        Community community = communityRepository.findByName(joinCommunity.getCommunityName());
-
-        if(community == null){
+        Community community = communityRepository.findByName(joinCommunity.getCommunityName().trim());
+        if (community == null) {
             return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Community not found", null));
         }
 
-        Optional<User> optionalUser = userRepository.findByEmail(joinCommunity.getUserEmail());
-
-        if(optionalUser.isEmpty()){
+        Optional<User> optionalUser = userRepository.findByEmail(joinCommunity.getUserEmail().trim());
+        if (optionalUser.isEmpty()) {
             return ResponseEntity.badRequest().body(new ApiResponse<>(400, "User not found", null));
         }
 
         User user = optionalUser.get();
 
-        boolean isMember = community.getCommunityUsers().stream().anyMatch(communityUser -> communityUser.getUser().getId().equals(user.getId()));
+        boolean isMember = communityUserRepository.findByCommunityAndUser(community, user).isPresent();
+        if (isMember) {
+            return ResponseEntity.status(403).body(new ApiResponse<>(403, "You are already a member of this community", null));
+        }
 
-        if (isMember) return ResponseEntity.status(403).body(new ApiResponse<>(403, "You are already in this community", null));
+        boolean alreadyRequested = community.getPendingRequests().stream()
+                .anyMatch(pendingUser -> pendingUser.getId().equals(user.getId()));
+
+        if (alreadyRequested) {
+            return ResponseEntity.status(409).body(
+                    new ApiResponse<>(409, "You have already requested to join this community", null));
+        }
+
+        Optional<CommunityUser> bannedCheck = communityUserRepository.findByCommunityAndUser(community, user);
+        if (bannedCheck.isPresent() && bannedCheck.get().isBanned()) {
+            return ResponseEntity.status(403).body(new ApiResponse<>(403, "You are banned from this community", null));
+        }
 
         community.getPendingRequests().add(user);
         communityRepository.save(community);
@@ -125,28 +156,32 @@ public class CommunityService {
         return ResponseEntity.ok(new ApiResponse<>(200, "Request sent to community", null));
     }
 
+    @Transactional
     public ResponseEntity<ApiResponse<String>> cancelRequestCommunity(CancelJoinRequest cancelJoinRequest){
 
-        if (cancelJoinRequest.getCommunityName() == null || cancelJoinRequest.getUserEmail() == null) {
-            return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Check the fields", null));
+        if (cancelJoinRequest.getCommunityName() == null || cancelJoinRequest.getCommunityName().trim().isEmpty() ||
+                cancelJoinRequest.getUserEmail() == null || cancelJoinRequest.getUserEmail().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Community name and user email are required", null));
         }
 
-        Community community = communityRepository.findByName(cancelJoinRequest.getCommunityName());
-
-        if(community == null){
-            return  ResponseEntity.badRequest().body(new ApiResponse<>(400, "Community not found", null));
+        Community community = communityRepository.findByName(cancelJoinRequest.getCommunityName().trim());
+        if (community == null) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Community not found", null));
         }
 
-        Optional<User> optionalUser = userRepository.findByEmail(cancelJoinRequest.getUserEmail());
-
-        if(optionalUser.isEmpty()){
+        Optional<User> optionalUser = userRepository.findByEmail(cancelJoinRequest.getUserEmail().trim());
+        if (optionalUser.isEmpty()) {
             return ResponseEntity.badRequest().body(new ApiResponse<>(400, "User not found", null));
         }
 
         User user = optionalUser.get();
+        boolean hasRequested = community.getPendingRequests().stream()
+                .anyMatch(pendingUser -> pendingUser.getId().equals(user.getId()));
 
-        if(!community.getPendingRequests().contains(user)){
-            return ResponseEntity.status(403).body(new ApiResponse<>(403, "No request found for this community", null));
+        if (!hasRequested) {
+            return ResponseEntity.status(400).body(
+                    new ApiResponse<>(400, "You do not have any pending join request for this community", null)
+            );
         }
 
         community.getPendingRequests().remove(user);
@@ -156,9 +191,12 @@ public class CommunityService {
 
     }
 
+    @Transactional
     public ResponseEntity<ApiResponse<String>> acceptRequest(AcceptRequest acceptRequest){
 
-        if (acceptRequest.getUserEmail() == null || acceptRequest.getCommunityName() == null || acceptRequest.getCreatorEmail() == null) {
+        if (acceptRequest.getUserEmail() == null || acceptRequest.getUserEmail().trim().isEmpty() ||
+                acceptRequest.getCommunityName() == null || acceptRequest.getCommunityName().trim().isEmpty() ||
+                acceptRequest.getCreatorEmail() == null || acceptRequest.getCreatorEmail().trim().isEmpty()) {
             return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Check the fields", null));
         }
 
@@ -167,28 +205,29 @@ public class CommunityService {
         if (community == null)
             return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Community not found", null));
 
-        Optional<User> optionalCreator = userRepository.findByEmail(acceptRequest.getCreatorEmail());
-
-        if(optionalCreator.isEmpty()){
-            return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Creator not found", null));
+        Optional<User> optionalUser = userRepository.findByEmail(acceptRequest.getUserEmail().trim());
+        if (optionalUser.isEmpty()) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(400, "User not found", null));
         }
-
-        User creator = optionalCreator.get();
-
-        if(!community.getCreatedBy().getId().equals(creator.getId())){
-            return  ResponseEntity.status(403).body(new ApiResponse<>(403, "You are not authorized to accept requests", null));
-        }
-
-        Optional<User> optionalUser = userRepository.findByEmail(acceptRequest.getUserEmail());
-        if (optionalUser.isEmpty()) return ResponseEntity.badRequest().body(new ApiResponse<>(400, "User not found", null));
 
         User user = optionalUser.get();
 
-        if (!community.getPendingRequests().contains(user)) {
+        boolean hasPendingRequest = community.getPendingRequests()
+                .stream()
+                .anyMatch(pendingUser -> pendingUser.getId().equals(user.getId()));
+        if (!hasPendingRequest) {
             return ResponseEntity.badRequest().body(new ApiResponse<>(400, "No pending request from this user", null));
         }
 
-        community.getPendingRequests().remove(user);
+        boolean isMember = community.getCommunityUsers().stream()
+                .anyMatch(communityUser -> communityUser.getUser().getId().equals(user.getId()));
+        if (isMember) {
+            community.getPendingRequests().removeIf(pendingUser -> pendingUser.getId().equals(user.getId()));
+            communityRepository.save(community);
+            return ResponseEntity.status(409).body(new ApiResponse<>(409, "User is already a member", null));
+        }
+
+        community.getPendingRequests().removeIf(pendingUser -> pendingUser.getId().equals(user.getId()));
 
         CommunityUser communityUser = new CommunityUser();
         communityUser.setCommunity(community);
@@ -224,9 +263,7 @@ public class CommunityService {
             return ResponseEntity.status(403).body(new ApiResponse<>(403, "Community creator cannot leave their own community", null));
         }
 
-        Optional<CommunityUser> optionalCommunityUser = community.getCommunityUsers().stream()
-                .filter(communityUser -> communityUser.getUser().getId().equals(user.getId()))
-                .findFirst();
+        Optional<CommunityUser> optionalCommunityUser = communityUserRepository.findByCommunityAndUser(community, user);
 
         if (optionalCommunityUser.isEmpty())return ResponseEntity.badRequest().body(new ApiResponse<>(400, "You are not a member of this community", null));
         communityUserRepository.delete(optionalCommunityUser.get());
