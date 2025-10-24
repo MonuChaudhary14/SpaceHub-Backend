@@ -47,10 +47,20 @@ public class SecurityConfiguration {
             .cors(withDefaults())
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
-                    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                    .requestMatchers("/api/v1/validateforgototp", "/api/v1/**").permitAll()
-                    .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/v3/api-docs.yaml").permitAll()
-                    .anyRequest().authenticated()
+              .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+              .requestMatchers(
+                "/ws-messages/**",
+                "/api/v1/validateforgototp",
+                "/api/v1/**",
+                "/api/**",
+                "/ws/**",
+                "/swagger-ui/**",
+                "/v3/api-docs/**",
+                "/v3/api-docs.yaml",
+                "/chat/**",
+                "/files/**"
+              ).permitAll()
+              .anyRequest().authenticated()
             )
             .httpBasic(AbstractHttpConfigurer::disable)
             .sessionManagement(
