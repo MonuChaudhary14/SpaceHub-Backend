@@ -10,7 +10,10 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @Entity
-@Table(name = "friends")
+@Table(
+        name = "friends",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "friend_id"})
+)
 public class Friends {
 
     @Id
@@ -25,9 +28,23 @@ public class Friends {
     @JoinColumn(name = "friend_id", nullable = false)
     private User friend;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String status;
+    private FriendStatus status;
 
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    public void prePersist() {
+        createdAt = LocalDateTime.now();
+    }
+
+    private LocalDateTime updatedAt = LocalDateTime.now();
+
+    @PreUpdate
+    public void preUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+
 
 }
