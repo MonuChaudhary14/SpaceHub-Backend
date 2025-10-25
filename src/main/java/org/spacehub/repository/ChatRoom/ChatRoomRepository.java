@@ -14,4 +14,6 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long>{
 
     List<ChatRoom> findByCommunityId(Long communityId);
 
+    boolean existsByRoomNameAndCommunityId(String roomName, Long communityId);
+
 }
