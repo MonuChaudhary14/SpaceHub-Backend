@@ -1,6 +1,7 @@
 package org.spacehub.service.community;
 
 import org.spacehub.service.S3Service;
+import org.spacehub.specifications.CommunitySpecification;
 import org.springframework.transaction.annotation.Transactional;
 import org.spacehub.DTO.*;
 import org.spacehub.DTO.Community.*;
@@ -558,6 +559,12 @@ public class CommunityService {
         }
 
 
+    }
+
+    public List<Community> filterCommunities(String name, String creatorName) {
+        return communityRepository.findAll(
+                CommunitySpecification.filter(name, creatorName)
+        );
     }
 
 }
