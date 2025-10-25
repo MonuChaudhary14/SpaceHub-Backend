@@ -24,6 +24,4 @@ public class DashboardController {
         );
         return ResponseEntity.ok(updatedUser);
     }
-
-
 }
