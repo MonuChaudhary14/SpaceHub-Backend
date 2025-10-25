@@ -32,10 +32,11 @@ public class VoiceRoomController {
   }
 
   @PostMapping("/join")
-  public ResponseEntity<?> joinRoom(@RequestParam String sessionId,
-                                    @RequestParam String handleId,
-                                    @RequestParam int roomId,
+  public ResponseEntity<?> joinRoom(@RequestParam int roomId,
                                     @RequestParam String displayName) {
+
+    String sessionId = janusService.createSession();
+    String handleId = janusService.attachAudioBridgePlugin(sessionId);
     String token = janusService.joinAudioRoom(sessionId, handleId, roomId, displayName);
     return ResponseEntity.ok(Map.of(
       "message", "Joined room successfully",
