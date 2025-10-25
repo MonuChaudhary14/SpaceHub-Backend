@@ -2,6 +2,8 @@ package org.spacehub.controller;
 
 import org.spacehub.DTO.*;
 import org.spacehub.DTO.Community.*;
+import org.spacehub.entities.ApiResponse.ApiResponse;
+import org.spacehub.entities.Community.Community;
 import org.spacehub.repository.commnunity.CommunityRepository;
 import org.spacehub.service.S3Service;
 import org.spacehub.service.community.CommunityService;
@@ -10,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -90,6 +93,23 @@ public class CommunityController {
     @PostMapping("/uploadImage")
     public ResponseEntity<?> uploadCommunityImage(@RequestParam Long communityId, @RequestParam("file") MultipartFile file) {
         return communityService.uploadCommunityImage(communityId, file);
+    }
+
+    @GetMapping("/filter")
+    public ResponseEntity<ApiResponse<List<Community>>> filterCommunities(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String creatorName) {
+
+        List<Community> result = communityService.filterCommunities(name, creatorName);
+
+        if (result.isEmpty()) {
+            ApiResponse<List<Community>> response = new ApiResponse<>(404, "No communities found", null);
+            return ResponseEntity.status(404).body(response);
+        }
+
+        ApiResponse<List<Community>> response = new ApiResponse<>(200, "Communities filtered successfully", result);
+
+        return ResponseEntity.ok(response);
     }
 
 }
