@@ -16,5 +16,5 @@ public interface CommunityUserRepository extends JpaRepository<CommunityUser, Lo
 
     Optional<CommunityUser> findByCommunityAndUser(Community community, User user);
 
-
+    List<CommunityUser> findByUser(User user);
 }

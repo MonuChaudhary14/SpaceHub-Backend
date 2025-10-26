@@ -1,6 +1,7 @@
-package org.spacehub.controller;
+package org.spacehub.controller.Dashboard;
 
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.spacehub.DTO.DashBoard.UsernameRequest;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.service.DashboardService;
@@ -9,7 +10,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/dashboard")
@@ -34,6 +36,18 @@ public class DashboardController {
     public ResponseEntity<ApiResponse<String>> uploadProfileImage(@RequestParam("email") String email, @RequestParam("image") MultipartFile image) {
         ApiResponse<String> response = dashboardService.uploadProfileImage(email, image);
         return ResponseEntity.status(response.getStatus()).body(response);
+    }
+
+    @PostMapping("/profile")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getUserProfile(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        return dashboardService.getUserProfile(email);
+    }
+
+    @PostMapping("/communities")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getUserCommunities(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        return dashboardService.getUserCommunities(email);
     }
 
 }

@@ -1,4 +1,4 @@
-package org.spacehub.controller;
+package org.spacehub.controller.Community;
 
 
 import org.spacehub.DTO.Community.CommunityInviteAcceptDTO;
