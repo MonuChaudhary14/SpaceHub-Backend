@@ -24,12 +24,20 @@ public class ProfileService {
     public User getProfile(Long userId) {
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (user.getAvatarUrl() != null && !user.getAvatarUrl().isEmpty()) {
-            user.setAvatarUrl(s3Service.generatePresignedDownloadUrl(user.getAvatarUrl(), Duration.ofMinutes(15)));
+        try {
+            if (user.getAvatarUrl() != null && !user.getAvatarUrl().isEmpty()) {
+                user.setAvatarUrl(s3Service.generatePresignedDownloadUrl(user.getAvatarUrl(), Duration.ofMinutes(15)));
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Problem in uploading avatar");
         }
 
-        if (user.getCoverPhotoUrl() != null && !user.getCoverPhotoUrl().isEmpty()) {
-            user.setCoverPhotoUrl(s3Service.generatePresignedDownloadUrl(user.getCoverPhotoUrl(), Duration.ofMinutes(15)));
+        try {
+            if (user.getCoverPhotoUrl() != null && !user.getCoverPhotoUrl().isEmpty()) {
+                user.setCoverPhotoUrl(s3Service.generatePresignedDownloadUrl(user.getCoverPhotoUrl(), Duration.ofMinutes(15)));
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Problem in uploading cover photo");
         }
 
         return user;
