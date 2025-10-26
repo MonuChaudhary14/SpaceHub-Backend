@@ -67,6 +67,10 @@ public class DashboardService {
 
             validateImage(image);
 
+            if (user.getAvatarUrl() != null) {
+                s3Service.deleteFile(user.getAvatarUrl());
+            }
+
             String fileName = System.currentTimeMillis() + "_" + image.getOriginalFilename();
             String key = "avatars/" + email.replaceAll("[^a-zA-Z0-9]", "_") + "/" + fileName;
 
