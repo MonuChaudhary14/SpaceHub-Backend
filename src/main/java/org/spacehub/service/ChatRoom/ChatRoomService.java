@@ -21,18 +21,18 @@ import java.util.UUID;
 public class ChatRoomService {
 
     private final ChatRoomRepository chatRoomRepository;
-    private final ChatMessageRepository chatMessageRepository;
     private final ChatRoomUserService chatRoomUserService;
     private final CommunityRepository communityRepository;
+    private final ChatMessageRepository chatMessageRepository; // Needed for cleanup
 
     public ChatRoomService(ChatRoomRepository chatRoomRepository,
-                           ChatMessageRepository chatMessageRepository,
                            ChatRoomUserService chatRoomUserService,
-                           CommunityRepository communityRepository) {
+                           CommunityRepository communityRepository,
+                           ChatMessageRepository chatMessageRepository) {
         this.chatRoomRepository = chatRoomRepository;
-        this.chatMessageRepository = chatMessageRepository;
         this.chatRoomUserService = chatRoomUserService;
         this.communityRepository = communityRepository;
+        this.chatMessageRepository = chatMessageRepository;
     }
 
     public ApiResponse<RoomResponseDTO> createRoom(CreateRoomRequest requestDTO) {
@@ -92,15 +92,14 @@ public class ChatRoomService {
 
         chatMessageRepository.deleteAll(chatMessageRepository.findByRoomOrderByTimestampAsc(room));
 
-        List<ChatRoomUser> members = chatRoomUserService.getMembers(room);
-        for (ChatRoomUser member : members) {
-            chatRoomUserService.removeUserFromRoom(room, member.getUserId());
-        }
+        chatRoomUserService.getMembers(room).forEach(member ->
+                chatRoomUserService.removeUserFromRoom(room, member.getUserId()));
         chatRoomRepository.delete(room);
 
         return new ApiResponse<>(200, "Room deleted successfully", "Room with code " + roomCode + " deleted.");
     }
 
+    @Transactional
     public ApiResponse<String> joinRoomResponse(String roomCode, String userId) {
 
         if (roomCode == null || roomCode.isBlank()) return new ApiResponse<>(400, "Room code cannot be blank", null);

@@ -1,5 +1,6 @@
 package org.spacehub.entities.ChatRoom;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -23,6 +24,7 @@ public class ChatMessage {
 
     @ManyToOne
     @JoinColumn(name = "room_id")
+    @JsonIgnore
     private ChatRoom room;
 
     private String roomCode;

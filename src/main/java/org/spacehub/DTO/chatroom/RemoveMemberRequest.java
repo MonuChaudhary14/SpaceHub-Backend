@@ -4,9 +4,6 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class RemoveMemberRequest {
 
     @NotBlank(message = "Room code is required")

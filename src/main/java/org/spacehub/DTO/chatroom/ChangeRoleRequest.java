@@ -1,16 +1,11 @@
 package org.spacehub.DTO.chatroom;
 
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
+import lombok.Data;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.*;
 import org.spacehub.entities.Community.Role;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class ChangeRoleRequest {
 
     @NotBlank(message = "Room code is required")

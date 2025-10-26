@@ -2,7 +2,6 @@ package org.spacehub.service.ChatRoom;
 
 import org.spacehub.entities.ChatRoom.ChatMessage;
 import org.spacehub.entities.ChatRoom.ChatRoom;
-import org.spacehub.repository.ChatRoom.ChatMessageRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -10,18 +9,22 @@ import java.util.List;
 @Service
 public class ChatMessageService {
 
-    private final ChatMessageRepository chatMessageRepository;
+    private final ChatMessageQueue chatMessageQueue;
 
-    public ChatMessageService(ChatMessageRepository chatMessageRepository) {
-        this.chatMessageRepository = chatMessageRepository;
+    public ChatMessageService(ChatMessageQueue chatMessageQueue) {
+        this.chatMessageQueue = chatMessageQueue;
     }
 
-    public List<ChatMessage> saveAll(List<ChatMessage> messages) {
-        return chatMessageRepository.saveAll(messages);
+    public void sendMessage(ChatMessage message) {
+        chatMessageQueue.addMessage(message);
     }
 
-    public List<ChatMessage> getMessagesForRoom(ChatRoom room) {
-        return chatMessageRepository.findByRoomOrderByTimestampAsc(room);
+    public List<ChatMessage> getMessages(ChatRoom room) {
+        return chatMessageQueue.getMessages(room);
+    }
+
+    public void flushAll() {
+        chatMessageQueue.flushAllRooms();
     }
 
 }

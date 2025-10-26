@@ -2,88 +2,65 @@ package org.spacehub.service.ChatRoom;
 
 import org.spacehub.entities.ChatRoom.ChatMessage;
 import org.spacehub.entities.ChatRoom.ChatRoom;
-import org.spacehub.entities.Community.Community;
-import org.spacehub.entities.Community.CommunityUser;
-import org.spacehub.handler.ChatWebSocketHandler;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.spacehub.repository.ChatRoom.ChatMessageRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class ChatMessageQueue {
 
-    private final List<ChatMessage> queue = new ArrayList<>();
-    private final int BATCH_SIZE = 10;
+    private final ChatMessageRepository chatMessageRepository;
 
-    private final ChatMessageService chatMessageService;
-    private ChatWebSocketHandler chatWebSocketHandler;
+    private final Map<String, Deque<ChatMessage>> roomCache = new ConcurrentHashMap<>();
+    private static final int CACHE_LIMIT = 100;
+    private static final int BATCH_SIZE = 20;
 
-    @Autowired
-    public ChatMessageQueue(ChatMessageService chatMessageService) {
-        this.chatMessageService = chatMessageService;
+    public ChatMessageQueue(ChatMessageRepository chatMessageRepository) {
+        this.chatMessageRepository = chatMessageRepository;
     }
 
-    @Autowired
-    @Lazy
-    public void setChatWebSocketHandler(ChatWebSocketHandler chatWebSocketHandler) {
-        this.chatWebSocketHandler = chatWebSocketHandler;
-    }
+    public synchronized void addMessage(ChatMessage message) {
+        String roomCode = message.getRoomCode();
+        Deque<ChatMessage> messages = roomCache.computeIfAbsent(roomCode, k -> new LinkedList<>());
 
-    public synchronized void enqueue(ChatMessage message) throws Exception {
-        ChatRoom room = message.getRoom();
-        String userId = message.getSenderId();
+        messages.addLast(message);
 
-        Optional<CommunityUser> optionalCommunityUser = room.getCommunity().getCommunityUsers().stream()
-                .filter(communityUser -> communityUser.getUser().getId().toString().equals(userId)).findFirst();
-
-        if (optionalCommunityUser.isEmpty()) {
-            throw new Exception("You are not a member of this community");
+        if (messages.size() >= BATCH_SIZE) {
+            flushRoomMessages(roomCode);
         }
 
-        if (optionalCommunityUser.get().isBanned()) {
-            throw new Exception("You are blocked in this community and cannot send messages");
-        }
-
-        queue.add(message);
-        sendBatchIfSizeReached();
-    }
-
-    private synchronized void sendBatchIfSizeReached() {
-        if (queue.size() >= BATCH_SIZE) {
-            flushQueue();
+        while (messages.size() > CACHE_LIMIT) {
+            messages.removeFirst();
         }
     }
 
-    @Scheduled(cron = "0 * * * * *")
-    public synchronized void sendEveryInterval() {
-        flushQueue();
-    }
+    public synchronized List<ChatMessage> getMessages(ChatRoom room) {
+        String roomCode = room.getRoomCode();
+        Deque<ChatMessage> messages = roomCache.get(roomCode);
 
-    private synchronized void flushQueue() {
-        if (queue.isEmpty()) return;
-
-        List<ChatMessage> batch = new ArrayList<>(queue);
-        queue.clear();
-
-        chatMessageService.saveAll(batch);
-
-        for (ChatMessage message : batch) {
-            try {
-                chatWebSocketHandler.broadcastMessageToRoom(message);
-            }
-            catch (Exception e) {
-                e.printStackTrace();
-            }
+        if (messages == null || messages.isEmpty()) {
+            List<ChatMessage> databaseMessages = chatMessageRepository.findByRoomOrderByTimestampAsc(room);
+            roomCache.put(roomCode, new LinkedList<>(databaseMessages));
+            return databaseMessages;
         }
+
+        return new ArrayList<>(messages);
     }
 
-    public List<ChatMessage> getMessagesForRoom(ChatRoom room) {
-        return chatMessageService.getMessagesForRoom(room);
+    public synchronized void flushRoomMessages(String roomCode) {
+        Deque<ChatMessage> messages = roomCache.get(roomCode);
+        if (messages == null || messages.isEmpty()) return;
+
+        chatMessageRepository.saveAll(new ArrayList<>(messages));
+        messages.clear();
+    }
+
+    public synchronized void flushAllRooms() {
+        for (String roomCode : roomCache.keySet()) {
+            flushRoomMessages(roomCode);
+        }
     }
 
 }
