@@ -64,6 +64,7 @@ public class WebSocketConfigMessaging implements WebSocketMessageBrokerConfigure
 
           return () -> username;
         }
-      });
+      })
+      .withSockJS();
   }
 }
