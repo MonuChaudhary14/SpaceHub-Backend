@@ -18,6 +18,12 @@ public class CommunityService {
   private final CommunityRepository communityRepository;
   private final UserRepository userRepository;
 
+  public static class ResourceNotFoundException extends RuntimeException {
+    public ResourceNotFoundException(String message) {
+      super(message);
+    }
+  }
+
   public CommunityService(CommunityRepository communityRepository, UserRepository userRepository) {
     this.communityRepository = communityRepository;
     this.userRepository = userRepository;
@@ -76,7 +82,8 @@ public class CommunityService {
 
   public ResponseEntity<?> requestToJoinCommunity(@RequestBody JoinCommunity joinCommunity){
 
-    if (joinCommunity.getCommunityName() == null || joinCommunity.getCommunityName().isEmpty() || joinCommunity.getUserEmail() == null || joinCommunity.getUserEmail().isEmpty()) {
+    if (joinCommunity.getCommunityName() == null || joinCommunity.getCommunityName().isEmpty() ||
+      joinCommunity.getUserEmail() == null || joinCommunity.getUserEmail().isEmpty()) {
       return ResponseEntity.badRequest().body("Check the fields");
     }
 
@@ -137,32 +144,20 @@ public class CommunityService {
 
   }
 
-  public ResponseEntity<?> acceptRequest(AcceptRequest acceptRequest){
+  public ResponseEntity<?> acceptRequest(AcceptRequest acceptRequest) {
 
-    if (acceptRequest.getUserEmail() != null && !acceptRequest.getUserEmail().isEmpty() &&
-      acceptRequest.getCommunityName() != null && !acceptRequest.getCommunityName().isEmpty() &&
-      acceptRequest.getCreatorEmail() != null && !acceptRequest.getCreatorEmail().isEmpty()) {
-      Community community = communityRepository.findByName(acceptRequest.getCommunityName());
+    if (isEmpty(acceptRequest.getUserEmail(), acceptRequest.getCommunityName(), acceptRequest.getCreatorEmail())) {
+      return ResponseEntity.badRequest().body("Check the fields");
+    }
 
-      if (community == null)
-          return ResponseEntity.badRequest().body("Community not found");
-
-      Optional<User> optionalCreator = userRepository.findByEmail(acceptRequest.getUserEmail());
-
-      if (optionalCreator.isEmpty()) {
-        return ResponseEntity.badRequest().body("creator not found");
-      }
-
-      User creator = optionalCreator.get();
+    try {
+      Community community = findCommunityByName(acceptRequest.getCommunityName());
+      User creator = findUserByEmail(acceptRequest.getCreatorEmail());
+      User user = findUserByEmail(acceptRequest.getUserEmail());
 
       if (!community.getCreatedBy().getId().equals(creator.getId())) {
-        return ResponseEntity.status(403).body("You are not authorized to create this community");
+        return ResponseEntity.status(403).body("You are not authorized to accept requests");
       }
-
-      Optional<User> optionalUser = userRepository.findByEmail(acceptRequest.getUserEmail());
-      if (optionalUser.isEmpty()) return ResponseEntity.badRequest().body("User not found");
-
-      User user = optionalUser.get();
 
       if (!community.getPendingRequests().contains(user)) {
         return ResponseEntity.badRequest().body("No pending request from this user");
@@ -174,26 +169,28 @@ public class CommunityService {
       communityRepository.save(community);
 
       return ResponseEntity.ok("User has been added to the community successfully");
-    } else {
-      return ResponseEntity.badRequest().body("Check the fields");
+
+    } catch (ResourceNotFoundException ex) {
+      return ResponseEntity.badRequest().body(ex.getMessage());
     }
   }
 
-  public ResponseEntity<?> leaveCommunity(LeaveCommunity leaveCommunity){
+  private boolean isEmpty(String... values) {
+    for (String val : values) {
+      if (val == null || val.isBlank()) return true;
+    }
+    return false;
+  }
 
-    if (leaveCommunity.getCommunityName() != null && !leaveCommunity.getCommunityName().isEmpty() &&
-      leaveCommunity.getUserEmail() != null && !leaveCommunity.getUserEmail().isEmpty()) {
-      Community community = communityRepository.findByName(leaveCommunity.getCommunityName());
-      if (community == null) {
-        return ResponseEntity.badRequest().body("Community not found");
-      }
+  public ResponseEntity<?> leaveCommunity(LeaveCommunity leaveCommunity) {
 
-      Optional<User> optionalUser = userRepository.findByEmail(leaveCommunity.getUserEmail());
-      if (optionalUser.isEmpty()) {
-        return ResponseEntity.badRequest().body("User not found");
-      }
+    if (isEmpty(leaveCommunity.getCommunityName(), leaveCommunity.getUserEmail())) {
+      return ResponseEntity.badRequest().body("Check the fields");
+    }
 
-      User user = optionalUser.get();
+    try {
+      Community community = findCommunityByName(leaveCommunity.getCommunityName());
+      User user = findUserByEmail(leaveCommunity.getUserEmail());
 
       if (community.getCreatedBy().getId().equals(user.getId())) {
         return ResponseEntity.status(403).body("Community creator cannot leave their own community");
@@ -207,10 +204,10 @@ public class CommunityService {
       communityRepository.save(community);
 
       return ResponseEntity.ok().body("You have left the community successfully");
-    } else {
-      return ResponseEntity.badRequest().body("Check the fields");
-    }
 
+    } catch (ResourceNotFoundException ex) {
+      return ResponseEntity.badRequest().body(ex.getMessage());
+    }
   }
 
   public ResponseEntity<?> rejectRequest(RejectRequest rejectRequest){
@@ -251,6 +248,19 @@ public class CommunityService {
       return ResponseEntity.badRequest().body("Check the fields");
     }
 
+  }
+
+  private Community findCommunityByName(String name) {
+    Community community = communityRepository.findByName(name);
+    if (community == null) {
+      throw new ResourceNotFoundException("Community not found");
+    }
+    return community;
+  }
+
+  private User findUserByEmail(String email) {
+    return userRepository.findByEmail(email)
+      .orElseThrow(() -> new ResourceNotFoundException("User not found"));
   }
 
 }

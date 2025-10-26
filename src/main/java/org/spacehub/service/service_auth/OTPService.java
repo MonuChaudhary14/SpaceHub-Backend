@@ -6,7 +6,6 @@ import org.spacehub.entities.Auth.RegistrationRequest;
 import org.spacehub.entities.User.User;
 import org.springframework.stereotype.Service;
 import java.security.SecureRandom;
-import java.util.UUID;
 
 @Service
 public class OTPService {
@@ -23,7 +22,6 @@ public class OTPService {
   private static final int TEMP_REGISTRATION_EXPIRE = 600;
   private static final int BLOCK_DURATION = 300;
   private static final int TEMP_TOKEN_EXPIRE = 600;
-  private static final int REG_SESSION_EXPIRE = TEMP_REGISTRATION_EXPIRE;
 
   public OTPService(RedisService redisService, EmailService emailService, VerificationService verificationService) {
     this.redisService = redisService;
@@ -155,22 +153,6 @@ public class OTPService {
   public String extractEmailFromToken(String tempToken, OtpType type) {
     String key = type.name() + "_" + tempToken;
     return redisService.getValue(key);
-  }
-
-  public String createRegistrationSessionToken(String email) {
-    String token = UUID.randomUUID().toString();
-    String key = "REG_SESSION_" + token;
-    redisService.saveValue(key, email, REG_SESSION_EXPIRE);
-    return token;
-  }
-
-  public boolean validateRegistrationSessionToken(String token, String email) {
-    if (token == null || token.isBlank() || email == null) {
-      return false;
-    }
-    String key = "REG_SESSION_" + token;
-    String mapped = redisService.getValue(key);
-    return mapped != null && mapped.equals(email);
   }
 
   public void deleteRegistrationSessionToken(String token) {

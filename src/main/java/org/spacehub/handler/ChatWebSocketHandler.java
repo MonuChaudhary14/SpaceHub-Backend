@@ -7,12 +7,16 @@ import org.spacehub.entities.ChatRoom.ChatRoomUser;
 import org.spacehub.service.ChatMessageQueue;
 import org.spacehub.service.ChatRoomService;
 import org.spacehub.service.ChatRoomUserService;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
+import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Component
 public class ChatWebSocketHandler extends TextWebSocketHandler {
@@ -20,7 +24,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
   private final Map<String, Set<WebSocketSession>> rooms = new ConcurrentHashMap<>();
   private final Map<WebSocketSession, String> sessionRoom = new ConcurrentHashMap<>();
   private final Map<WebSocketSession, String> userSessions = new ConcurrentHashMap<>();
-
+  private static final Logger logger = LoggerFactory.getLogger(ChatWebSocketHandler.class);
   private final ChatRoomService chatRoomService;
   private final ChatMessageQueue chatMessageQueue;
   private final ChatRoomUserService chatRoomUserService;
@@ -42,53 +46,26 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     String roomCode = params.get("roomCode");
     String userId = params.get("userId");
 
-    if (roomCode == null || userId == null) {
+    if (!validateConnection(session, roomCode, userId)) {
+      return;
+    }
+
+    Optional<ChatRoom> optionalRoom = chatRoomService.findByRoomCode(roomCode);
+    if (optionalRoom.isEmpty()) {
       session.close();
       return;
     }
 
-    Optional<ChatRoom> OptionalRoom = chatRoomService.findByRoomCode(roomCode);
-    if (OptionalRoom.isEmpty()) {
+    ChatRoom room = optionalRoom.get();
+    if (!isUserMemberOfRoom(room, userId)) {
       session.close();
       return;
     }
 
-    ChatRoom room = OptionalRoom.get();
-
-    List<ChatRoomUser> members = chatRoomUserService.getMembers(room);
-    boolean isMember = false;
-
-    for (ChatRoomUser member : members) {
-      if (member.getUserId().equals(userId)) {
-        isMember = true;
-        break;
-      }
-    }
-    if (!isMember) {
-      session.close();
-      return;
-    }
-
-    rooms.computeIfAbsent(roomCode, k -> ConcurrentHashMap.newKeySet()).add(session);
-    sessionRoom.put(session, roomCode);
-    userSessions.put(session, userId);
-
-    List<ChatMessage> messages = chatMessageQueue.getMessagesForRoom(room);
-
-    for (ChatMessage message : messages) {
-      Map<String, Object> payload = new HashMap<>();
-      payload.put("senderId", message.getSenderId());
-      payload.put("message", message.getMessage());
-      payload.put("timestamp", message.getTimestamp());
-
-      try {
-        String json = objectMapper.writeValueAsString(payload);
-        session.sendMessage(new TextMessage(json));
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-    }
+    addSessionToRoom(session, roomCode, userId);
+    sendExistingMessages(session, room);
   }
+
 
   public void broadcastMessageToRoom(ChatMessage message) {
     String roomCode = message.getRoomCode();
@@ -105,7 +82,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
       json = objectMapper.writeValueAsString(payload);
     }
     catch (Exception e) {
-      e.printStackTrace();
+      logger.error("Error sending message", e);
       return;
     }
 
@@ -117,11 +94,12 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
           session.sendMessage(new TextMessage(json));
         }
         catch (Exception e) {
-          e.printStackTrace();
+          logger.error("Error sending message", e);
         }
       }
     }
   }
+
   private Map<String, String> parseQuery(String query) {
     Map<String, String> params = new HashMap<>();
     if (query == null || query.isEmpty()) {
@@ -136,9 +114,68 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         }
       }
     } catch (Exception e) {
-      e.printStackTrace();
+      logger.error("Error sending message", e);
     }
 
     return params;
   }
+
+  private boolean validateConnection(WebSocketSession session, String roomCode, String userId) throws Exception {
+    if (roomCode == null || userId == null) {
+      session.close();
+      return false;
+    }
+    return true;
+  }
+
+  private boolean isUserMemberOfRoom(ChatRoom room, String userId) {
+    List<ChatRoomUser> members = chatRoomUserService.getMembers(room);
+    for (ChatRoomUser member : members) {
+      if (member.getUserId().equals(userId)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private void addSessionToRoom(WebSocketSession session, String roomCode, String userId) {
+    rooms.computeIfAbsent(roomCode, k -> ConcurrentHashMap.newKeySet()).add(session);
+    sessionRoom.put(session, roomCode);
+    userSessions.put(session, userId);
+  }
+
+  private void sendExistingMessages(WebSocketSession session, ChatRoom room) {
+    List<ChatMessage> messages = chatMessageQueue.getMessagesForRoom(room);
+
+    for (ChatMessage message : messages) {
+      Map<String, Object> payload = new HashMap<>();
+      payload.put("senderId", message.getSenderId());
+      payload.put("message", message.getMessage());
+      payload.put("timestamp", message.getTimestamp());
+      try {
+        String json = objectMapper.writeValueAsString(payload);
+        session.sendMessage(new TextMessage(json));
+      } catch (Exception e) {
+        logger.error("Error sending message", e);
+      }
+    }
+  }
+
+  public void afterConnectionClosed(@NonNull WebSocketSession session, @NonNull CloseStatus status) {
+    String roomCode = sessionRoom.remove(session);
+    String userId = userSessions.remove(session);
+
+    if (roomCode != null) {
+      Set<WebSocketSession> sessions = rooms.get(roomCode);
+      if (sessions != null) {
+        sessions.remove(session);
+        if (sessions.isEmpty()) {
+          rooms.remove(roomCode);
+        }
+      }
+    }
+
+    logger.info("User {} disconnected from room {} (session: {})", userId, roomCode, session.getId());
+  }
+
 }

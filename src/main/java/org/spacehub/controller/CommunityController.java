@@ -2,7 +2,6 @@ package org.spacehub.controller;
 
 import org.spacehub.DTO.*;
 import org.spacehub.service.CommunityService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -13,8 +12,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("api/v1/community")
 public class CommunityController {
 
-  @Autowired
-  private CommunityService communityService;
+  private final CommunityService communityService;
+
+  public CommunityController(CommunityService communityService) {
+    this.communityService = communityService;
+  }
 
   @PostMapping("/create")
   public ResponseEntity<?> createCommunity(@RequestBody CommunityDTO community) {
@@ -33,7 +35,7 @@ public class CommunityController {
 
   @PostMapping("/cancelRequest")
   public ResponseEntity<?> cancelJoinRequest(@RequestBody CancelJoinRequest cancelJoinRequest){
-      return ResponseEntity.status(200).body(communityService.cancelRequestCommunity(cancelJoinRequest));
+    return ResponseEntity.status(200).body(communityService.cancelRequestCommunity(cancelJoinRequest));
   }
 
   @PostMapping("/acceptRequest")

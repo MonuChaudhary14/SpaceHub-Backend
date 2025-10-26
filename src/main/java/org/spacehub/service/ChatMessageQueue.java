@@ -21,13 +21,13 @@ public class ChatMessageQueue {
 
   @Autowired
   public ChatMessageQueue(ChatMessageService chatMessageService) {
-      this.chatMessageService = chatMessageService;
+    this.chatMessageService = chatMessageService;
   }
 
   @Autowired
   @Lazy
   public void setChatWebSocketHandler(ChatWebSocketHandler chatWebSocketHandler) {
-      this.chatWebSocketHandler = chatWebSocketHandler;
+    this.chatWebSocketHandler = chatWebSocketHandler;
   }
 
   public synchronized void enqueue(ChatMessage message) {
@@ -58,8 +58,7 @@ public class ChatMessageQueue {
     for (ChatMessage message : batch) {
       try {
         chatWebSocketHandler.broadcastMessageToRoom(message);
-      } catch (Exception e) {
-        e.printStackTrace();
+      } catch (Exception ignored) {
       }
     }
   }
