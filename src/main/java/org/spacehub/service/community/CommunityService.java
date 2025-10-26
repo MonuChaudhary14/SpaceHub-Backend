@@ -544,9 +544,15 @@ public class CommunityService {
         }
 
         Community community = optionalCommunity.get();
-        String fileName = file.getOriginalFilename();
-
         try {
+
+            validateImage(file);
+
+            if (community.getImageUrl() != null) {
+                s3Service.deleteFile(community.getImageUrl());
+            }
+
+            String fileName = file.getOriginalFilename();
             String imageUrl = s3Service.uploadCommunityImage(communityId, fileName, file.getInputStream(), file.getSize());
 
             community.setImageUrl(imageUrl);
@@ -554,11 +560,28 @@ public class CommunityService {
 
             return ResponseEntity.ok(new ApiResponse<>(200, "Community image uploaded successfully", imageUrl));
         }
+        catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
+        }
         catch (Exception e) {
             return ResponseEntity.status(500).body(new ApiResponse<>(500, "Failed to upload image: " + e.getMessage(), null));
         }
 
+    }
 
+    private void validateImage(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new RuntimeException("File is empty");
+        }
+
+        if (file.getSize() > 2 * 1024 * 1024) {
+            throw new RuntimeException("File size exceeds 2 MB");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new RuntimeException("Only image files are allowed");
+        }
     }
 
     public List<Community> filterCommunities(String name, String creatorName) {

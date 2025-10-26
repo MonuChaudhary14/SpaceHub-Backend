@@ -60,7 +60,11 @@ public class ProfileService {
 
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
 
-        String key = "avatars/" + file.getOriginalFilename();
+        if (user.getAvatarUrl() != null && !user.getAvatarUrl().isEmpty()) {
+            s3Service.deleteFile(user.getAvatarUrl());
+        }
+
+        String key = "avatars/" + System.currentTimeMillis() + "_" + file.getOriginalFilename();
         s3Service.uploadFile(key, file.getInputStream(), file.getSize());
 
         user.setAvatarUrl(key);
@@ -72,7 +76,11 @@ public class ProfileService {
 
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
 
-        String key = "covers/" + file.getOriginalFilename();
+        if (user.getCoverPhotoUrl() != null && !user.getCoverPhotoUrl().isEmpty()) {
+            s3Service.deleteFile(user.getCoverPhotoUrl());
+        }
+
+        String key = "covers/" + System.currentTimeMillis() + "_" + file.getOriginalFilename();
         s3Service.uploadFile(key, file.getInputStream(), file.getSize());
 
         user.setCoverPhotoUrl(key);

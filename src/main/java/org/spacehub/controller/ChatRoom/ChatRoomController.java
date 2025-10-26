@@ -1,4 +1,4 @@
-package org.spacehub.controller;
+package org.spacehub.controller.ChatRoom;
 
 import jakarta.validation.Valid;
 import org.spacehub.DTO.chatroom.*;

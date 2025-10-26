@@ -16,5 +16,5 @@ public class NotificationRequestDTO {
     private Long communityId;
     private Long referenceId;
     private String scope;
-    private Boolean actionable;
+    private boolean actionable;
 }

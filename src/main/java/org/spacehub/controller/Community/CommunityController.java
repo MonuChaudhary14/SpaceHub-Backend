@@ -1,11 +1,9 @@
-package org.spacehub.controller;
+package org.spacehub.controller.Community;
 
 import org.spacehub.DTO.*;
 import org.spacehub.DTO.Community.*;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.Community.Community;
-import org.spacehub.repository.commnunity.CommunityRepository;
-import org.spacehub.service.S3Service;
 import org.spacehub.service.community.CommunityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -13,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("api/v1/community")
