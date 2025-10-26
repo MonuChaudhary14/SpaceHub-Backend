@@ -58,7 +58,7 @@ public class JanusService {
     restTemplate.postForEntity(handleUrl, request, JsonNode.class);
   }
 
-  public String joinAudioRoom(String sessionId, String handleId, int roomId, String displayName) {
+  public JsonNode joinAudioRoom(String sessionId, String handleId, int roomId, String displayName) {
     Map<String, Object> body = Map.of(
       "request", "join",
       "room", roomId,
@@ -72,32 +72,9 @@ public class JanusService {
     );
 
     String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
-    ResponseEntity<JsonNode> response = restTemplate.postForEntity(handleUrl, request, JsonNode.class);
-
-    if (response.getBody() != null) {
-      String janusType = response.getBody().get("janus").asText();
-      if ("ack".equals(janusType) || "success".equals(janusType)) {
-        return "Joined room request acknowledged";
-      }
-    }
-
-    throw new RuntimeException("Failed to join audio room");
-  }
-
-
-  public void leaveRoom(String sessionId, String handleId) {
-    Map<String, Object> body = Map.of(
-      "request", "leave"
-    );
-
-    Map<String, Object> request = Map.of(
-      "janus", "message",
-      "transaction", UUID.randomUUID().toString(),
-      "body", body
-    );
-
-    String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
     restTemplate.postForEntity(handleUrl, request, JsonNode.class);
+
+    return pollForPluginEvent(sessionId, 10, 400);
   }
 
   public JsonNode sendOffer(String sessionId, String handleId, String sdpOffer) {
@@ -118,16 +95,25 @@ public class JanusService {
     );
 
     String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
-    ResponseEntity<JsonNode> response = restTemplate.postForEntity(handleUrl, request, JsonNode.class);
+    restTemplate.postForEntity(handleUrl, request, JsonNode.class);
 
-    return response.getBody();
+    JsonNode event = pollForPluginEvent(sessionId, 10, 400);
+
+    if (event != null) {
+      if (event.has("jsep") || (event.has("plugindata") &&
+        event.get("plugindata").has("data") &&
+        event.get("plugindata").get("data").has("jsep"))) {
+        return event;
+      }
+    }
+    throw new RuntimeException("Failed to receive SDP answer from Janus");
   }
 
-  public void sendIce(String sessionId, String handleId, String candidate) {
+  public void sendIce(String sessionId, String handleId, Object candidate) {
     Map<String, Object> request = Map.of(
       "janus", "trickle",
       "transaction", UUID.randomUUID().toString(),
-      "candidate", Map.of("candidate", candidate)
+      "candidate", candidate
     );
 
     String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
@@ -151,4 +137,65 @@ public class JanusService {
     restTemplate.postForEntity(handleUrl, request, JsonNode.class);
   }
 
+  private JsonNode pollForPluginEvent(String sessionId, int attempts, long delayMs) {
+    try {
+      for (int i = 0; i < attempts; i++) {
+        String sessionPollingUrl = String.format("%s/%s?rid=%d&maxev=1", janusUrl, sessionId,
+          System.currentTimeMillis());
+        ResponseEntity<JsonNode> resp = restTemplate.getForEntity(sessionPollingUrl, JsonNode.class);
+        JsonNode body = resp.getBody();
+
+        if (body == null) {
+          Thread.sleep(delayMs);
+          continue;
+        }
+
+        JsonNode eventNode = null;
+
+        if (body.isArray()) {
+          for (JsonNode node : body) {
+            eventNode = findJanusEvent(node);
+            if (eventNode != null) {
+              break;
+            }
+          }
+        } else {
+          eventNode = findJanusEvent(body);
+        }
+
+        if (eventNode != null) {
+          return eventNode;
+        }
+
+        Thread.sleep(delayMs);
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    } catch (Exception ignored) {
+    }
+    return null;
+  }
+
+  public JsonNode fetchSessionEvents(String sessionId) {
+    try {
+      String url = String.format("%s/%s?rid=%d&maxev=1", janusUrl, sessionId, System.currentTimeMillis());
+      ResponseEntity<JsonNode> resp = restTemplate.getForEntity(url, JsonNode.class);
+      return resp.getBody();
+    } catch (Exception ex) {
+      return null;
+    }
+  }
+
+  private JsonNode findJanusEvent(JsonNode node) {
+    if (node.has("janus") && "event".equals(node.get("janus").asText())) {
+
+      boolean hasJsep = node.has("jsep");
+      boolean hasPluginData = node.has("plugindata") && node.get("plugindata").has("data");
+
+      if (hasJsep || hasPluginData) {
+        return node;
+      }
+    }
+    return null;
+  }
 }
