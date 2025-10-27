@@ -109,5 +109,4 @@ public class ProfileService {
             throw new RuntimeException("Only image files are allowed");
         }
     }
-
 }
