@@ -5,6 +5,8 @@ import org.spacehub.entities.Community.Community;
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.CommunityRepository;
 import org.spacehub.repository.UserRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -29,6 +31,7 @@ public class CommunityService {
     this.userRepository = userRepository;
   }
 
+  @CacheEvict(value = {"communities"}, allEntries = true)
   public ResponseEntity<?> createCommunity(@RequestBody CommunityDTO community) {
 
     if (community.getName() != null && community.getDescription() != null) {
@@ -55,6 +58,7 @@ public class CommunityService {
 
   }
 
+  @CacheEvict(value = {"communities"}, key = "#deleteCommunity.name")
   public ResponseEntity<?> deleteCommunityByName(@RequestBody DeleteCommunityDTO deleteCommunity) {
 
     String name = deleteCommunity.getName();
@@ -80,6 +84,7 @@ public class CommunityService {
     return ResponseEntity.ok().body("Community deleted successfully");
   }
 
+  @CachePut(value = "communities", key = "#joinCommunity.communityName")
   public ResponseEntity<?> requestToJoinCommunity(@RequestBody JoinCommunity joinCommunity){
 
     if (joinCommunity.getCommunityName() == null || joinCommunity.getCommunityName().isEmpty() ||
@@ -112,6 +117,7 @@ public class CommunityService {
 
   }
 
+  @CacheEvict(value = "communities", key = "#cancelJoinRequest.communityName")
   public ResponseEntity<?> cancelRequestCommunity(@RequestBody CancelJoinRequest cancelJoinRequest){
 
     if (cancelJoinRequest.getCommunityName() != null && !cancelJoinRequest.getCommunityName().isEmpty() &&
@@ -144,6 +150,7 @@ public class CommunityService {
 
   }
 
+  @CacheEvict(value = "communities", key = "#acceptRequest.communityName")
   public ResponseEntity<?> acceptRequest(AcceptRequest acceptRequest) {
 
     if (isEmpty(acceptRequest.getUserEmail(), acceptRequest.getCommunityName(), acceptRequest.getCreatorEmail())) {
@@ -182,6 +189,7 @@ public class CommunityService {
     return false;
   }
 
+  @CacheEvict(value = "communities", key = "#leaveCommunity.communityName")
   public ResponseEntity<?> leaveCommunity(LeaveCommunity leaveCommunity) {
 
     if (isEmpty(leaveCommunity.getCommunityName(), leaveCommunity.getUserEmail())) {
@@ -210,6 +218,7 @@ public class CommunityService {
     }
   }
 
+  @CacheEvict(value = "communities", key = "#rejectRequest.communityName")
   public ResponseEntity<?> rejectRequest(RejectRequest rejectRequest){
 
     if (rejectRequest.getCommunityName() != null && !rejectRequest.getCommunityName().isBlank() &&

@@ -5,6 +5,8 @@ import org.spacehub.entities.Friends.Friends;
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.FriendsRepository;
 import org.spacehub.repository.UserRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -22,6 +24,7 @@ public class FriendService {
     this.userRepository = userRepository;
   }
 
+  @CacheEvict(value = {"outgoingRequests"}, allEntries = true)
   public String sendFriendRequest(String userEmail, String friendEmail) {
 
     User user = userRepository.findByEmail(userEmail)
@@ -51,6 +54,7 @@ public class FriendService {
     return "Friend request sent successfully";
   }
 
+  @CacheEvict(value = {"incomingRequests"}, allEntries = true)
   public String respondFriendRequest(String userEmail, String requesterEmail, boolean accept) {
     User user = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new RuntimeException("User not found"));
@@ -71,6 +75,7 @@ public class FriendService {
     }
   }
 
+  @Cacheable(value = "friends", key = "#userEmail")
   public List<UserOutput> getFriends(String userEmail) {
     User user = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new RuntimeException("User not found"));
@@ -99,6 +104,7 @@ public class FriendService {
     return friendsList;
   }
 
+  @CacheEvict(value = {"friends", "incomingRequests"}, allEntries = true)
   public String blockFriend(String userEmail, String friendEmail) {
     User user = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new RuntimeException("User not found"));
@@ -116,6 +122,7 @@ public class FriendService {
     return "Friend blocked successfully";
   }
 
+  @Cacheable(value = "incomingRequests", key = "#userEmail")
   public List<UserOutput> getIncomingPendingRequests(String userEmail) {
     User user = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new RuntimeException("User not found"));
@@ -132,6 +139,7 @@ public class FriendService {
             .collect(Collectors.toList());
   }
 
+  @Cacheable(value = "outgoingRequests", key = "#userEmail")
   public List<UserOutput> getOutgoingPendingRequests(String userEmail) {
     User user = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new RuntimeException("User not found"));
@@ -148,6 +156,7 @@ public class FriendService {
             .collect(Collectors.toList());
   }
 
+  @CacheEvict(value = {"friends", "outgoingRequests"}, allEntries = true)
   public String unblockUser(String userEmail, String blockedUserEmail) {
     User user = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new RuntimeException("User not found"));

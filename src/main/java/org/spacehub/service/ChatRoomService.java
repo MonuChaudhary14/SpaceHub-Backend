@@ -10,6 +10,8 @@ import org.spacehub.entities.ChatRoom.ChatRoomUser;
 import org.spacehub.entities.Community.Role;
 import org.spacehub.repository.ChatMessageRepository;
 import org.spacehub.repository.ChatRoomRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -31,10 +33,12 @@ public class ChatRoomService {
     this.chatRoomUserService = chatRoomUserService;
   }
 
+  @Cacheable(value = "chatRooms", key = "#roomCode")
   public Optional<ChatRoom> findByRoomCode(String roomCode) {
     return chatRoomRepository.findByRoomCode(roomCode);
   }
 
+  @CacheEvict(value = { "chatRooms", "chatRoomData", "allRooms" }, allEntries = true)
   public ApiResponse<RoomResponseDTO> createRoom(CreateRoomRequest requestDTO) {
     ChatRoom room = ChatRoom.builder()
       .name(requestDTO.getName())
@@ -53,6 +57,7 @@ public class ChatRoomService {
     return new ApiResponse<>(200, "Room created successfully", responseDTO);
   }
 
+  @Cacheable(value = "chatRoomData", key = "#roomCode")
   public ApiResponse<ChatRoom> getRoomByCodeData(String roomCode) {
     Optional<ChatRoom> optionalRoom = chatRoomRepository.findByRoomCode(roomCode);
     return optionalRoom
@@ -60,11 +65,13 @@ public class ChatRoomService {
       .orElseGet(() -> new ApiResponse<>(404, "Room not found", null));
   }
 
+  @Cacheable(value = "allRooms")
   public ApiResponse<List<ChatRoom>> getAllRoomsData() {
     List<ChatRoom> rooms = chatRoomRepository.findAll();
     return new ApiResponse<>(200, "Fetched all rooms", rooms);
   }
 
+  @CacheEvict(value = { "chatRooms", "chatRoomData", "allRooms" }, allEntries = true)
   public ApiResponse<String> deleteRoomResponse(String roomCode, String userId) {
     Optional<ChatRoom> optionalRoom = chatRoomRepository.findByRoomCode(roomCode);
     if (optionalRoom.isEmpty()) return new ApiResponse<>(403, "Room not found", null);
@@ -89,6 +96,7 @@ public class ChatRoomService {
       "Room with code " + roomCode + " deleted.");
   }
 
+  @CacheEvict(value = { "chatRooms", "chatRoomData", "allRooms" }, allEntries = true)
   public ApiResponse<String> joinRoomResponse(String roomCode, String userId) {
     Optional<ChatRoom> optionalRoom = chatRoomRepository.findByRoomCode(roomCode);
     if (optionalRoom.isEmpty()) return new ApiResponse<>(404, "Room not found", null);
@@ -98,6 +106,7 @@ public class ChatRoomService {
       "User added to room successfully, User " + userId + " added to room " + roomCode);
   }
 
+  @CacheEvict(value = { "chatRooms", "chatRoomData", "allRooms" }, allEntries = true)
   public ApiResponse<String> removeMember(RoomMemberAction requestDTO) {
     Optional<ChatRoom> optionalRoom = chatRoomRepository.findByRoomCode(requestDTO.getRoomCode());
     if (optionalRoom.isEmpty()) return new ApiResponse<>(404, "Room not found", null);
@@ -135,6 +144,7 @@ public class ChatRoomService {
     return new ApiResponse<>(403, "You are not authorized to remove members", null);
   }
 
+  @CacheEvict(value = { "chatRooms", "chatRoomData", "allRooms" }, allEntries = true)
   public ApiResponse<String> changeRole(RoleChangeAction requestDTO) {
     Optional<ChatRoom> optionalRoom = chatRoomRepository.findByRoomCode(requestDTO.getRoomCode());
     if (optionalRoom.isEmpty()) return new ApiResponse<>(404, "Room not found", null);
