@@ -1,7 +1,6 @@
 package org.spacehub.controller;
 
 import org.spacehub.DTO.UserProfileDTO;
-import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.User.User;
 import org.spacehub.service.ProfileService;
 import org.springframework.http.ResponseEntity;
@@ -19,27 +18,27 @@ public class ProfileController {
     }
 
     @GetMapping("/getProfile/{userId}")
-    public ResponseEntity<ApiResponse<User>> getProfile(@PathVariable Long userId) {
+    public ResponseEntity<User> getProfile(@PathVariable Long userId) {
         User user = profileService.getProfile(userId);
-        return ResponseEntity.ok(new ApiResponse<>(200, "Profile fetched successfully", user));
+        return ResponseEntity.ok(user);
     }
 
     @PutMapping("/updateProfile/{userId}")
-    public ResponseEntity<ApiResponse<User>> updateProfile(@PathVariable Long userId, @RequestBody UserProfileDTO dto) {
+    public ResponseEntity<User> updateProfile(@PathVariable Long userId, @RequestBody UserProfileDTO dto) {
         User updatedUser = profileService.updateProfile(userId, dto);
-        return ResponseEntity.ok(new ApiResponse<>(200, "Profile updated successfully", updatedUser));
+        return ResponseEntity.ok(updatedUser);
     }
 
     @PostMapping("/{userId}/avatar")
-    public ResponseEntity<ApiResponse<User>> uploadAvatar(@PathVariable Long userId, @RequestParam("file") MultipartFile file) throws Exception {
+    public ResponseEntity<User> uploadAvatar(@PathVariable Long userId, @RequestParam("file") MultipartFile file) throws Exception {
         User user = profileService.uploadAvatar(userId, file);
-        return ResponseEntity.ok(new ApiResponse<>(200, "Avatar uploaded successfully", user));
+        return ResponseEntity.ok(user);
     }
 
     @PostMapping("/{userId}/cover")
-    public ResponseEntity<ApiResponse<User>> uploadCover(@PathVariable Long userId, @RequestParam("file") MultipartFile file) throws Exception {
+    public ResponseEntity<User> uploadCover(@PathVariable Long userId, @RequestParam("file") MultipartFile file) throws Exception {
         User user = profileService.uploadCoverPhoto(userId, file);
-        return ResponseEntity.ok(new ApiResponse<>(200, "Cover photo uploaded successfully", user));
+        return ResponseEntity.ok(user);
     }
 
 }

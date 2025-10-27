@@ -64,12 +64,6 @@ public class UserController {
     return ResponseEntity.status(resp.getStatus()).body(resp);
   }
 
-  @PostMapping("/logout")
-  public ResponseEntity<ApiResponse<String>> logout(@RequestBody(required = false) RefreshRequest request) {
-    ApiResponse<String> resp = accountService.logout(request);
-    return ResponseEntity.status(resp.getStatus()).body(resp);
-  }
-
   @PostMapping("/resendotp")
   public ResponseEntity<ApiResponse<String>> resendOTP(@RequestBody ResendOtpRequest request) {
     ApiResponse<String> resp = accountService.resendOTP(request.getEmail(), request.getSessionToken());
