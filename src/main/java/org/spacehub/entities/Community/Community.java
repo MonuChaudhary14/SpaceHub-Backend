@@ -49,9 +49,6 @@ public class Community {
 
     private LocalDateTime updatedAt = LocalDateTime.now();
 
-    @Column(name = "image_url")
-    private String imageUrl;
-
     @OneToMany(mappedBy = "community", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ChatRoom> chatRooms = new HashSet<>();
 

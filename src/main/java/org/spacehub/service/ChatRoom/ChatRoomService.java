@@ -11,7 +11,6 @@ import org.spacehub.repository.ChatRoom.ChatMessageRepository;
 import org.spacehub.repository.ChatRoom.ChatRoomRepository;
 import org.spacehub.repository.commnunity.CommunityRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -37,16 +36,7 @@ public class ChatRoomService {
 
     public ApiResponse<RoomResponseDTO> createRoom(CreateRoomRequest requestDTO) {
 
-        if (requestDTO.getRoomName() == null || requestDTO.getRoomName().isBlank()) {
-            return new ApiResponse<>(400, "Room name cannot be blank", null);
-        }
-
         Community community = communityRepository.findById(requestDTO.getCommunityId()).orElseThrow(() -> new RuntimeException("Community not found"));
-
-        boolean room_exists = chatRoomRepository.existsByRoomNameAndCommunityId(requestDTO.getRoomName(), requestDTO.getCommunityId());
-        if (room_exists) {
-            return new ApiResponse<>(400, "Room with this name already exists in the community", null);
-        }
 
         ChatRoom room = ChatRoom.builder().roomName(requestDTO.getRoomName()).roomCode(UUID.randomUUID().toString())
                 .createdBy(requestDTO.getCreatedBy()).community(community)
@@ -57,11 +47,6 @@ public class ChatRoomService {
     }
 
     public ApiResponse<ChatRoom> getRoomByCodeData(String roomCode) {
-
-        if (roomCode == null || roomCode.isBlank()) {
-            return new ApiResponse<>(400, "Room code cannot be blank", null);
-        }
-
         Optional<ChatRoom> optionalRoom = chatRoomRepository.findByRoomCode(roomCode);
         return optionalRoom.map(room -> new ApiResponse<>(200, "Room fetched successfully", room))
                 .orElseGet(() -> new ApiResponse<>(404, "Room not found", null));
@@ -72,10 +57,7 @@ public class ChatRoomService {
         return new ApiResponse<>(200, "Fetched all rooms", rooms);
     }
 
-    @Transactional
     public ApiResponse<String> deleteRoomResponse(String roomCode, String userId) {
-
-        if (roomCode == null || roomCode.isBlank()) return new ApiResponse<>(400, "Room code cannot be blank", null);
 
         Optional<ChatRoom> optionalRoom = chatRoomRepository.findByRoomCode(roomCode);
         if (optionalRoom.isEmpty()) return new ApiResponse<>(404, "Room not found", null);
@@ -92,19 +74,13 @@ public class ChatRoomService {
 
         chatMessageRepository.deleteAll(chatMessageRepository.findByRoomOrderByTimestampAsc(room));
 
-        List<ChatRoomUser> members = chatRoomUserService.getMembers(room);
-        for (ChatRoomUser member : members) {
-            chatRoomUserService.removeUserFromRoom(room, member.getUserId());
-        }
+        chatRoomUserService.getMembers(room).forEach(user -> chatRoomUserService.removeUserFromRoom(room, user.getUserId()));
         chatRoomRepository.delete(room);
 
         return new ApiResponse<>(200, "Room deleted successfully", "Room with code " + roomCode + " deleted.");
     }
 
     public ApiResponse<String> joinRoomResponse(String roomCode, String userId) {
-
-        if (roomCode == null || roomCode.isBlank()) return new ApiResponse<>(400, "Room code cannot be blank", null);
-        if (userId == null || userId.isBlank()) return new ApiResponse<>(400, "User ID cannot be blank", null);
 
         Optional<ChatRoom> optionalRoom = chatRoomRepository.findByRoomCode(roomCode);
         if (optionalRoom.isEmpty()) return new ApiResponse<>(404, "Room not found", null);
@@ -113,7 +89,7 @@ public class ChatRoomService {
 
         Community community = room.getCommunity();
         Optional<CommunityUser> communityUserOptional = community.getCommunityUsers().stream()
-                .filter(communityUser -> communityUser.getUser().getId().equals(userId.trim())).findFirst();
+                .filter(communityUser -> communityUser.getUser().getId().equals(userId)).findFirst();
 
         if (communityUserOptional.isEmpty()) {
             return new ApiResponse<>(403, "You are not a member of this community", null);
@@ -133,13 +109,6 @@ public class ChatRoomService {
     }
 
     public ApiResponse<String> removeMember(RemoveMemberRequest requestDTO) {
-
-        if (requestDTO.getRoomCode() == null || requestDTO.getRoomCode().isBlank())
-            return new ApiResponse<>(400, "Room code cannot be blank", null);
-        if (requestDTO.getRequesterId() == null || requestDTO.getRequesterId().isBlank())
-            return new ApiResponse<>(400, "Requester ID cannot be blank", null);
-        if (requestDTO.getTargetUserId() == null || requestDTO.getTargetUserId().isBlank())
-            return new ApiResponse<>(400, "Target user ID cannot be blank", null);
 
         Optional<ChatRoom> optionalRoom = chatRoomRepository.findByRoomCode(requestDTO.getRoomCode());
         if (optionalRoom.isEmpty()) return new ApiResponse<>(404, "Room not found", null);
@@ -170,15 +139,6 @@ public class ChatRoomService {
     }
 
     public ApiResponse<String> changeRole(ChangeRoleRequest requestDTO) {
-
-        if (requestDTO.getRoomCode() == null || requestDTO.getRoomCode().isBlank())
-            return new ApiResponse<>(400, "Room code cannot be blank", null);
-        if (requestDTO.getRequesterId() == null || requestDTO.getRequesterId().isBlank())
-            return new ApiResponse<>(400, "Requester ID cannot be blank", null);
-        if (requestDTO.getTargetUserId() == null || requestDTO.getTargetUserId().isBlank())
-            return new ApiResponse<>(400, "Target user ID cannot be blank", null);
-        if (requestDTO.getNewRole() == null)
-            return new ApiResponse<>(400, "New role cannot be null", null);
 
         Optional<ChatRoom> optionalRoom = chatRoomRepository.findByRoomCode(requestDTO.getRoomCode());
         if (optionalRoom.isEmpty()) return new ApiResponse<>(404, "Room not found", null);
@@ -211,16 +171,10 @@ public class ChatRoomService {
     }
 
     public Optional<ChatRoom> findByRoomCode(String roomCode) {
-        if (roomCode == null || roomCode.isBlank()) return Optional.empty();
-        return chatRoomRepository.findByRoomCode(roomCode.trim());
+        return chatRoomRepository.findByRoomCode(roomCode);
     }
 
     public ApiResponse<String> leaveRoom(LeaveRoomRequest requestDTO) {
-
-        if (requestDTO.getRoomCode() == null || requestDTO.getRoomCode().isBlank())
-            return new ApiResponse<>(400, "Room code cannot be blank", null);
-        if (requestDTO.getUserId() == null || requestDTO.getUserId().isBlank())
-            return new ApiResponse<>(400, "User ID cannot be blank", null);
 
         Optional<ChatRoom> optionalRoom = chatRoomRepository.findByRoomCode(requestDTO.getRoomCode());
         if (optionalRoom.isEmpty()) {
@@ -234,22 +188,11 @@ public class ChatRoomService {
             return new ApiResponse<>(400, "You are not a member of this room", null);
         }
 
-        ChatRoomUser leavingUser = optionalUser.get();
-        if (leavingUser.getRole() == Role.ADMIN) {
-            long adminCount = chatRoomUserService.getMembers(room).stream()
-                    .filter(user -> user.getRole() == Role.ADMIN).count();
-            if (adminCount <= 1) {
-                return new ApiResponse<>(403, "Cannot leave room as the only ADMIN. Assign another ADMIN first.", null);
-            }
-        }
-
         chatRoomUserService.removeUserFromRoom(room, requestDTO.getUserId());
         return new ApiResponse<>(200, "Left room successfully", "User " + requestDTO.getUserId() + " has left room " + room.getRoomCode());
     }
 
     public ApiResponse<List<ChatRoom>> getRoomsByCommunity(Long communityId) {
-
-        if (communityId == null) return new ApiResponse<>(400, "Community ID cannot be null", null);
 
         Optional<Community> optionalCommunity = communityRepository.findById(communityId);
         if (optionalCommunity.isEmpty()) {

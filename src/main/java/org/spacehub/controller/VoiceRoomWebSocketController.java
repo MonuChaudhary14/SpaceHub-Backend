@@ -1,4 +1,4 @@
-package org.spacehub.controller.VoiceRoom;
+package org.spacehub.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;

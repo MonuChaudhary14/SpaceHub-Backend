@@ -1,6 +1,5 @@
 package org.spacehub.entities.User;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -35,9 +34,6 @@ public class User implements UserDetails {
 
   private String firstName;
   private String lastName;
-  @Column(unique = true)
-  @JsonProperty("username")
-  private String username;
   @Column(unique = true)
   private String email;
   private String password;
@@ -89,7 +85,7 @@ public class User implements UserDetails {
 
   @Override
   public String getUsername() {
-    return username;
+    return email;
   }
 
   @Override

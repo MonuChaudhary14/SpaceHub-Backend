@@ -66,23 +66,4 @@ public class S3Service {
 
         return s3Presigner.presignGetObject(presignRequest).url().toString();
     }
-
-    public String uploadCommunityImage(Long communityId, String fileName, InputStream inputStream, long size) {
-
-        String key = "community-images/" + communityId + "/" + fileName;
-
-        PutObjectRequest request = PutObjectRequest.builder()
-                .bucket(bucketName)
-                .key(key)
-                .build();
-        s3Client.putObject(request, RequestBody.fromInputStream(inputStream, size));
-
-        GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-                .getObjectRequest(builder -> builder.bucket(bucketName).key(key))
-                .signatureDuration(Duration.ofHours(2))
-                .build();
-
-        return s3Presigner.presignGetObject(presignRequest).url().toString();
-    }
-
 }

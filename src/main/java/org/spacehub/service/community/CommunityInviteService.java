@@ -34,7 +34,6 @@ public class CommunityInviteService {
                 .inviterId(request.getInviterId())
                 .email(request.getEmail())
                 .maxUses(request.getMaxUses())
-                .uses(0)
                 .inviteCode(generateInviteCode())
                 .expiresAt(LocalDateTime.now().plusHours(request.getExpiresInHours()))
                 .status(InviteStatus.ACTIVE)
@@ -44,7 +43,7 @@ public class CommunityInviteService {
 
         CommunityInviteResponseDTO response = CommunityInviteResponseDTO.builder()
                 .inviteCode(invite.getInviteCode())
-                .inviteLink("/invite/" + invite.getInviteCode())
+                .inviteLink("https:///invite/" + invite.getInviteCode())
                 .communityId(communityId)
                 .email(invite.getEmail())
                 .maxUses(invite.getMaxUses())
@@ -65,11 +64,6 @@ public class CommunityInviteService {
         }
 
         CommunityInvite invite = optionalInvite.get();
-
-        if (invite.getStatus() == InviteStatus.EXPIRED ||
-                invite.getStatus() == InviteStatus.USED) {
-            return new ApiResponse<>(400, "This invite is no longer active", null);
-        }
 
         if (invite.getExpiresAt().isBefore(LocalDateTime.now())) {
             invite.setStatus(InviteStatus.EXPIRED);
@@ -99,7 +93,7 @@ public class CommunityInviteService {
                 .filter(invite -> invite.getCommunityId().equals(communityId))
                 .map(invite -> CommunityInviteResponseDTO.builder()
                         .inviteCode(invite.getInviteCode())
-                        .inviteLink("/invite/" + invite.getInviteCode())
+                        .inviteLink("https:///invite/" + invite.getInviteCode())
                         .communityId(invite.getCommunityId())
                         .email(invite.getEmail())
                         .maxUses(invite.getMaxUses())
@@ -120,10 +114,7 @@ public class CommunityInviteService {
             return new ApiResponse<>(400, "Invite not found", null);
         }
 
-        CommunityInvite invite = inviteOpt.get();
-        invite.setStatus(InviteStatus.EXPIRED);
-        inviteRepository.save(invite);
-
+        inviteRepository.delete(inviteOpt.get());
         return new ApiResponse<>(200, "Invite revoked successfully", null);
     }
 
