@@ -16,11 +16,12 @@ import org.spacehub.repository.community.CommunityRepository;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
-
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+@Transactional
 @Service
 public class ChatRoomService {
 
@@ -104,9 +105,15 @@ public class ChatRoomService {
   @CacheEvict(value = { "chatRooms", "chatRoomData", "allRooms" }, allEntries = true)
   public ApiResponse<String> joinRoomResponse(String roomCode, String userId) {
     Optional<ChatRoom> optionalRoom = chatRoomRepository.findByRoomCode(roomCode);
-    if (optionalRoom.isEmpty()) return new ApiResponse<>(404, "Room not found", null);
-
-    chatRoomUserService.addUserToRoom(optionalRoom.get(), userId, Role.MEMBER);
+    if (optionalRoom.isEmpty()) {
+      return new ApiResponse<>(404, "Room not found", null);
+    }
+    ChatRoom room = optionalRoom.get();
+    Optional<ChatRoomUser> userOpt = chatRoomUserService.getUserInRoom(room, userId);
+    if (userOpt.isPresent()) {
+      return new ApiResponse<>(400, "User is already in this room", null);
+    }
+    chatRoomUserService.addUserToRoom(room, userId, Role.MEMBER);
     return new ApiResponse<>(200,
       "User added to room successfully, User " + userId + " added to room " + roomCode);
   }
@@ -114,32 +121,40 @@ public class ChatRoomService {
   @CacheEvict(value = { "chatRooms", "chatRoomData", "allRooms" }, allEntries = true)
   public ApiResponse<String> removeMember(RoomMemberAction requestDTO) {
     Optional<ChatRoom> optionalRoom = chatRoomRepository.findByRoomCode(requestDTO.getRoomCode());
-    if (optionalRoom.isEmpty()) return new ApiResponse<>(404, "Room not found", null);
+    if (optionalRoom.isEmpty()) {
+      return new ApiResponse<>(404, "Room not found", null);
+    }
 
     ChatRoom room = optionalRoom.get();
 
     ApiResponse<RoleContext> ctxResponse =
       getRoleContext(room, requestDTO.getUserId(), requestDTO.getTargetUserId());
-    if (ctxResponse.getStatus() != 200)
+
+    if (ctxResponse.getStatus() != 200) {
       return new ApiResponse<>(ctxResponse.getStatus(), ctxResponse.getMessage(), null);
-
-    RoleContext ctx = ctxResponse.getData();
-
-    if (requestDTO.getUserId().equals(requestDTO.getTargetUserId())) {
-      return new ApiResponse<>(400, "You cannot remove yourself from the room", null);
     }
 
+    RoleContext ctx = ctxResponse.getData();
     assert ctx != null;
-    if (ctx.requesterRole == Role.ADMIN) {
+    if (requestDTO.getUserId().equals(requestDTO.getTargetUserId())) {
+      return new ApiResponse<>(400, "You cannot remove yourself. Please use the 'leave room' API.",
+        null);
+    }
+
+    if (ctx.requesterRole == Role.WORKSPACE_OWNER) {
+      if (ctx.targetRole == Role.WORKSPACE_OWNER) {
+        return new ApiResponse<>(403, "A Workspace Owner cannot remove another Workspace Owner.",
+          null);
+      }
       chatRoomUserService.removeUserFromRoom(room, requestDTO.getTargetUserId());
       return new ApiResponse<>(200, "Member removed successfully",
         "User " + ctx.target.getUserId() + " removed from room " + room.getRoomCode());
     }
 
-    if (ctx.requesterRole == Role.WORKSPACE_OWNER) {
-      if (ctx.targetRole == Role.ADMIN || ctx.targetRole == Role.WORKSPACE_OWNER) {
-        return new ApiResponse<>(403,
-          "Workspace owner cannot remove Admin or another Workspace Owner", null);
+    if (ctx.requesterRole == Role.ADMIN) {
+      if (ctx.targetRole == Role.WORKSPACE_OWNER || ctx.targetRole == Role.ADMIN) {
+        return new ApiResponse<>(403, "An Admin cannot remove another Admin or a Workspace Owner.",
+          null);
       }
       chatRoomUserService.removeUserFromRoom(room, requestDTO.getTargetUserId());
       return new ApiResponse<>(200, "Member removed successfully",
@@ -195,7 +210,8 @@ public class ChatRoomService {
       return new ApiResponse<>(403, "You are not a member of this room", null);
 
     Optional<ChatRoomUser> tgtOpt = chatRoomUserService.getUserInRoom(room, targetUserId);
-    return tgtOpt.map(chatRoomUser -> new ApiResponse<>(200, "Fetched successfully", new RoleContext(reqOpt.get(), chatRoomUser)))
+    return tgtOpt.map(chatRoomUser -> new ApiResponse<>(200, "Fetched successfully",
+        new RoleContext(reqOpt.get(), chatRoomUser)))
       .orElseGet(() -> new ApiResponse<>(404, "Target user not found in this room", null));
 
   }
@@ -215,7 +231,8 @@ public class ChatRoomService {
     }
 
     chatRoomUserService.removeUserFromRoom(room, requestDTO.getUserId());
-    return new ApiResponse<>(200, "Left room successfully", "User " + requestDTO.getUserId() + " has left room " + room.getRoomCode());
+    return new ApiResponse<>(200, "Left room successfully", "User " + requestDTO.getUserId()
+      + " has left room " + room.getRoomCode());
   }
 
   public ApiResponse<List<ChatRoom>> getRoomsByCommunity(Long communityId) {

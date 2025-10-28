@@ -40,7 +40,7 @@ public class JanusWebSocketService implements WebSocketHandler{
               .execute(this, headers, URI.create(JANUS_WS_URL))
               .whenComplete((session, ex) -> {
                 if (ex != null) {
-                  log.error("WebSocket connection failed: {}", ex.getMessage());
+//                  log.error("WebSocket connection failed: {}", ex.getMessage());
                   connectionFuture.completeExceptionally(ex);
                   scheduleReconnect();
                 }
