@@ -15,4 +15,3 @@ public class RoomResponseDTO implements Serializable {
   private String name;
   private String message;
 }
-

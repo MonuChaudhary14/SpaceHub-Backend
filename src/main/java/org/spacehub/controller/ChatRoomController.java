@@ -1,10 +1,11 @@
 package org.spacehub.controller;
 
 import org.spacehub.DTO.CreateRoomRequest;
-import org.spacehub.DTO.RoleChangeAction;
-import org.spacehub.DTO.RoomMemberAction;
-import org.spacehub.DTO.RoomRequestDTO;
 import org.spacehub.DTO.RoomResponseDTO;
+import org.spacehub.DTO.chatroom.LeaveRoomRequest;
+import org.spacehub.DTO.chatroom.RoomRequestDTO;
+import org.spacehub.DTO.chatroom.RoleChangeAction;
+import org.spacehub.DTO.chatroom.RoomMemberAction;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.service.ChatRoomService;
@@ -63,6 +64,16 @@ public class ChatRoomController {
   public ResponseEntity<ApiResponse<String>> changeRole(@RequestBody RoleChangeAction requestDTO) {
     ApiResponse<String> response = chatRoomService.changeRole(requestDTO);
     return ResponseEntity.status(response.getStatus()).body(response);
+  }
+
+  @PostMapping("/leave")
+  public ApiResponse<String> leaveRoom(@RequestBody LeaveRoomRequest requestDTO) {
+    return chatRoomService.leaveRoom(requestDTO);
+  }
+
+  @PostMapping("/community/rooms")
+  public ResponseEntity<ApiResponse<List<ChatRoom>>> getRoomsByCommunity(@RequestBody Long communityId) {
+    return ResponseEntity.ok(chatRoomService.getRoomsByCommunity(communityId));
   }
 
 }

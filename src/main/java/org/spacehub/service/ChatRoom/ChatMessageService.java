@@ -2,7 +2,7 @@ package org.spacehub.service;
 
 import org.spacehub.entities.ChatRoom.ChatMessage;
 import org.spacehub.entities.ChatRoom.ChatRoom;
-import org.spacehub.repository.ChatMessageRepository;
+import org.spacehub.repository.ChatRoom.ChatMessageRepository;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;

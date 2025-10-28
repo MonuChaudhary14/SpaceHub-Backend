@@ -1,15 +1,18 @@
 package org.spacehub.service;
 
 import org.spacehub.DTO.CreateRoomRequest;
-import org.spacehub.DTO.RoleChangeAction;
-import org.spacehub.DTO.RoomMemberAction;
 import org.spacehub.DTO.RoomResponseDTO;
+import org.spacehub.DTO.chatroom.LeaveRoomRequest;
+import org.spacehub.DTO.chatroom.RoleChangeAction;
+import org.spacehub.DTO.chatroom.RoomMemberAction;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.ChatRoom.ChatRoomUser;
+import org.spacehub.entities.Community.Community;
 import org.spacehub.entities.Community.Role;
-import org.spacehub.repository.ChatMessageRepository;
-import org.spacehub.repository.ChatRoomRepository;
+import org.spacehub.repository.ChatRoom.ChatMessageRepository;
+import org.spacehub.repository.ChatRoom.ChatRoomRepository;
+import org.spacehub.repository.community.CommunityRepository;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -23,14 +26,16 @@ public class ChatRoomService {
 
   private final ChatRoomRepository chatRoomRepository;
   private final ChatMessageRepository chatMessageRepository;
-  private final ChatRoomUserService chatRoomUserService;
+  private final org.spacehub.service.ChatRoomUserService chatRoomUserService;
+  private final CommunityRepository communityRepository;
 
   public ChatRoomService(ChatRoomRepository chatRoomRepository,
                          ChatMessageRepository chatMessageRepository,
-                         ChatRoomUserService chatRoomUserService) {
+                         org.spacehub.service.ChatRoomUserService chatRoomUserService, CommunityRepository communityRepository) {
     this.chatRoomRepository = chatRoomRepository;
     this.chatMessageRepository = chatMessageRepository;
     this.chatRoomUserService = chatRoomUserService;
+    this.communityRepository = communityRepository;
   }
 
   @Cacheable(value = "chatRooms", key = "#roomCode")
@@ -193,6 +198,40 @@ public class ChatRoomService {
     return tgtOpt.map(chatRoomUser -> new ApiResponse<>(200, "Fetched successfully", new RoleContext(reqOpt.get(), chatRoomUser)))
       .orElseGet(() -> new ApiResponse<>(404, "Target user not found in this room", null));
 
+  }
+
+  public ApiResponse<String> leaveRoom(LeaveRoomRequest requestDTO) {
+
+    Optional<ChatRoom> optionalRoom = chatRoomRepository.findByRoomCode(requestDTO.getRoomCode());
+    if (optionalRoom.isEmpty()) {
+      return new ApiResponse<>(404, "Room not found", null);
+    }
+
+    ChatRoom room = optionalRoom.get();
+
+    Optional<ChatRoomUser> optionalUser = chatRoomUserService.getUserInRoom(room, requestDTO.getUserId());
+    if (optionalUser.isEmpty()) {
+      return new ApiResponse<>(400, "You are not a member of this room", null);
+    }
+
+    chatRoomUserService.removeUserFromRoom(room, requestDTO.getUserId());
+    return new ApiResponse<>(200, "Left room successfully", "User " + requestDTO.getUserId() + " has left room " + room.getRoomCode());
+  }
+
+  public ApiResponse<List<ChatRoom>> getRoomsByCommunity(Long communityId) {
+
+    Optional<Community> optionalCommunity = communityRepository.findById(communityId);
+    if (optionalCommunity.isEmpty()) {
+      return new ApiResponse<>(404, "Community not found", null);
+    }
+
+    List<ChatRoom> rooms = chatRoomRepository.findByCommunityId(communityId);
+
+    if (rooms.isEmpty()) {
+      return new ApiResponse<>(200, "No chat rooms found in this community", List.of());
+    }
+
+    return new ApiResponse<>(200, "Chat rooms fetched successfully", rooms);
   }
 
   private static class RoleContext {

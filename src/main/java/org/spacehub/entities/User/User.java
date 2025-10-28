@@ -1,20 +1,15 @@
 package org.spacehub.entities.User;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.SequenceGenerator;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -50,6 +45,20 @@ public class User implements UserDetails {
   private Boolean isVerifiedLogin = false;
   private Boolean isVerifiedForgot = false;
   private Integer passwordVersion = 0;
+
+  private String avatarUrl;
+  private String coverPhotoUrl;
+  private String bio;
+  private String location;
+  private String website;
+  private LocalDate dateOfBirth;
+
+  private Integer followersCount = 0;
+  private Integer followingCount = 0;
+
+  private Boolean isPrivate = false;
+  private LocalDateTime createdAt;
+  private LocalDateTime updatedAt;
 
   public User(String firstName,
                  String lastName,
@@ -88,5 +97,18 @@ public class User implements UserDetails {
   public boolean isEnabled() {
     return enabled;
   }
+
+  @PrePersist
+  protected void onCreate() {
+    createdAt = LocalDateTime.now();
+    updatedAt = LocalDateTime.now();
+  }
+
+  @PreUpdate
+  protected void onUpdate() {
+    updatedAt = LocalDateTime.now();
+  }
+
+
 }
 

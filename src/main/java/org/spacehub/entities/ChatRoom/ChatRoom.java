@@ -2,6 +2,7 @@ package org.spacehub.entities.ChatRoom;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.spacehub.entities.Community.Community;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -24,5 +25,11 @@ public class ChatRoom implements Serializable {
 
   @Column(unique = true, nullable = false)
   private String roomCode;
+
+  @ManyToOne
+  @JoinColumn(name = "community_id")
+  private Community community;
+
+
 }
 
