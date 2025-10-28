@@ -24,4 +24,5 @@ public interface FriendsRepository extends JpaRepository<Friends, Long> {
         Optional<Friends> friend = findByUserAndFriend(user1, user2);
         return friend.isPresent() ? friend : findByUserAndFriend(user2, user1);
     }
+
 }
