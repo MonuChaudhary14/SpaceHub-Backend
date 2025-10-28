@@ -47,5 +47,4 @@ public class ChatRoomUserService {
   public void saveUser(ChatRoomUser user) {
     repository.save(user);
   }
-
 }

@@ -40,7 +40,10 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
   @Override
   public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-    String query = session.getUri() != null ? session.getUri().getQuery() : null;
+    String query = null;
+    if (session.getUri() != null) {
+      query = session.getUri().getQuery();
+    }
     Map<String, String> params = parseQuery(query);
 
     String roomCode = params.get("roomCode");

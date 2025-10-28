@@ -1,6 +1,10 @@
 package org.spacehub.controller;
 
-import org.spacehub.DTO.*;
+import org.spacehub.DTO.CreateRoomRequest;
+import org.spacehub.DTO.RoleChangeAction;
+import org.spacehub.DTO.RoomMemberAction;
+import org.spacehub.DTO.RoomRequestDTO;
+import org.spacehub.DTO.RoomResponseDTO;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.service.ChatRoomService;
