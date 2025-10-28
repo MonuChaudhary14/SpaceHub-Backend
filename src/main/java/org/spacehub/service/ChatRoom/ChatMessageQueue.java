@@ -1,4 +1,4 @@
-package org.spacehub.service;
+package org.spacehub.service.ChatRoom;
 
 import org.spacehub.entities.ChatRoom.ChatMessage;
 import org.spacehub.entities.ChatRoom.ChatRoom;
@@ -15,11 +15,10 @@ import java.util.List;
 public class ChatMessageQueue {
 
   private final List<ChatMessage> queue = new ArrayList<>();
-
   private final ChatMessageService chatMessageService;
+
   private ChatWebSocketHandler chatWebSocketHandler;
 
-  @Autowired
   public ChatMessageQueue(ChatMessageService chatMessageService) {
     this.chatMessageService = chatMessageService;
   }

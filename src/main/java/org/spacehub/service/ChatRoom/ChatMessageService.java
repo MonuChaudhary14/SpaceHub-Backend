@@ -1,4 +1,4 @@
-package org.spacehub.service;
+package org.spacehub.service.ChatRoom;
 
 import org.spacehub.entities.ChatRoom.ChatMessage;
 import org.spacehub.entities.ChatRoom.ChatRoom;

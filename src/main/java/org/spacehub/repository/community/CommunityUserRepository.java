@@ -9,6 +9,6 @@ import java.util.List;
 @Repository
 public interface CommunityUserRepository extends JpaRepository<CommunityUser, Long> {
 
-    List<CommunityUser> findByCommunityId(Long communityId);
+  List<CommunityUser> findByCommunityId(Long communityId);
 
 }

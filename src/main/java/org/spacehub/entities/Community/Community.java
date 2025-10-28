@@ -4,12 +4,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.User.User;
-
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -54,9 +50,12 @@ public class Community {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) return true;
-    if (!(o instanceof Community)) return false;
-    Community that = (Community) o;
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof Community that)) {
+      return false;
+    }
     return Objects.equals(id, that.id);
   }
 

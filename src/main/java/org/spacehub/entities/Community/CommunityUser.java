@@ -16,41 +16,44 @@ import java.util.Objects;
 @ToString
 public class CommunityUser {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "community_id")
-    @ToString.Exclude
-    @JsonIgnore
-    private Community community;
+  @ManyToOne
+  @JoinColumn(name = "community_id")
+  @ToString.Exclude
+  @JsonIgnore
+  private Community community;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    @ToString.Exclude
-    private User user;
+  @ManyToOne
+  @JoinColumn(name = "user_id")
+  @ToString.Exclude
+  private User user;
 
-    @Enumerated(EnumType.STRING)
-    private Role role;
+  @Enumerated(EnumType.STRING)
+  private Role role;
 
-    private LocalDateTime joinDate = LocalDateTime.now();
+  private LocalDateTime joinDate = LocalDateTime.now();
 
-    private boolean isBanned = false;
+  private boolean isBanned = false;
 
-    private boolean isBlocked = false;
+  private boolean isBlocked = false;
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof CommunityUser)) return false;
-        CommunityUser that = (CommunityUser) o;
-        return Objects.equals(id, that.id);
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
     }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id);
+    if (!(o instanceof CommunityUser that)) {
+      return false;
     }
+    return Objects.equals(id, that.id);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id);
+  }
 
 }

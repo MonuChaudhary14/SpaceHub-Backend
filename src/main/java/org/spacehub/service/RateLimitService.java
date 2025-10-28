@@ -3,12 +3,10 @@ package org.spacehub.service;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.BucketConfiguration;
-import io.github.bucket4j.Refill;
 import io.github.bucket4j.distributed.proxy.ProxyManager;
-import io.github.bucket4j.redis.redisson.cas.RedissonBasedProxyManager;
+import io.github.bucket4j.redis.redisson.Bucket4jRedisson;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
-import org.redisson.command.CommandAsyncExecutor;
 import org.springframework.stereotype.Service;
 import java.time.Duration;
 
@@ -18,8 +16,9 @@ public class RateLimitService {
   private final ProxyManager<String> proxyManager;
 
   public RateLimitService(RedissonClient redissonClient) {
-    CommandAsyncExecutor commandExecutor = ((Redisson) redissonClient).getCommandExecutor();
-    this.proxyManager = RedissonBasedProxyManager.builderFor(commandExecutor).build();
+    this.proxyManager = Bucket4jRedisson
+      .casBasedBuilder(((Redisson) redissonClient).getCommandExecutor())
+      .build();
   }
 
   public boolean tryConsume(String key) {
@@ -28,8 +27,10 @@ public class RateLimitService {
   }
 
   private BucketConfiguration createNewBucketConfig() {
-    Refill refill = Refill.intervally(10, Duration.ofMinutes(1));
-    Bandwidth limit = Bandwidth.classic(10, refill);
+    Bandwidth limit = Bandwidth.builder()
+      .capacity(10)
+      .refillIntervally(10, Duration.ofMinutes(1))
+      .build();
 
     return BucketConfiguration.builder()
       .addLimit(limit)

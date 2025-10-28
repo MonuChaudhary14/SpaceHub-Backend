@@ -18,27 +18,27 @@ import java.util.UUID;
 @Builder
 public class CommunityInvite {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.UUID)
+  private UUID id;
 
-    @Column(nullable = false)
-    private UUID communityId;
+  @Column(nullable = false)
+  private UUID communityId;
 
-    @Column(nullable = false)
-    private UUID inviterId;
+  @Column(nullable = false)
+  private UUID inviterId;
 
-    @Column(unique = true, nullable = false)
-    private String inviteCode;
+  @Column(unique = true, nullable = false)
+  private String inviteCode;
 
-    private String email;
-    private int maxUses = 1;
-    private int uses = 0;
-    private LocalDateTime expiresAt;
+  private String email;
+  private int maxUses = 1;
+  private int uses = 0;
+  private LocalDateTime expiresAt;
 
-    @Enumerated(EnumType.STRING)
-    private InviteStatus status = InviteStatus.ACTIVE;
+  @Enumerated(EnumType.STRING)
+  private InviteStatus status = InviteStatus.ACTIVE;
 
-    private LocalDateTime createdAt = LocalDateTime.now();
+  private LocalDateTime createdAt = LocalDateTime.now();
 
 }

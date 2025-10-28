@@ -13,13 +13,13 @@ import lombok.NoArgsConstructor;
 @Builder
 public class CreateRoomRequest {
 
-    @NotBlank(message = "Room name is required")
-    @Size(min = 3, max = 50, message = "Room name must be between 3 and 50 characters")
-    private String roomName;
+  @NotBlank(message = "Room name is required")
+  @Size(min = 3, max = 50, message = "Room name must be between 3 and 50 characters")
+  private String roomName;
 
-    @NotBlank(message = "Creator ID is required")
-    private String createdBy;
+  @NotBlank(message = "Creator ID is required")
+  private String createdBy;
 
-    private Long communityId;
+  private Long communityId;
 
 }

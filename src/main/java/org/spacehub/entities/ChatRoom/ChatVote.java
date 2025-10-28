@@ -10,16 +10,16 @@ import lombok.*;
 @Builder
 public class ChatVote {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    private String userId;
+  private String userId;
 
-    @ManyToOne
-    @JoinColumn(name = "poll_id")
-    private ChatPoll poll;
+  @ManyToOne
+  @JoinColumn(name = "poll_id")
+  private ChatPoll poll;
 
-    private int optionIndex;
+  private int optionIndex;
 
 }

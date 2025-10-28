@@ -11,19 +11,19 @@ import java.util.List;
 @Builder
 public class ChatPoll {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    private String question;
+  private String question;
 
-    @ElementCollection
-    private List<String> options;
+  @ElementCollection
+  private List<String> options;
 
-    @ManyToOne
-    @JoinColumn(name = "room_id")
-    private ChatRoom room;
+  @ManyToOne
+  @JoinColumn(name = "room_id")
+  private ChatRoom room;
 
-    private Long timestamp;
+  private Long timestamp;
 
 }

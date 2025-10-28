@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.spacehub.entities.ChatRoom.ChatMessage;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.ChatRoom.ChatRoomUser;
-import org.spacehub.service.ChatMessageQueue;
+import org.spacehub.service.ChatRoom.ChatMessageQueue;
 import org.spacehub.service.ChatRoomService;
 import org.spacehub.service.ChatRoomUserService;
 import org.springframework.lang.NonNull;

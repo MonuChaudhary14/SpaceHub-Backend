@@ -15,18 +15,18 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class CommunityMemberDTO {
 
-    private Long memberId;
-    private String username;
-    private String email;
-    private Role role;
-    private LocalDateTime joinDate;
-    private boolean isBanned;
+  private Long memberId;
+  private String username;
+  private String email;
+  private Role role;
+  private LocalDateTime joinDate;
+  private boolean isBanned;
 
-    public CommunityMemberDTO(User user) {
-        this.memberId = user.getId();
-        this.username = user.getUsername();
-        this.email = user.getEmail();
-        this.joinDate = user.getCreatedAt();
-        this.isBanned = false;
-    }
+  public CommunityMemberDTO(User user) {
+    this.memberId = user.getId();
+    this.username = user.getUsername();
+    this.email = user.getEmail();
+    this.joinDate = user.getCreatedAt();
+    this.isBanned = false;
+  }
 }

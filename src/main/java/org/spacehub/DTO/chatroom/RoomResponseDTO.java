@@ -1,4 +1,4 @@
-package org.spacehub.DTO;
+package org.spacehub.DTO.chatroom;
 
 import lombok.Builder;
 import lombok.Data;

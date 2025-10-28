@@ -9,7 +9,8 @@ import java.util.UUID;
 @Builder
 public class CommunityInviteAcceptDTO {
 
-    private UUID userId;
-    private UUID communityId;
-    private String inviteCode;
+  private UUID userId;
+  private UUID communityId;
+  private String inviteCode;
+
 }
