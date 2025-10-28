@@ -67,4 +67,51 @@ public class JanusVideoService {
 
     }
 
+    public void joinVideoRoom(String sessionId, String handleId, int roomId, String displayName) {
+        Map<String, Object> body = Map.of("request", "join","ptype", "publisher","room", roomId,"display", displayName);
+
+        Map<String, Object> request = Map.of(
+                "janus", "message","transaction", UUID.randomUUID().toString(),"body", body);
+
+        String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
+        restTemplate.postForEntity(handleUrl, request, JsonNode.class);
+    }
+
+    public JsonNode publishOwnFeed(String sessionId, String handleId, String offer) {
+        Map<String, Object> body = Map.of("request", "publish","audio", true,"video", true);
+
+        Map<String, Object> request = Map.of(
+                "janus", "message","transaction", UUID.randomUUID().toString(),"body", body,"jsep", Map.of(
+                "type", "offer","sdp", offer)
+        );
+
+        String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
+        ResponseEntity<JsonNode> response = restTemplate.postForEntity(handleUrl, request, JsonNode.class);
+        return response.getBody();
+    }
+
+    public JsonNode subscribeToFeed(String sessionId, String handleId, int roomId, int feedId) {
+        Map<String, Object> body = Map.of(
+                "request", "join","room", roomId,"ptype", "subscriber","feed", feedId);
+
+        Map<String, Object> request = Map.of(
+                "janus", "message","transaction", UUID.randomUUID().toString(),"body", body);
+
+        String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
+        ResponseEntity<JsonNode> response = restTemplate.postForEntity(handleUrl, request, JsonNode.class);
+        return response.getBody();
+    }
+
+    public void leaveVideoRoom(String sessionId, String handleId) {
+        Map<String, Object> body = Map.of(
+                "request", "leave"
+        );
+
+        Map<String, Object> request = Map.of(
+                "janus", "message","transaction", UUID.randomUUID().toString(),"body", body);
+
+        String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
+        restTemplate.postForEntity(handleUrl, request, JsonNode.class);
+    }
+
 }

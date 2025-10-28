@@ -1,10 +1,8 @@
 package org.spacehub.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.spacehub.service.JanusVideoService;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/video")
@@ -31,5 +29,28 @@ public class VideoCallController {
         return "Room " + roomId + " created with session " + sessionId;
     }
 
+    @PostMapping("/attachPlugin/{sessionId}")
+    public String attachPlugin(@PathVariable String sessionId) {
+        return janusService.attachVideoRoomPlugin(sessionId);
+    }
 
+    @PostMapping("/publish/{sessionId}/{handleId}")
+    public JsonNode publishFeed(@PathVariable String sessionId, @PathVariable String handleId,@RequestBody String sdpOffer) {
+        return janusService.publishOwnFeed(sessionId, handleId, sdpOffer);
+    }
+
+    @PostMapping("/join/{sessionId}/{handleId}/{roomId}")
+    public void joinRoom(@PathVariable String sessionId,@PathVariable String handleId,@PathVariable int roomId,@RequestParam String displayName) {
+        janusService.joinVideoRoom(sessionId, handleId, roomId, displayName);
+    }
+
+    @PostMapping("/subscribe/{sessionId}/{handleId}/{roomId}/{feedId}")
+    public JsonNode subscribeFeed(@PathVariable String sessionId,@PathVariable String handleId,@PathVariable int roomId,@PathVariable int feedId) {
+        return janusService.subscribeToFeed(sessionId, handleId, roomId, feedId);
+    }
+
+    @PostMapping("/leave/{sessionId}/{handleId}")
+    public void leaveRoom(@PathVariable String sessionId,@PathVariable String handleId) {
+        janusService.leaveVideoRoom(sessionId, handleId);
+    }
 }
