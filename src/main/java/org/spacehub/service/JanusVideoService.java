@@ -114,4 +114,7 @@ public class JanusVideoService {
         restTemplate.postForEntity(handleUrl, request, JsonNode.class);
     }
 
+    public String getJanusUrl() {
+        return janusUrl;
+    }
 }
