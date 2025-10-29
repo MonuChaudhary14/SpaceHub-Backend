@@ -17,7 +17,7 @@ import org.spacehub.service.community.CommunityService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
+import org.spacehub.DTO.Community.CreateRoomRequest;
 import java.util.Map;
 
 @RestController
@@ -99,6 +99,24 @@ public class CommunityController {
   @PostMapping("/updateInfo")
   public ResponseEntity<?> updateCommunityInfo(@RequestBody UpdateCommunityDTO dto) {
     return communityService.updateCommunityInfo(dto);
+  }
+
+  @GetMapping("/all")
+  public ResponseEntity<?> listAllCommunities() {
+    return communityService.listAllCommunities();
+  }
+
+  @GetMapping("/{id}")
+  public ResponseEntity<?> getCommunityDetails(@PathVariable("id") Long communityId,
+                                               @RequestParam("requesterEmail") String requesterEmail) {
+    return communityService.getCommunityDetailsWithAdminFlag(communityId, requesterEmail);
+  }
+
+  @PostMapping("/{id}/rooms/create")
+  public ResponseEntity<?> createRoomInCommunity(@PathVariable("id") Long communityId,
+                                                 @RequestBody CreateRoomRequest request) {
+    request.setCommunityId(communityId);
+    return communityService.createRoomInCommunity(request);
   }
 
 }

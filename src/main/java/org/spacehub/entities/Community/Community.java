@@ -1,5 +1,6 @@
 package org.spacehub.entities.Community;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -54,6 +55,7 @@ public class Community {
   private LocalDateTime updatedAt = LocalDateTime.now();
 
   @OneToMany(mappedBy = "community", cascade = CascadeType.ALL, orphanRemoval = true)
+  @JsonManagedReference
   private Set<ChatRoom> chatRooms = new HashSet<>();
 
   @Override
