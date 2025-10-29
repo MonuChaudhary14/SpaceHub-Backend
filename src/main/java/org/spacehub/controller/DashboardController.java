@@ -13,25 +13,26 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/v1/dashboard")
 public class DashboardController {
 
-    private final DashBoardService dashboardService;
+  private final DashBoardService dashboardService;
 
-    public DashboardController(DashBoardService dashboardService) {
-        this.dashboardService = dashboardService;
-    }
+  public DashboardController(DashBoardService dashboardService) {
+    this.dashboardService = dashboardService;
+  }
 
-    @PostMapping("/set-username")
-    public ResponseEntity<ApiResponse<String>> setUsername(@Valid @RequestBody UsernameRequest request) {
-        ApiResponse<String> resp = dashboardService.saveUsernameByEmail(
-                request.getEmail(),
-                request.getUsername()
-        );
-        return ResponseEntity.status(resp.getStatus()).body(resp);
-    }
+  @PostMapping("/set-username")
+  public ResponseEntity<ApiResponse<String>> setUsername(@Valid @RequestBody UsernameRequest request) {
+    ApiResponse<String> resp = dashboardService.saveUsernameByEmail(
+            request.getEmail(),
+            request.getUsername()
+    );
+    return ResponseEntity.status(resp.getStatus()).body(resp);
+  }
 
-    @PostMapping(value = "/upload-profile-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ApiResponse<String>> uploadProfileImage(@RequestParam("email") String email, @RequestParam("image") MultipartFile image) {
-        ApiResponse<String> response = dashboardService.uploadProfileImage(email, image);
-        return ResponseEntity.status(response.getStatus()).body(response);
-    }
+  @PostMapping(value = "/upload-profile-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  public ResponseEntity<ApiResponse<String>> uploadProfileImage(@RequestParam("email") String email,
+                                                                @RequestParam("image") MultipartFile image) {
+    ApiResponse<String> response = dashboardService.uploadProfileImage(email, image);
+    return ResponseEntity.status(response.getStatus()).body(response);
+  }
 
 }
