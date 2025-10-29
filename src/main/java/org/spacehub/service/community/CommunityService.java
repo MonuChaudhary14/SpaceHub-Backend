@@ -1,12 +1,13 @@
 package org.spacehub.service.community;
 
-import org.spacehub.DTO.*;
-import org.spacehub.DTO.Community.CommunityDTO;
 import org.spacehub.DTO.Community.CommunityMemberDTO;
 import org.spacehub.DTO.Community.CommunityMemberRequest;
 import org.spacehub.DTO.Community.DeleteCommunityDTO;
 import org.spacehub.DTO.Community.JoinCommunity;
+import org.spacehub.DTO.CancelJoinRequest;
+import org.spacehub.DTO.AcceptRequest;
 import org.spacehub.DTO.Community.LeaveCommunity;
+import org.spacehub.DTO.RejectRequest;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.Community.Community;
@@ -56,7 +57,7 @@ public class CommunityService {
   }
 
   public CommunityService(CommunityRepository communityRepository, UserRepository userRepository,
-                          ChatRoomRepository chatRoomRepository,S3Service s3Service,
+                          ChatRoomRepository chatRoomRepository, S3Service s3Service,
                           CommunityUserRepository communityUserRepository) {
     this.communityRepository = communityRepository;
     this.userRepository = userRepository;
@@ -66,11 +67,14 @@ public class CommunityService {
   }
 
   @CacheEvict(value = {"communities"}, allEntries = true)
-  public ResponseEntity<ApiResponse<Map<String, Object>>> createCommunity(String name, String description, String createdByEmail, MultipartFile imageFile) {
+  public ResponseEntity<ApiResponse<Map<String, Object>>> createCommunity(
+    String name, String description, String createdByEmail, MultipartFile imageFile) {
 
-    if (name == null || name.isBlank() || description == null || description.isBlank() || createdByEmail == null || createdByEmail.isBlank()) {
+    if (name == null || name.isBlank() || description == null || description.isBlank() || createdByEmail == null ||
+      createdByEmail.isBlank()) {
       return ResponseEntity.badRequest()
-              .body(new ApiResponse<>(400, "All fields (name, description, createdByEmail) are required", null));
+              .body(new ApiResponse<>(400,
+                "All fields (name, description, createdByEmail) are required", null));
     }
 
     if (imageFile == null || imageFile.isEmpty()) {
@@ -79,7 +83,8 @@ public class CommunityService {
     }
 
     try {
-      User creator = userRepository.findByEmail(createdByEmail).orElseThrow(() -> new RuntimeException("User not found with email: " + createdByEmail));
+      User creator = userRepository.findByEmail(createdByEmail).orElseThrow(() ->
+        new RuntimeException("User not found with email: " + createdByEmail));
 
       validateImage(imageFile);
 
@@ -109,13 +114,15 @@ public class CommunityService {
 
     }
     catch (IOException e) {
-      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Error uploading image: " + e.getMessage(), null));
+      return ResponseEntity.internalServerError().body(new ApiResponse<>(500,
+        "Error uploading image: " + e.getMessage(), null));
     }
     catch (RuntimeException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
     }
     catch (Exception e) {
-      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
+      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: " +
+        e.getMessage(), null));
     }
   }
 
