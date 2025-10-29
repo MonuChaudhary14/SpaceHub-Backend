@@ -1,27 +1,22 @@
 package org.spacehub.service.community;
 
 import org.spacehub.DTO.*;
-import org.spacehub.DTO.Community.CommunityMemberDTO;
-import org.spacehub.DTO.Community.CommunityMemberRequest;
-import org.spacehub.DTO.Community.DeleteCommunityDTO;
-import org.spacehub.DTO.Community.JoinCommunity;
-import org.spacehub.DTO.Community.LeaveCommunity;
+import org.spacehub.DTO.Community.*;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.Community.Community;
 import org.spacehub.entities.Community.CommunityUser;
-import org.spacehub.DTO.Community.CommunityChangeRoleRequest;
 import org.spacehub.entities.Community.Role;
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.ChatRoom.ChatRoomRepository;
 import org.spacehub.repository.community.CommunityRepository;
 import org.spacehub.repository.UserRepository;
 import org.spacehub.repository.community.CommunityUserRepository;
-import org.spacehub.DTO.Community.CommunityBlockRequest;
-import org.spacehub.DTO.Community.UpdateCommunityDTO;
 import org.spacehub.service.S3Service;
+import org.spacehub.specifications.CommunitySpecification;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -582,6 +577,23 @@ public class CommunityService {
 
     if (contentType == null || !contentType.startsWith("image/"))
       throw new RuntimeException("Only image files are allowed");
+  }
+
+  public List<CommunitySearchResponseDTO> searchCommunities(String name) {
+    Specification<Community> searchCommunity = CommunitySpecification.filterByName(name);
+    List<Community> communities = communityRepository.findAll(searchCommunity);
+
+    return communities.stream().map(community -> {
+              CommunitySearchResponseDTO dto = new CommunitySearchResponseDTO();
+              dto.setId(community.getId());
+              dto.setName(community.getName());
+              dto.setDescription(community.getDescription());
+              dto.setImageUrl(community.getImageUrl());
+              dto.setCreatorName(community.getCreatedBy().getUsername());
+
+              return dto;
+            })
+            .collect(Collectors.toList());
   }
 
 }

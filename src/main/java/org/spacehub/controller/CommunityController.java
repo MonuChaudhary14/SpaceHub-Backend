@@ -102,23 +102,7 @@ public class CommunityController {
   @GetMapping("/search")
   public ResponseEntity<List<CommunitySearchResponseDTO>> searchCommunities(@RequestParam(required = false) String name) {
 
-    Specification<Community> searchCommunity = CommunitySpecification.filterByName(name);
-    List<Community> communities = communityRepository.findAll(searchCommunity);
-
-    List<CommunitySearchResponseDTO> response = communities.stream().map(community -> {
-      CommunitySearchResponseDTO dto = new CommunitySearchResponseDTO();
-      dto.setId(community.getId());
-      dto.setName(community.getName());
-      dto.setDescription(community.getDescription());
-      dto.setImageUrl(community.getImageUrl());
-
-      if (community.getCreatedBy() != null) {
-        dto.setCreatorName(community.getCreatedBy().getUsername());
-      }
-
-      return dto;
-    }).collect(Collectors.toList());
-
+    List<CommunitySearchResponseDTO> response = communityService.searchCommunities(name);
     return ResponseEntity.ok(response);
   }
 
