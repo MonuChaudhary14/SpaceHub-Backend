@@ -2,33 +2,32 @@ package org.spacehub.controller;
 
 import org.spacehub.DTO.AcceptRequest;
 import org.spacehub.DTO.CancelJoinRequest;
-import org.spacehub.DTO.Community.CommunityBlockRequest;
-import org.spacehub.DTO.Community.CommunityChangeRoleRequest;
-import org.spacehub.DTO.Community.CommunityDTO;
-import org.spacehub.DTO.Community.CommunityMemberListRequest;
-import org.spacehub.DTO.Community.CommunityMemberRequest;
-import org.spacehub.DTO.Community.CommunityRoomsRequest;
-import org.spacehub.DTO.Community.DeleteCommunityDTO;
-import org.spacehub.DTO.Community.JoinCommunity;
-import org.spacehub.DTO.Community.LeaveCommunity;
-import org.spacehub.DTO.Community.UpdateCommunityDTO;
+import org.spacehub.DTO.Community.*;
 import org.spacehub.DTO.RejectRequest;
 import org.spacehub.entities.ApiResponse.ApiResponse;
+import org.spacehub.entities.Community.Community;
+import org.spacehub.repository.community.CommunityRepository;
 import org.spacehub.service.community.CommunityService;
+import org.spacehub.specifications.CommunitySpecification;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("api/v1/community")
 public class CommunityController {
 
   private final CommunityService communityService;
+  private final CommunityRepository communityRepository;
 
-  public CommunityController(CommunityService communityService) {
+  public CommunityController(CommunityService communityService, CommunityRepository communityRepository) {
     this.communityService = communityService;
+    this.communityRepository = communityRepository;
   }
 
   @PostMapping("/create")
@@ -98,6 +97,29 @@ public class CommunityController {
   @PostMapping("/updateInfo")
   public ResponseEntity<?> updateCommunityInfo(@RequestBody UpdateCommunityDTO dto) {
     return communityService.updateCommunityInfo(dto);
+  }
+
+  @GetMapping("/search")
+  public ResponseEntity<List<CommunitySearchResponseDTO>> searchCommunities(@RequestParam(required = false) String name) {
+
+    Specification<Community> searchCommunity = CommunitySpecification.filterByName(name);
+    List<Community> communities = communityRepository.findAll(searchCommunity);
+
+    List<CommunitySearchResponseDTO> response = communities.stream().map(community -> {
+      CommunitySearchResponseDTO dto = new CommunitySearchResponseDTO();
+      dto.setId(community.getId());
+      dto.setName(community.getName());
+      dto.setDescription(community.getDescription());
+      dto.setImageUrl(community.getImageUrl());
+
+      if (community.getCreatedBy() != null) {
+        dto.setCreatorName(community.getCreatedBy().getUsername());
+      }
+
+      return dto;
+    }).collect(Collectors.toList());
+
+    return ResponseEntity.ok(response);
   }
 
 }
