@@ -22,7 +22,7 @@ public class CommunityInviteController {
   }
 
   @PostMapping("/{communityId}/create")
-  public ResponseEntity<ApiResponse<?>> createInvite(@PathVariable UUID communityId, @RequestBody CommunityInviteRequestDTO request) {
+  public ResponseEntity<ApiResponse<?>> createInvite(@PathVariable Long communityId, @RequestBody CommunityInviteRequestDTO request) {
     ApiResponse<?> response = inviteService.createInvite(communityId, request);
     return ResponseEntity.ok(response);
   }
@@ -34,7 +34,7 @@ public class CommunityInviteController {
   }
 
   @GetMapping("/{communityId}/all")
-  public ResponseEntity<ApiResponse<?>> getInvites(@PathVariable UUID communityId) {
+  public ResponseEntity<ApiResponse<?>> getInvites(@PathVariable Long communityId) {
     ApiResponse<?> response = inviteService.getCommunityInvites(communityId);
     return ResponseEntity.ok(response);
   }

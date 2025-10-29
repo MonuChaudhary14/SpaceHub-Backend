@@ -1,7 +1,6 @@
 package org.spacehub.service.community;
 
 import org.spacehub.DTO.*;
-import org.spacehub.DTO.Community.CommunityDTO;
 import org.spacehub.DTO.Community.CommunityMemberDTO;
 import org.spacehub.DTO.Community.CommunityMemberRequest;
 import org.spacehub.DTO.Community.DeleteCommunityDTO;

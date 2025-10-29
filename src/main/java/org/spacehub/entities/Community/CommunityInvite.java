@@ -19,14 +19,14 @@ import java.util.UUID;
 public class CommunityInvite {
 
   @Id
-  @GeneratedValue(strategy = GenerationType.UUID)
-  private UUID id;
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
   @Column(nullable = false)
-  private UUID communityId;
+  private Long communityId;
 
   @Column(nullable = false)
-  private UUID inviterId;
+  private Long inviterId;
 
   @Column(unique = true, nullable = false)
   private String inviteCode;

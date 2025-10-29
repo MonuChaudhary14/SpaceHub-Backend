@@ -11,7 +11,7 @@ import java.util.UUID;
 public class CommunityInviteResponseDTO {
   private String inviteCode;
   private String inviteLink;
-  private UUID communityId;
+  private Long communityId;
   private String email;
   private int maxUses;
   private int uses;
