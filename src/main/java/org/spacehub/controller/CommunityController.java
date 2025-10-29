@@ -13,12 +13,13 @@ import org.spacehub.DTO.Community.JoinCommunity;
 import org.spacehub.DTO.Community.LeaveCommunity;
 import org.spacehub.DTO.Community.UpdateCommunityDTO;
 import org.spacehub.DTO.RejectRequest;
-import org.spacehub.service.CommunityService;
+import org.spacehub.entities.ApiResponse.ApiResponse;
+import org.spacehub.service.community.CommunityService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("api/v1/community")
@@ -31,8 +32,9 @@ public class CommunityController {
   }
 
   @PostMapping("/create")
-  public ResponseEntity<?> createCommunity(@RequestBody CommunityDTO community) {
-    return communityService.createCommunity(community);
+  public ResponseEntity<ApiResponse<Map<String, Object>>> createCommunity(@RequestParam("name") String name, @RequestParam("description") String description,
+          @RequestParam("createdByEmail") String createdByEmail, @RequestParam("imageFile") MultipartFile imageFile) {
+    return communityService.createCommunity(name, description, createdByEmail, imageFile);
   }
 
   @PostMapping("/delete")
