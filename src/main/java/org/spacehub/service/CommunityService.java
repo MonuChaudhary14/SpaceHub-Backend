@@ -24,6 +24,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestBody;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -33,6 +34,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Transactional
 @Service
 public class CommunityService {
 
@@ -59,29 +61,32 @@ public class CommunityService {
   @CacheEvict(value = {"communities"}, allEntries = true)
   public ResponseEntity<?> createCommunity(@RequestBody CommunityDTO community) {
 
-    if (community.getName() != null && community.getDescription() != null) {
-      Optional<User> userOptional = userRepository.findByEmail(community.getCreatedByEmail());
-
-      if (userOptional.isPresent()) {
-        User creator = userOptional.get();
-
-        Community infoCommunity = new Community();
-        infoCommunity.setName(community.getName());
-        infoCommunity.setDescription(community.getDescription());
-        infoCommunity.setCreatedBy(creator);
-        infoCommunity.setCreatedAt(LocalDateTime.now());
-
-        Community savedCommunity = communityRepository.save(infoCommunity);
-
-        return ResponseEntity.ok().body(savedCommunity);
-      } else {
-        return ResponseEntity.badRequest().body("Not created");
-      }
-    } else {
-      return ResponseEntity.badRequest().body("Check the fields");
+    if (community == null ||
+      community.getName() == null || community.getName().isBlank() ||
+      community.getDescription() == null || community.getDescription().isBlank() ||
+      community.getCreatedByEmail() == null || community.getCreatedByEmail().isBlank()) {
+      return ResponseEntity.badRequest().body("Required fields: name, description, createdByEmail");
     }
 
+    Optional<User> userOptional = userRepository.findByEmail(community.getCreatedByEmail());
+    if (userOptional.isEmpty()) {
+      return ResponseEntity.badRequest()
+        .body("Creator not found with email: " + community.getCreatedByEmail());
+    }
+
+    User creator = userOptional.get();
+
+    Community infoCommunity = new Community();
+    infoCommunity.setName(community.getName());
+    infoCommunity.setDescription(community.getDescription());
+    infoCommunity.setCreatedBy(creator);
+    infoCommunity.setCreatedAt(LocalDateTime.now());
+
+    Community savedCommunity = communityRepository.save(infoCommunity);
+
+    return ResponseEntity.status(201).body(savedCommunity);
   }
+
 
   @CacheEvict(value = {"communities"}, key = "#deleteCommunity.name")
   public ResponseEntity<?> deleteCommunityByName(@RequestBody DeleteCommunityDTO deleteCommunity) {
@@ -110,7 +115,7 @@ public class CommunityService {
   }
 
   @CachePut(value = "communities", key = "#joinCommunity.communityName")
-  public ResponseEntity<?> requestToJoinCommunity(@RequestBody JoinCommunity joinCommunity){
+  public ResponseEntity<?> requestToJoinCommunity(@RequestBody JoinCommunity joinCommunity) {
 
     if (joinCommunity.getCommunityName() == null || joinCommunity.getCommunityName().isEmpty() ||
       joinCommunity.getUserEmail() == null || joinCommunity.getUserEmail().isEmpty()) {
@@ -128,7 +133,10 @@ public class CommunityService {
 
       User user = optionalUser.get();
 
-      if (community.getMembers().contains(user)) {
+      boolean isAlreadyMember = community.getCommunityUsers().stream()
+        .anyMatch(cu -> cu.getUser().getId().equals(user.getId()));
+
+      if (isAlreadyMember) {
         return ResponseEntity.status(403).body("You are already in this community");
       }
 
@@ -139,7 +147,6 @@ public class CommunityService {
     } else {
       return ResponseEntity.badRequest().body("Community not found");
     }
-
   }
 
   @CacheEvict(value = "communities", key = "#cancelJoinRequest.communityName")
@@ -196,9 +203,15 @@ public class CommunityService {
       }
 
       community.getPendingRequests().remove(user);
-      community.getMembers().add(user);
-
       communityRepository.save(community);
+
+      CommunityUser newMember = new CommunityUser();
+      newMember.setCommunity(community);
+      newMember.setUser(user);
+      newMember.setRole(Role.MEMBER);
+      newMember.setJoinDate(LocalDateTime.now());
+      newMember.setBanned(false);
+      communityUserRepository.save(newMember);
 
       return ResponseEntity.ok("User has been added to the community successfully");
 
@@ -229,13 +242,16 @@ public class CommunityService {
         return ResponseEntity.status(403).body("Community creator cannot leave their own community");
       }
 
-      if (!community.getMembers().contains(user)) {
+      Optional<CommunityUser> communityUserOptional = community.getCommunityUsers()
+        .stream()
+        .filter(cu -> cu.getUser().getId().equals(user.getId()))
+        .findFirst();
+
+      if (communityUserOptional.isEmpty()) {
         return ResponseEntity.badRequest().body("You are not a member of this community");
       }
 
-      community.getMembers().remove(user);
-      communityRepository.save(community);
-
+      communityUserRepository.delete(communityUserOptional.get());
       return ResponseEntity.ok().body("You have left the community successfully");
 
     } catch (ResourceNotFoundException ex) {
@@ -365,8 +381,8 @@ public class CommunityService {
         null));
     }
 
-    community.getCommunityUsers().remove(communityUserOptional.get());
-    communityRepository.save(community);
+    CommunityUser userToRemove = communityUserOptional.get();
+    communityUserRepository.delete(userToRemove);
 
     return ResponseEntity.ok(new ApiResponse<>(200, "Member removed successfully", null));
   }
