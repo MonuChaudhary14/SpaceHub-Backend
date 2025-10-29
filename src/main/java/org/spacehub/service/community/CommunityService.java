@@ -713,4 +713,55 @@ public class CommunityService {
         "An unexpected error occurred: " + e.getMessage(), null));
     }
   }
+
+  public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getRoomsByCommunity(Long communityId) {
+    Optional<Community> optionalCommunity = communityRepository.findById(communityId);
+    if (optionalCommunity.isEmpty()) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Community not found",
+        null));
+    }
+
+    List<ChatRoom> rooms = chatRoomRepository.findByCommunityId(communityId);
+
+    List<Map<String, Object>> out = rooms.stream().map(r -> {
+      Map<String, Object> m = new HashMap<>();
+      m.put("id", r.getId());
+      m.put("name", r.getName());
+      m.put("roomCode", r.getRoomCode());
+      return m;
+    }).collect(Collectors.toList());
+
+    return ResponseEntity.ok(new ApiResponse<>(200, "Rooms fetched successfully", out));
+  }
+
+  public ResponseEntity<?> deleteRoom(Long roomId, String requesterEmail) {
+    try {
+      ChatRoom room = chatRoomRepository.findById(roomId)
+        .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + roomId));
+
+      Community community = room.getCommunity();
+      if (community == null) {
+        return ResponseEntity.badRequest().body(new ApiResponse<>(400,
+          "Associated community not found", null));
+      }
+
+      User requester = userRepository.findByEmail(requesterEmail)
+        .orElseThrow(() -> new ResourceNotFoundException("Requester not found with email: " + requesterEmail));
+
+      if (!isUserAdminInCommunity(community, requester)) {
+        return ResponseEntity.status(403).body(new ApiResponse<>(403,
+          "You are not authorized to delete this room", null));
+      }
+
+      chatRoomRepository.delete(room);
+
+      return ResponseEntity.ok(new ApiResponse<>(200, "Room deleted successfully", null));
+    } catch (ResourceNotFoundException e) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
+    } catch (Exception e) {
+      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: "
+        + e.getMessage(), null));
+    }
+  }
+
 }

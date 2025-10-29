@@ -119,4 +119,15 @@ public class CommunityController {
     return communityService.createRoomInCommunity(request);
   }
 
+  @GetMapping("/{id}/rooms/all")
+  public ResponseEntity<?> getRoomsByCommunity(@PathVariable("id") Long communityId) {
+    return communityService.getRoomsByCommunity(communityId);
+  }
+
+  @DeleteMapping("/rooms/{roomId}")
+  public ResponseEntity<?> deleteRoom(@PathVariable("roomId") Long roomId,
+                                      @RequestParam("requesterEmail") String requesterEmail) {
+    return communityService.deleteRoom(roomId, requesterEmail);
+  }
+
 }
