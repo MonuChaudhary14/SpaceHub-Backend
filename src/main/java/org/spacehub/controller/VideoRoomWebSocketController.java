@@ -16,10 +16,8 @@ public class VideoRoomWebSocketController {
 
     private final JanusVideoService janusVideoService;
     private final SimpMessagingTemplate messagingTemplate;
-    private final RestTemplate restTemplate;
 
     public VideoRoomWebSocketController(JanusVideoService janusVideoService, SimpMessagingTemplate messagingTemplate) {
-        this.restTemplate = new RestTemplate();
         this.janusVideoService = janusVideoService;
         this.messagingTemplate = messagingTemplate;
     }

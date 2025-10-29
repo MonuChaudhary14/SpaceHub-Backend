@@ -16,7 +16,7 @@ import java.util.concurrent.*;
 @Service
 public class JanusWebSocketService implements WebSocketHandler{
 
-    private static final String JANUS_WS_URL = "ws://localhost:8188";
+    private static final String JANUS_WS_URL = "ws://host.docker.internal:8188";
     private static final int RECONNECT_DELAY_SECONDS = 5;
 
     private final ObjectMapper objectMapper = new ObjectMapper();

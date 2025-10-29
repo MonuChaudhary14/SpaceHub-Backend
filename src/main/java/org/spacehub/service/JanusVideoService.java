@@ -29,6 +29,7 @@ public class JanusVideoService {
         if (response.getBody() != null && response.getBody().has("data")) {
             return response.getBody().get("data").get("id").asText();
         }
+        log.error("Failed to create Janus session: {}", response.getBody());
         throw new RuntimeException("Failed to create Janus session");
     }
 
@@ -46,6 +47,7 @@ public class JanusVideoService {
         if (response.getBody() != null && response.getBody().has("data")) {
             return response.getBody().get("data").get("id").asText();
         }
+        log.error("Failed to attach VideoRoom plugin: {}", response.getBody());
         throw new RuntimeException("Failed to attach VideoRoom plugin");
     }
 
