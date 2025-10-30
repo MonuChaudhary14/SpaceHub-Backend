@@ -87,11 +87,11 @@ public class VoiceRoomWebSocketController {
             if (evt.isArray()) {
               for (JsonNode n : evt) {
                 messagingTemplate.convertAndSend("/topic/room/" + pollRoomId + "/answer/" +
-                  pollUserId, n);
+                        pollUserId, n);
               }
             } else {
               messagingTemplate.convertAndSend("/topic/room/" + pollRoomId + "/answer/" +
-                pollUserId, evt);
+                      pollUserId, evt);
             }
           }
           Thread.sleep(300);
