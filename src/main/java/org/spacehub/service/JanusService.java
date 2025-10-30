@@ -16,8 +16,8 @@ public class JanusService {
 
   public String createSession() {
     Map<String, String> request = Map.of(
-      "janus", "create",
-      "transaction", UUID.randomUUID().toString()
+            "janus", "create",
+            "transaction", UUID.randomUUID().toString()
     );
     ResponseEntity<JsonNode> response = restTemplate.postForEntity(janusUrl, request, JsonNode.class);
     if (response.getBody() != null && response.getBody().has("data")) {
@@ -28,9 +28,9 @@ public class JanusService {
 
   public String attachAudioBridgePlugin(String sessionId) {
     Map<String, String> request = Map.of(
-      "janus", "attach",
-      "plugin", "janus.plugin.audiobridge",
-      "transaction", UUID.randomUUID().toString()
+            "janus", "attach",
+            "plugin", "janus.plugin.audiobridge",
+            "transaction", UUID.randomUUID().toString()
     );
     String sessionUrl = janusUrl + "/" + sessionId;
     ResponseEntity<JsonNode> response = restTemplate.postForEntity(sessionUrl, request, JsonNode.class);
@@ -42,16 +42,16 @@ public class JanusService {
 
   public void createAudioRoom(String sessionId, String handleId, int roomId) {
     Map<String, Object> body = Map.of(
-      "request", "create",
-      "room", roomId,
-      "description", "SpaceHub Voice Room",
-      "is_private", false
+            "request", "create",
+            "room", roomId,
+            "description", "SpaceHub Voice Room",
+            "is_private", false
     );
 
     Map<String, Object> request = Map.of(
-      "janus", "message",
-      "transaction", UUID.randomUUID().toString(),
-      "body", body
+            "janus", "message",
+            "transaction", UUID.randomUUID().toString(),
+            "body", body
     );
 
     String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
@@ -60,60 +60,61 @@ public class JanusService {
 
   public JsonNode joinAudioRoom(String sessionId, String handleId, int roomId, String displayName) {
     Map<String, Object> body = Map.of(
-      "request", "join",
-      "room", roomId,
-      "display", displayName
+            "request", "join",
+            "room", roomId,
+            "display", displayName
     );
 
     Map<String, Object> request = Map.of(
-      "janus", "message",
-      "transaction", UUID.randomUUID().toString(),
-      "body", body
+            "janus", "message",
+            "transaction", UUID.randomUUID().toString(),
+            "body", body
     );
 
     String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
     restTemplate.postForEntity(handleUrl, request, JsonNode.class);
 
-    return pollForPluginEvent(sessionId, 10, 400);
+    return pollForPluginEvent(sessionId);
   }
 
   public JsonNode sendOffer(String sessionId, String handleId, String sdpOffer) {
     Map<String, Object> body = Map.of(
-      "request", "configure",
-      "muted", false,
-      "audio", true
+            "request", "configure",
+            "muted", false,
+            "audio", true
     );
 
     Map<String, Object> request = Map.of(
-      "janus", "message",
-      "transaction", UUID.randomUUID().toString(),
-      "body", body,
-      "jsep", Map.of(
-        "type", "offer",
-        "sdp", sdpOffer
-      )
+            "janus", "message",
+            "transaction", UUID.randomUUID().toString(),
+            "body", body,
+            "jsep", Map.of(
+                    "type", "offer",
+                    "sdp", sdpOffer
+            )
     );
 
     String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
     restTemplate.postForEntity(handleUrl, request, JsonNode.class);
 
-    JsonNode event = pollForPluginEvent(sessionId, 10, 400);
+    JsonNode event = pollForPluginEvent(sessionId);
 
     if (event != null) {
       if (event.has("jsep") || (event.has("plugindata") &&
-        event.get("plugindata").has("data") &&
-        event.get("plugindata").get("data").has("jsep"))) {
+              event.get("plugindata").has("data") &&
+              event.get("plugindata").get("data").has("jsep"))) {
         return event;
       }
     }
-    throw new RuntimeException("Failed to receive SDP answer from Janus");
+
+    throw new RuntimeException("Failed to receive valid SDP answer from Janus");
   }
 
   public void sendIce(String sessionId, String handleId, Object candidate) {
     Map<String, Object> request = Map.of(
-      "janus", "trickle",
-      "transaction", UUID.randomUUID().toString(),
-      "candidate", candidate
+            "janus", "trickle",
+            "transaction", UUID.randomUUID().toString(),
+            "candidate", candidate
     );
 
     String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
@@ -122,31 +123,31 @@ public class JanusService {
 
   public void setMute(String sessionId, String handleId, boolean mute) {
     Map<String, Object> body = Map.of(
-      "request", "configure",
-      "audio", !mute,
-      "muted", mute
+            "request", "configure",
+            "audio", !mute,
+            "muted", mute
     );
 
     Map<String, Object> request = Map.of(
-      "janus", "message",
-      "transaction", UUID.randomUUID().toString(),
-      "body", body
+            "janus", "message",
+            "transaction", UUID.randomUUID().toString(),
+            "body", body
     );
 
     String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
     restTemplate.postForEntity(handleUrl, request, JsonNode.class);
   }
 
-  private JsonNode pollForPluginEvent(String sessionId, int attempts, long delayMs) {
+  private JsonNode pollForPluginEvent(String sessionId) {
     try {
-      for (int i = 0; i < attempts; i++) {
+      for (int i = 0; i < 10; i++) {
         String sessionPollingUrl = String.format("%s/%s?rid=%d&maxev=1", janusUrl, sessionId,
-          System.currentTimeMillis());
+                System.currentTimeMillis());
         ResponseEntity<JsonNode> resp = restTemplate.getForEntity(sessionPollingUrl, JsonNode.class);
         JsonNode body = resp.getBody();
 
         if (body == null) {
-          Thread.sleep(delayMs);
+          Thread.sleep(400);
           continue;
         }
 
@@ -167,7 +168,7 @@ public class JanusService {
           return eventNode;
         }
 
-        Thread.sleep(delayMs);
+        Thread.sleep((long) 400);
       }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
