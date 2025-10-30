@@ -31,10 +31,17 @@ public class SecurityConfiguration {
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration config = new CorsConfiguration();
-    config.addAllowedOriginPattern("http://localhost:8080");
+
+    config.setAllowedOrigins(List.of(
+            "http://127.0.0.1:5500",
+            "http://localhost:5500",
+            "https://codewithketan.me"
+    ));
     config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-    config.addAllowedHeader("*");
+    config.setAllowedHeaders(List.of("*"));
     config.setExposedHeaders(List.of("Authorization"));
+    config.setAllowCredentials(true);
+    config.setMaxAge(3600L);
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", config);
     return source;
@@ -49,7 +56,7 @@ public class SecurityConfiguration {
                     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                     .requestMatchers(
                             "/ws-messages/**",
-                            "/api/v1/validateforgototp",
+                            "/api/voice-room/**",
                             "/api/v1/**",
                             "/api/**",
                             "/ws/**",
@@ -68,7 +75,6 @@ public class SecurityConfiguration {
 
     return http.build();
   }
-
 
   @Bean
   public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig)
