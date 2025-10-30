@@ -49,7 +49,7 @@ public class Community {
   private Set<User> members = new HashSet<>();
 
   @Column(name = "image_url")
-  private String imageUrl;
+  public String imageUrl;
 
   private LocalDateTime createdAt = LocalDateTime.now();
 
