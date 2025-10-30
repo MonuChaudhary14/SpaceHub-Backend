@@ -11,7 +11,7 @@ import java.time.temporal.ChronoUnit;
 public class RefreshTokenService {
 
   private final RefreshTokenRepository refreshTokenRepository;
-  private static final long refreshTokenDay = 7;
+  private static final long refreshTokenDay = 365;
 
   public RefreshTokenService(RefreshTokenRepository refreshTokenRepository) {
     this.refreshTokenRepository = refreshTokenRepository;
