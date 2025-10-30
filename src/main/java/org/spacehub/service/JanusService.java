@@ -79,19 +79,19 @@ public class JanusService {
 
   public JsonNode sendOffer(String sessionId, String handleId, String sdpOffer) {
     Map<String, Object> body = Map.of(
-      "request", "configure",
-      "muted", false,
-      "audio", true
+            "request", "configure",
+            "muted", false,
+            "audio", true
     );
 
     Map<String, Object> request = Map.of(
-      "janus", "message",
-      "transaction", UUID.randomUUID().toString(),
-      "body", body,
-      "jsep", Map.of(
-        "type", "offer",
-        "sdp", sdpOffer
-      )
+            "janus", "message",
+            "transaction", UUID.randomUUID().toString(),
+            "body", body,
+            "jsep", Map.of(
+                    "type", "offer",
+                    "sdp", sdpOffer
+            )
     );
 
     String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
@@ -99,14 +99,17 @@ public class JanusService {
 
     JsonNode event = pollForPluginEvent(sessionId);
 
-    if (event != null) {
-      if (event.has("jsep") || (event.has("plugindata") &&
-        event.get("plugindata").has("data") &&
-        event.get("plugindata").get("data").has("jsep"))) {
-        return event;
-      }
+    if (event != null && event.has("jsep")) {
+      return event.get("jsep");
     }
-    throw new RuntimeException("Failed to receive SDP answer from Janus");
+
+    if (event != null && event.has("plugindata") &&
+            event.get("plugindata").has("data") &&
+            event.get("plugindata").get("data").has("jsep")) {
+      return event.get("plugindata").get("data").get("jsep");
+    }
+
+    throw new RuntimeException("Failed to receive valid SDP answer from Janus");
   }
 
   public void sendIce(String sessionId, String handleId, Object candidate) {
