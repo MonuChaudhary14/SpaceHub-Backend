@@ -74,7 +74,7 @@ public class JanusService {
     String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
     restTemplate.postForEntity(handleUrl, request, JsonNode.class);
 
-    return pollForPluginEvent(sessionId);
+    return pollForPluginEvent(sessionId, 10, 400);
   }
 
   public JsonNode sendOffer(String sessionId, String handleId, String sdpOffer) {
@@ -97,19 +97,16 @@ public class JanusService {
     String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
     restTemplate.postForEntity(handleUrl, request, JsonNode.class);
 
-    JsonNode event = pollForPluginEvent(sessionId);
+    JsonNode event = pollForPluginEvent(sessionId, 10, 400);
 
-    if (event != null && event.has("jsep")) {
-      return event.get("jsep");
+    if (event != null) {
+      if (event.has("jsep") || (event.has("plugindata") &&
+              event.get("plugindata").has("data") &&
+              event.get("plugindata").get("data").has("jsep"))) {
+        return event;
+      }
     }
-
-    if (event != null && event.has("plugindata") &&
-            event.get("plugindata").has("data") &&
-            event.get("plugindata").get("data").has("jsep")) {
-      return event.get("plugindata").get("data").get("jsep");
-    }
-
-    throw new RuntimeException("Failed to receive valid SDP answer from Janus");
+    throw new RuntimeException("Failed to receive SDP answer from Janus");
   }
 
   public void sendIce(String sessionId, String handleId, Object candidate) {
@@ -140,16 +137,16 @@ public class JanusService {
     restTemplate.postForEntity(handleUrl, request, JsonNode.class);
   }
 
-  private JsonNode pollForPluginEvent(String sessionId) {
+  private JsonNode pollForPluginEvent(String sessionId, int attempts, long delayMs) {
     try {
-      for (int i = 0; i < 10; i++) {
+      for (int i = 0; i < attempts; i++) {
         String sessionPollingUrl = String.format("%s/%s?rid=%d&maxev=1", janusUrl, sessionId,
                 System.currentTimeMillis());
         ResponseEntity<JsonNode> resp = restTemplate.getForEntity(sessionPollingUrl, JsonNode.class);
         JsonNode body = resp.getBody();
 
         if (body == null) {
-          Thread.sleep(400);
+          Thread.sleep(delayMs);
           continue;
         }
 
@@ -170,7 +167,7 @@ public class JanusService {
           return eventNode;
         }
 
-        Thread.sleep((long) 400);
+        Thread.sleep(delayMs);
       }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();

@@ -57,7 +57,7 @@ public class VoiceRoomController {
     String handleId = body.get("handleId");
     String sdp = body.get("sdp");
 
-    JsonNode answer = janusService.sendOffer(sessionId, handleId, sdp);
-    return ResponseEntity.ok(answer);
+    JsonNode janusResponse = janusService.sendOffer(sessionId, handleId, sdp);
+    return ResponseEntity.ok(janusResponse);
   }
 }

@@ -31,7 +31,7 @@ public class SecurityConfiguration {
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration config = new CorsConfiguration();
-    config.addAllowedOriginPattern("*");
+    config.addAllowedOriginPattern("http://localhost:8080");
     config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
     config.addAllowedHeader("*");
     config.setExposedHeaders(List.of("Authorization"));
@@ -43,29 +43,28 @@ public class SecurityConfiguration {
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http
-      .cors(withDefaults())
-      .csrf(AbstractHttpConfigurer::disable)
-      .authorizeHttpRequests(auth -> auth
-        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-        .requestMatchers(
-          "/ws-messages/**",
-          "/api/v1/validateforgototp",
-          "/api/v1/**",
-          "/api/**",
-          "/ws/**",
-          "/swagger-ui/**",
-          "/v3/api-docs/**",
-          "/v3/api-docs.yaml",
-          "/chat/**",
-          "/files/**",
-          "/wss/**"
-        ).permitAll()
-        .anyRequest().authenticated()
-      )
-      .httpBasic(AbstractHttpConfigurer::disable)
-      .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-      .authenticationProvider(authenticationProvider)
-      .addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class);
+            .cors(withDefaults())
+            .csrf(AbstractHttpConfigurer::disable)
+            .authorizeHttpRequests(auth -> auth
+                    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                    .requestMatchers(
+                            "/ws-messages/**",
+                            "/api/v1/validateforgototp",
+                            "/api/v1/**",
+                            "/api/**",
+                            "/ws/**",
+                            "/swagger-ui/**",
+                            "/v3/api-docs/**",
+                            "/v3/api-docs.yaml",
+                            "/chat/**",
+                            "/files/**"
+                    ).permitAll()
+                    .anyRequest().authenticated()
+            )
+            .httpBasic(AbstractHttpConfigurer::disable)
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authenticationProvider(authenticationProvider)
+            .addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class);
 
     return http.build();
   }
@@ -73,7 +72,7 @@ public class SecurityConfiguration {
 
   @Bean
   public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig)
-    throws Exception {
+          throws Exception {
     return authConfig.getAuthenticationManager();
   }
 }

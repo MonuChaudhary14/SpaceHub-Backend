@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Janus AudioBridge Test Client</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-900 text-white p-6 md:p-10">
+
+<div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold text-center mb-6">Janus AudioBridge Test</h1>
+
+    <!-- Setup Section -->
+    <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-6">
+        <h2 class="text-xl font-semibold mb-4">1. Setup</h2>
+        <div class="grid md:grid-cols-2 gap-4">
+            <div>
+                <label for="user-id" class="block text-sm font-medium text-gray-300">User ID (Your Name)</label>
+                <input type="text" id="user-id" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white" placeholder="e.g., Alice">
+            </div>
+            <div>
+                <label for="room-id" class="block text-sm font-medium text-gray-300">Room ID</label>
+                <input type="number" id="room-id" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white" placeholder="e.g., 1234">
+            </div>
+        </div>
+        <div class="flex space-x-4 mt-4">
+            <button id="create-room-btn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">
+                Create Room
+            </button>
+            <button id="join-room-btn" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">
+                Join Room
+            </button>
+        </div>
+    </div>
+
+    <!-- Room Controls -->
+    <div id="room-controls" class="bg-gray-800 p-6 rounded-lg shadow-lg mb-6 hidden">
+        <h2 class="text-xl font-semibold mb-4">2. Room Controls</h2>
+        <div class="flex space-x-4">
+            <button id="mute-btn" class="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg">
+                Mute
+            </button>
+            <button id="leave-room-btn" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">
+                Leave Room
+            </button>
+        </div>
+    </div>
+
+    <!-- Participants -->
+    <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-6">
+        <h2 class="text-xl font-semibold mb-4">Participants</h2>
+        <div id="audio-container" class="space-y-2">
+            <p class="text-gray-400">Waiting for participants...</p>
+        </div>
+    </div>
+
+    <!-- Log Section -->
+    <div class="bg-gray-950 p-4 rounded-lg shadow-inner">
+        <h2 class="text-xl font-semibold mb-2">Event Log</h2>
+        <pre id="log" class="h-64 overflow-y-auto text-sm text-gray-300 whitespace-pre-wrap"></pre>
+    </div>
+</div>
+
+<script>
+    // DOM Elements
+    const createRoomBtn = document.getElementById('create-room-btn');
+    const joinRoomBtn = document.getElementById('join-room-btn');
+    const muteBtn = document.getElementById('mute-btn');
+    const leaveRoomBtn = document.getElementById('leave-room-btn');
+    const userIdInput = document.getElementById('user-id');
+    const roomIdInput = document.getElementById('room-id');
+    const roomControls = document.getElementById('room-controls');
+    const audioContainer = document.getElementById('audio-container');
+    const logEl = document.getElementById('log');
+
+    // State
+    let isPublisher = false;
+    let stompClient = null;
+    let localStream = null;
+    let pc = null;
+    let userId = '';
+    let roomId = '';
+    let sessionId = '';
+    let handleId = '';
+    let isMuted = false;
+
+    // --- Helper Functions ---
+    function log(message) {
+        console.log(message);
+        logEl.textContent += `[${new Date().toLocaleTimeString()}] ${message}\n`;
+        logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function getApiUrl(path) {
+        return `http://localhost:8080/api/voice-room${path}`;
+    }
+
+    // --- Create Room ---
+    createRoomBtn.onclick = async () => {
+        userId = userIdInput.value;
+        if (!userId) { log('Error: Please enter a User ID.'); return; }
+        log('Creating room...');
+        try {
+            const response = await fetch(getApiUrl(`/create?displayName=${encodeURIComponent(userId)}`), { method: 'POST' });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Server responded with an error');
+
+            sessionId = data.sessionId;
+            handleId = data.handleId;
+            roomId = data.roomId;
+            isPublisher = true;
+            roomIdInput.value = roomId;
+            log(`Room ${roomId} created. Session: ${sessionId}, Handle: ${handleId}`);
+            await connectAndRegister();
+        } catch (err) {
+            log(`Error creating room: ${err.message}`);
+        }
+    };
+
+    // --- Join Room ---
+    joinRoomBtn.onclick = async () => {
+        userId = userIdInput.value;
+        roomId = roomIdInput.value;
+        if (!userId || !roomId) { log('Error: Please enter a User ID and Room ID.'); return; }
+        log(`Joining room ${roomId}...`);
+        try {
+            const response = await fetch(getApiUrl(`/join?roomId=${roomId}&displayName=${encodeURIComponent(userId)}`), { method: 'POST' });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Server responded with an error');
+
+            sessionId = data.sessionId;
+            handleId = data.handleId;
+            isPublisher = false;
+            log(`Joined room ${roomId}. Session: ${sessionId}, Handle: ${handleId}`);
+            await connectAndRegister();
+        } catch (err) {
+            log(`Error joining room: ${err.message}`);
+        }
+    };
+
+    // --- WebSocket + STOMP ---
+    async function connectAndRegister() {
+        log('Connecting to WebSocket...');
+        try {
+            const socket = new SockJS('http://localhost:8080/ws');
+            stompClient = Stomp.over(socket);
+            stompClient.connect({}, (frame) => {
+                log('WebSocket Connected.');
+
+                stompClient.subscribe(`/topic/room/${roomId}/events`, (message) => {
+                    handleRoomEvent(JSON.parse(message.body));
+                });
+
+                stompClient.subscribe(`/topic/room/${roomId}/answer/${userId}`, (message) => {
+                    handleJanusEvent(JSON.parse(message.body));
+                });
+
+                stompClient.send('/app/register', {}, JSON.stringify({
+                    userId, sessionId, handleId, roomId
+                }));
+
+                log('Registered with server. Starting WebRTC shortly...');
+                setTimeout(() => startPeerConnection().catch(err => log('startPeerConnection error: ' + err.message)), 200);
+
+                roomControls.classList.remove('hidden');
+                createRoomBtn.disabled = true;
+                joinRoomBtn.disabled = true;
+            }, (err) => log(`WebSocket connection error: ${err}`));
+        } catch (err) {
+            log(`Failed to connect: ${err.message}`);
+        }
+    }
+
+    // --- WebRTC ---
+    async function startPeerConnection() {
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        } catch (err) {
+            log(`Error getting audio stream: ${err.message}`);
+            return;
+        }
+
+        pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+
+        pc.ontrack = (event) => {
+            log(`Received remote audio track ${event.track.id}`);
+            let audio = document.getElementById(`audio-${event.track.id}`);
+            if (!audio) {
+                audio = document.createElement('audio');
+                audio.id = `audio-${event.track.id}`;
+                audio.autoplay = true;
+                audio.playsInline = true;
+
+                let label = document.createElement('p');
+                label.textContent = `Remote Audio (${event.track.id})`;
+
+                let container = document.createElement('div');
+                container.id = `container-${event.track.id}`;
+                container.appendChild(label);
+                container.appendChild(audio);
+
+                if (audioContainer.querySelector('p')) audioContainer.innerHTML = '';
+                audioContainer.appendChild(container);
+            }
+            audio.srcObject = event.streams[0];
+        };
+
+        pc.onicecandidate = (event) => {
+            if (event.candidate) {
+                log('Sending ICE candidate...');
+                stompClient.send('/app/ice', {}, JSON.stringify({
+                    userId, roomId,
+                    candidate: {
+                        candidate: event.candidate.candidate,
+                        sdpMid: event.candidate.sdpMid,
+                        sdpMLineIndex: event.candidate.sdpMLineIndex
+                    }
+                }));
+            }
+        };
+
+        localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        log('Sending SDP Offer...');
+        stompClient.send('/app/offer', {}, JSON.stringify({
+            userId, roomId, sdp: offer.sdp
+        }));
+    }
+
+    function handleJanusEvent(resp) {
+        if (resp.jsep) {
+            const answer = resp.jsep;
+            log('Received SDP Answer.');
+            pc.setRemoteDescription(new RTCSessionDescription({ type: answer.type, sdp: answer.sdp }));
+        }
+    }
+
+    muteBtn.onclick = () => {
+        isMuted = !isMuted;
+        localStream.getAudioTracks()[0].enabled = !isMuted;
+        stompClient.send('/app/mute', {}, JSON.stringify({ userId, roomId, action: isMuted ? 'mute' : 'unmute' }));
+        muteBtn.textContent = isMuted ? 'Unmute' : 'Mute';
+        log(isMuted ? 'Muted.' : 'Unmuted.');
+    };
+
+    leaveRoomBtn.onclick = () => {
+        log('Leaving room...');
+        if (stompClient) {
+            stompClient.send('/app/unregister', {}, JSON.stringify({ userId }));
+            stompClient.disconnect();
+        }
+        if (pc) pc.close();
+        if (localStream) localStream.getTracks().forEach(track => track.stop());
+        roomControls.classList.add('hidden');
+        createRoomBtn.disabled = false;
+        joinRoomBtn.disabled = false;
+        audioContainer.innerHTML = '<p class="text-gray-400">Waiting for participants...</p>';
+        log('Disconnected.');
+    };
+
+    function handleRoomEvent(event) {
+        log(`Room Event: ${event.type} - User: ${event.userId}`);
+    }
+</script>
+</body>
+</html>
