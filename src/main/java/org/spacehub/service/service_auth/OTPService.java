@@ -21,7 +21,7 @@ public class OTPService {
   private static final int COOLDOWN_SECONDS = 30;
   private static final int TEMP_REGISTRATION_EXPIRE = 600;
   private static final int BLOCK_DURATION = 300;
-  private static final int TEMP_TOKEN_EXPIRE = 600;
+  private static final int TEMP_TOKEN_EXPIRE = 2592000;
 
   public OTPService(RedisService redisService, EmailService emailService, VerificationService verificationService) {
     this.redisService = redisService;
