@@ -16,8 +16,8 @@ public class JanusService {
 
   public String createSession() {
     Map<String, String> request = Map.of(
-      "janus", "create",
-      "transaction", UUID.randomUUID().toString()
+            "janus", "create",
+            "transaction", UUID.randomUUID().toString()
     );
     ResponseEntity<JsonNode> response = restTemplate.postForEntity(janusUrl, request, JsonNode.class);
     if (response.getBody() != null && response.getBody().has("data")) {
@@ -28,9 +28,9 @@ public class JanusService {
 
   public String attachAudioBridgePlugin(String sessionId) {
     Map<String, String> request = Map.of(
-      "janus", "attach",
-      "plugin", "janus.plugin.audiobridge",
-      "transaction", UUID.randomUUID().toString()
+            "janus", "attach",
+            "plugin", "janus.plugin.audiobridge",
+            "transaction", UUID.randomUUID().toString()
     );
     String sessionUrl = janusUrl + "/" + sessionId;
     ResponseEntity<JsonNode> response = restTemplate.postForEntity(sessionUrl, request, JsonNode.class);
@@ -42,16 +42,16 @@ public class JanusService {
 
   public void createAudioRoom(String sessionId, String handleId, int roomId) {
     Map<String, Object> body = Map.of(
-      "request", "create",
-      "room", roomId,
-      "description", "SpaceHub Voice Room",
-      "is_private", false
+            "request", "create",
+            "room", roomId,
+            "description", "SpaceHub Voice Room",
+            "is_private", false
     );
 
     Map<String, Object> request = Map.of(
-      "janus", "message",
-      "transaction", UUID.randomUUID().toString(),
-      "body", body
+            "janus", "message",
+            "transaction", UUID.randomUUID().toString(),
+            "body", body
     );
 
     String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
@@ -60,15 +60,15 @@ public class JanusService {
 
   public JsonNode joinAudioRoom(String sessionId, String handleId, int roomId, String displayName) {
     Map<String, Object> body = Map.of(
-      "request", "join",
-      "room", roomId,
-      "display", displayName
+            "request", "join",
+            "room", roomId,
+            "display", displayName
     );
 
     Map<String, Object> request = Map.of(
-      "janus", "message",
-      "transaction", UUID.randomUUID().toString(),
-      "body", body
+            "janus", "message",
+            "transaction", UUID.randomUUID().toString(),
+            "body", body
     );
 
     String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
@@ -114,9 +114,9 @@ public class JanusService {
 
   public void sendIce(String sessionId, String handleId, Object candidate) {
     Map<String, Object> request = Map.of(
-      "janus", "trickle",
-      "transaction", UUID.randomUUID().toString(),
-      "candidate", candidate
+            "janus", "trickle",
+            "transaction", UUID.randomUUID().toString(),
+            "candidate", candidate
     );
 
     String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
@@ -125,15 +125,15 @@ public class JanusService {
 
   public void setMute(String sessionId, String handleId, boolean mute) {
     Map<String, Object> body = Map.of(
-      "request", "configure",
-      "audio", !mute,
-      "muted", mute
+            "request", "configure",
+            "audio", !mute,
+            "muted", mute
     );
 
     Map<String, Object> request = Map.of(
-      "janus", "message",
-      "transaction", UUID.randomUUID().toString(),
-      "body", body
+            "janus", "message",
+            "transaction", UUID.randomUUID().toString(),
+            "body", body
     );
 
     String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
@@ -144,7 +144,7 @@ public class JanusService {
     try {
       for (int i = 0; i < 10; i++) {
         String sessionPollingUrl = String.format("%s/%s?rid=%d&maxev=1", janusUrl, sessionId,
-          System.currentTimeMillis());
+                System.currentTimeMillis());
         ResponseEntity<JsonNode> resp = restTemplate.getForEntity(sessionPollingUrl, JsonNode.class);
         JsonNode body = resp.getBody();
 
