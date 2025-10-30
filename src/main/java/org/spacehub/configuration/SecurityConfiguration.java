@@ -31,10 +31,7 @@ public class SecurityConfiguration {
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration config = new CorsConfiguration();
-    config.setAllowedOrigins(List.of(
-            "http://127.0.0.1:5500",
-            "https://codewithketan.me"
-    ));
+    config.addAllowedOriginPattern("*");
     config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
     config.addAllowedHeader("*");
     config.setExposedHeaders(List.of("Authorization"));
@@ -52,8 +49,6 @@ public class SecurityConfiguration {
         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
         .requestMatchers(
           "/ws-messages/**",
-          "/topics/**",
-          "/app/**",
           "/api/v1/validateforgototp",
           "/api/v1/**",
           "/api/**",
@@ -78,7 +73,7 @@ public class SecurityConfiguration {
 
   @Bean
   public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig)
-          throws Exception {
+    throws Exception {
     return authConfig.getAuthenticationManager();
   }
 }
