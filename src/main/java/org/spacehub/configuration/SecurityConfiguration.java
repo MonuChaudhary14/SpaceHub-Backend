@@ -31,11 +31,14 @@ public class SecurityConfiguration {
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration config = new CorsConfiguration();
-    config.addAllowedOriginPattern("*");
+    config.setAllowedOrigins(List.of(
+            "http://127.0.0.1:5500",
+            "https://codewithketan.me"
+    ));
     config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
     config.addAllowedHeader("*");
-    config.setAllowCredentials(true);
     config.setExposedHeaders(List.of("Authorization"));
+    config.setAllowCredentials(true);
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", config);
     return source;
