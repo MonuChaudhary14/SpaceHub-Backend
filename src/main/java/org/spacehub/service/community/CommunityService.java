@@ -618,12 +618,24 @@ public class CommunityService {
       m.put("communityId", c.getId());
       m.put("name", c.getName());
       m.put("description", c.getDescription());
-      m.put("imageUrl", c.getImageUrl());
+
+      String key = c.getImageUrl();
+      if (key != null && !key.isBlank()) {
+        try {
+          String presigned = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1));
+          m.put("imageUrl", presigned);
+          m.put("imageKey", key);
+        } catch (Exception e) {
+          m.put("imageUrl", null);
+          m.put("imageKey", key);
+        }
+      } else {
+        m.put("imageUrl", null);
+      }
       return m;
     }).toList();
 
-    return ResponseEntity.ok(new ApiResponse<>(200, "Communities fetched", Map.of("communities",
-      out)));
+    return ResponseEntity.ok(new ApiResponse<>(200, "Communities fetched", Map.of("communities", out)));
   }
 
   public ResponseEntity<ApiResponse<Map<String, Object>>> getCommunityDetailsWithAdminFlag(Long communityId,
