@@ -844,12 +844,14 @@ public class CommunityService {
 
   public ResponseEntity<?> enterOrRequestCommunity(Long communityId, String requesterEmail) {
     if (requesterEmail == null || requesterEmail.isBlank()) {
-      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "requesterEmail is required", null));
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "requesterEmail is required",
+        null));
     }
 
     Community community = communityRepository.findById(communityId).orElse(null);
     if (community == null) {
-      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Community not found", null));
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Community not found",
+        null));
     }
 
     User user = userRepository.findByEmail(requesterEmail).orElse(null);

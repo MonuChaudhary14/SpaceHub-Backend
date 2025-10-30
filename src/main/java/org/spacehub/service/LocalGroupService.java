@@ -12,12 +12,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import java.time.Duration;
+import java.util.stream.Collectors;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Transactional
 @Service
@@ -180,4 +182,99 @@ public class LocalGroupService {
     if (contentType == null || !contentType.startsWith("image/"))
       throw new RuntimeException("Only image files are allowed");
   }
+
+  public ResponseEntity<ApiResponse<Map<String, Object>>> searchLocalGroups(
+    String q, String requesterEmail, int page, int size) {
+
+    if (q == null || q.isBlank()) {
+      return ResponseEntity.ok(new ApiResponse<>(200, "Empty query", Map.of(
+        "groups", Collections.emptyList(),
+        "page", 0, "size", 0, "totalElements", 0, "totalPages", 0)));
+    }
+
+    Pageable pageable = PageRequest.of(Math.max(0, page), Math.max(1, size));
+    Page<LocalGroup> groupPage = localGroupRepository
+      .findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCase(q, q, pageable);
+
+    User requester = null;
+    if (requesterEmail != null && !requesterEmail.isBlank()) {
+      requester = userRepository.findByEmail(requesterEmail).orElse(null);
+    }
+    final User finalRequester = requester;
+
+    List<Map<String, Object>> results = groupPage.getContent().stream().map(g -> {
+      Map<String, Object> m = new HashMap<>();
+      m.put("id", g.getId());
+      m.put("name", g.getName());
+      m.put("description", g.getDescription());
+      m.put("createdAt", g.getCreatedAt());
+      m.put("updatedAt", g.getUpdatedAt());
+
+      String key = g.getImageUrl();
+      if (key != null && !key.isBlank()) {
+        try {
+          String presigned = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1));
+          m.put("imageUrl", presigned);
+          m.put("imageKey", key);
+        } catch (Exception e) {
+          m.put("imageUrl", null);
+          m.put("imageKey", key);
+        }
+      } else {
+        m.put("imageUrl", null);
+      }
+
+      if (finalRequester != null) {
+        boolean isMember = g.getMembers().stream()
+          .anyMatch(u -> u.getId().equals(finalRequester.getId()));
+        m.put("isMember", isMember);
+      }
+      m.put("totalMembers", g.getMembers() == null ? 0 : g.getMembers().size());
+      return m;
+    }).collect(Collectors.toList());
+
+    Map<String, Object> body = new HashMap<>();
+    body.put("groups", results);
+    body.put("page", groupPage.getNumber());
+    body.put("size", groupPage.getSize());
+    body.put("totalElements", groupPage.getTotalElements());
+    body.put("totalPages", groupPage.getTotalPages());
+
+    return ResponseEntity.ok(new ApiResponse<>(200, "Local group search results", body));
+  }
+
+  public ResponseEntity<?> enterOrJoinLocalGroup(Long groupId, String requesterEmail) {
+    if (requesterEmail == null || requesterEmail.isBlank()) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "requesterEmail is required",
+        null));
+    }
+
+    LocalGroup group = localGroupRepository.findById(groupId)
+      .orElseThrow(() -> new ResourceNotFoundException("Local group not found"));
+
+    User user = userRepository.findByEmail(requesterEmail)
+      .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+    boolean isMember = group.getMembers().stream().anyMatch(u -> u.getId().equals(user.getId()));
+
+    if (isMember) {
+      LocalGroupResponse resp = toResponse(group);
+      String key = group.getImageUrl();
+      if (key != null && !key.isBlank()) {
+        try {
+          resp.setImageUrl(s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1)));
+        } catch (Exception ignored) { }
+      }
+      return ResponseEntity.ok(new ApiResponse<>(200, "Local group fetched", resp));
+    } else {
+      boolean alreadyMember = group.getMembers().stream().anyMatch(u -> u.getId().equals(user.getId()));
+      if (!alreadyMember) {
+        group.getMembers().add(user);
+        localGroupRepository.save(group);
+      }
+      return ResponseEntity.ok(new ApiResponse<>(200, "Joined local group", Map.of("joined",
+        true)));
+    }
+  }
+
 }
