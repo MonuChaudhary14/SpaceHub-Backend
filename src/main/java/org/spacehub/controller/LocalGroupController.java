@@ -8,6 +8,7 @@ import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.service.LocalGroupService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -23,9 +24,13 @@ public class LocalGroupController {
 
   @PostMapping("/create")
   public ResponseEntity<ApiResponse<LocalGroupResponse>> createLocalGroup(
-    @RequestBody CreateLocalGroupRequest request) {
-    return localGroupService.createLocalGroup(request);
+    @RequestParam("name") String name,
+    @RequestParam("description") String description,
+    @RequestParam("creatorEmail") String creatorEmail,
+    @RequestParam("imageFile") MultipartFile imageFile) {
+    return localGroupService.createLocalGroup(name, description, creatorEmail, imageFile);
   }
+
 
   @PostMapping("/join")
   public ResponseEntity<ApiResponse<String>> joinLocalGroup(@RequestBody JoinLocalGroupRequest request) {

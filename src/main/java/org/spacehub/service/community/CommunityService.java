@@ -139,7 +139,6 @@ public class CommunityService {
     }
   }
 
-
   @CacheEvict(value = {"communities"}, key = "#deleteCommunity.name")
   public ResponseEntity<?> deleteCommunityByName(@RequestBody DeleteCommunityDTO deleteCommunity) {
 

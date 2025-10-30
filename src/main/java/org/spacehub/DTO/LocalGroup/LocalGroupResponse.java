@@ -1,7 +1,6 @@
 package org.spacehub.DTO.LocalGroup;
 
 import lombok.Data;
-
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -15,4 +14,5 @@ public class LocalGroupResponse {
   private LocalDateTime updatedAt;
   private int totalMembers;
   private List<String> memberEmails;
+  private String imageUrl;
 }

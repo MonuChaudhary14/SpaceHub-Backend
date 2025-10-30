@@ -1,6 +1,5 @@
 package org.spacehub.service;
 
-import org.spacehub.DTO.LocalGroup.CreateLocalGroupRequest;
 import org.spacehub.DTO.LocalGroup.DeleteLocalGroupRequest;
 import org.spacehub.DTO.LocalGroup.JoinLocalGroupRequest;
 import org.spacehub.DTO.LocalGroup.LocalGroupResponse;
@@ -12,7 +11,10 @@ import org.spacehub.repository.LocalGroupRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -23,6 +25,7 @@ public class LocalGroupService {
 
   private final LocalGroupRepository localGroupRepository;
   private final UserRepository userRepository;
+  private final S3Service s3Service;
 
   public static class ResourceNotFoundException extends RuntimeException {
     public ResourceNotFoundException(String message) {
@@ -30,35 +33,64 @@ public class LocalGroupService {
     }
   }
 
-  public LocalGroupService(LocalGroupRepository localGroupRepository, UserRepository userRepository) {
+  public LocalGroupService(LocalGroupRepository localGroupRepository, UserRepository userRepository, S3Service s3Service) {
     this.localGroupRepository = localGroupRepository;
     this.userRepository = userRepository;
+    this.s3Service = s3Service;
   }
 
-  public ResponseEntity<ApiResponse<LocalGroupResponse>> createLocalGroup(CreateLocalGroupRequest req) {
-    if (req.getName() == null || req.getName().isBlank() || req.getCreatorEmail() == null ||
-      req.getCreatorEmail().isBlank()) {
+  public ResponseEntity<ApiResponse<LocalGroupResponse>> createLocalGroup(
+    String name, String description, String creatorEmail, MultipartFile imageFile) {
+
+    if (name == null || name.isBlank() || creatorEmail == null || creatorEmail.isBlank()) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400,
         "name and creatorEmail are required", null));
     }
 
-    User creator = userRepository.findByEmail(req.getCreatorEmail())
-      .orElseThrow(() -> new ResourceNotFoundException("Creator not found"));
+    if (imageFile == null || imageFile.isEmpty()) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Group image is required",
+        null));
+    }
 
-    LocalGroup group = new LocalGroup();
-    group.setName(req.getName().trim());
-    group.setDescription(req.getDescription());
-    group.setCreatedBy(creator);
-    group.setCreatedAt(LocalDateTime.now());
-    group.setUpdatedAt(LocalDateTime.now());
+    try {
+      User creator = userRepository.findByEmail(creatorEmail)
+        .orElseThrow(() -> new ResourceNotFoundException("Creator not found"));
 
-    group.getMembers().add(creator);
+      validateImage(imageFile);
 
-    LocalGroup saved = localGroupRepository.save(group);
+      String fileName = System.currentTimeMillis() + "_" + imageFile.getOriginalFilename();
+      String key = "local-groups/" + name.replaceAll("[^a-zA-Z0-9]", "_") + "/" + fileName;
 
-    LocalGroupResponse resp = toResponse(saved);
-    return ResponseEntity.status(201).body(new ApiResponse<>(201, "Local group created", resp));
+      s3Service.uploadFile(key, imageFile.getInputStream(), imageFile.getSize());
+      String imageUrl = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(2));
+
+      LocalGroup group = new LocalGroup();
+      group.setName(name.trim());
+      group.setDescription(description);
+      group.setCreatedBy(creator);
+      group.setImageUrl(key);
+      group.setCreatedAt(LocalDateTime.now());
+      group.setUpdatedAt(LocalDateTime.now());
+      group.getMembers().add(creator);
+
+      LocalGroup saved = localGroupRepository.save(group);
+
+      LocalGroupResponse resp = toResponse(saved);
+      resp.setImageUrl(imageUrl);
+
+      return ResponseEntity.status(201).body(new ApiResponse<>(201,
+        "Local group created successfully", resp));
+    } catch (IOException e) {
+      return ResponseEntity.internalServerError().body(
+        new ApiResponse<>(500, "Error uploading image: " + e.getMessage(), null));
+    } catch (RuntimeException e) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
+    } catch (Exception e) {
+      return ResponseEntity.internalServerError().body(
+        new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
+    }
   }
+
 
   public ResponseEntity<ApiResponse<String>> joinLocalGroup(JoinLocalGroupRequest req) {
     if (req.getGroupId() == null || req.getUserEmail() == null || req.getUserEmail().isBlank()) {
@@ -135,5 +167,17 @@ public class LocalGroupService {
     List<String> memberEmails = g.getMembers().stream().map(User::getEmail).collect(Collectors.toList());
     r.setMemberEmails(memberEmails);
     return r;
+  }
+
+  private void validateImage(MultipartFile file) {
+    if (file.isEmpty()) throw new RuntimeException("File is empty");
+
+    if (file.getSize() > 2 * 1024 * 1024)
+      throw new RuntimeException("File size exceeds 2 MB");
+
+    String contentType = file.getContentType();
+
+    if (contentType == null || !contentType.startsWith("image/"))
+      throw new RuntimeException("Only image files are allowed");
   }
 }

@@ -26,6 +26,9 @@ public class LocalGroup {
 
   private String description;
 
+  @Column(name = "image_url")
+  private String imageUrl;
+
   @ManyToOne
   @JoinColumn(name = "created_by")
   private User createdBy;
