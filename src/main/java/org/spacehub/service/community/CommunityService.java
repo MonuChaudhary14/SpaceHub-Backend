@@ -31,9 +31,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.multipart.MultipartFile;
 import org.spacehub.DTO.Community.CreateRoomRequest;
-
-import java.io.IOException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import java.time.Duration;
+import java.util.stream.Collectors;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,7 +45,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Transactional
 @Service
@@ -780,6 +782,98 @@ public class CommunityService {
     } catch (Exception e) {
       return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: "
         + e.getMessage(), null));
+    }
+  }
+
+  public ResponseEntity<?> searchCommunities(String q, String requesterEmail, int page, int size) {
+    if (q == null || q.isBlank()) {
+      return listAllCommunities();
+    }
+
+    Pageable pageable = PageRequest.of(Math.max(0, page), Math.max(1, size));
+    Page<Community> communityPage = communityRepository
+      .findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCase(q, q, pageable);
+
+    User requester = null;
+    if (requesterEmail != null && !requesterEmail.isBlank()) {
+      requester = userRepository.findByEmail(requesterEmail).orElse(null);
+    }
+    final User finalRequester = requester;
+
+    List<Map<String, Object>> results = communityPage.getContent().stream().map(c -> {
+      Map<String, Object> m = new HashMap<>();
+      m.put("communityId", c.getId());
+      m.put("name", c.getName());
+      m.put("description", c.getDescription());
+
+      String key = c.getImageUrl();
+      if (key != null && !key.isBlank()) {
+        try {
+          String presigned = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1));
+          m.put("imageUrl", presigned);
+          m.put("imageKey", key);
+        } catch (Exception e) {
+          m.put("imageUrl", null);
+          m.put("imageKey", key);
+        }
+      } else {
+        m.put("imageUrl", null);
+      }
+
+      if (finalRequester != null) {
+        boolean isMember = c.getCommunityUsers().stream()
+          .anyMatch(cu -> cu.getUser().getId().equals(finalRequester.getId()));
+        boolean isRequested = c.getPendingRequests().stream()
+          .anyMatch(u -> u.getId().equals(finalRequester.getId()));
+        m.put("isMember", isMember);
+        m.put("isRequested", isRequested);
+      }
+
+      return m;
+    }).collect(Collectors.toList());
+
+    Map<String, Object> body = new HashMap<>();
+    body.put("communities", results);
+    body.put("page", communityPage.getNumber());
+    body.put("size", communityPage.getSize());
+    body.put("totalElements", communityPage.getTotalElements());
+    body.put("totalPages", communityPage.getTotalPages());
+
+    return ResponseEntity.ok(new ApiResponse<>(200, "Search results", body));
+  }
+
+  public ResponseEntity<?> enterOrRequestCommunity(Long communityId, String requesterEmail) {
+    if (requesterEmail == null || requesterEmail.isBlank()) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "requesterEmail is required", null));
+    }
+
+    Community community = communityRepository.findById(communityId).orElse(null);
+    if (community == null) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Community not found", null));
+    }
+
+    User user = userRepository.findByEmail(requesterEmail).orElse(null);
+    if (user == null) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "User not found", null));
+    }
+
+    boolean isMember = community.getCommunityUsers().stream()
+      .anyMatch(cu -> cu.getUser().getId().equals(user.getId()));
+    boolean isPending = community.getPendingRequests().stream()
+      .anyMatch(u -> u.getId().equals(user.getId()));
+
+    if (isMember) {
+      return getCommunityWithRooms(communityId);
+    } else {
+      if (isPending) {
+        return ResponseEntity.ok(new ApiResponse<>(200, "Join request already pending",
+          Map.of("requested", true, "message", "Join request already pending")));
+      } else {
+        community.getPendingRequests().add(user);
+        communityRepository.save(community);
+        return ResponseEntity.ok(new ApiResponse<>(200, "Join request sent",
+          Map.of("requested", true, "message", "Join request sent")));
+      }
     }
   }
 
