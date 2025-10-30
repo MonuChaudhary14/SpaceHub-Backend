@@ -3,10 +3,9 @@ package org.spacehub.DTO.Community;
 import lombok.Data;
 
 @Data
-public class CommunityDTO {
-
+public class CommunitySummaryDTO {
+  private Long id;
   private String name;
   private String description;
-  private String createdByEmail;
-
+  private String imageUrl;
 }

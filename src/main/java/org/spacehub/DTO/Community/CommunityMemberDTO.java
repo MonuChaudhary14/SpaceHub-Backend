@@ -5,7 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.spacehub.entities.Community.Role;
-import org.spacehub.entities.User.User;
 
 import java.time.LocalDateTime;
 
@@ -22,11 +21,4 @@ public class CommunityMemberDTO {
   private LocalDateTime joinDate;
   private boolean isBanned;
 
-  public CommunityMemberDTO(User user) {
-    this.memberId = user.getId();
-    this.username = user.getUsername();
-    this.email = user.getEmail();
-    this.joinDate = user.getCreatedAt();
-    this.isBanned = false;
-  }
 }

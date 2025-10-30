@@ -4,7 +4,6 @@ import org.spacehub.DTO.AcceptRequest;
 import org.spacehub.DTO.CancelJoinRequest;
 import org.spacehub.DTO.Community.CommunityBlockRequest;
 import org.spacehub.DTO.Community.CommunityChangeRoleRequest;
-import org.spacehub.DTO.Community.CommunityDTO;
 import org.spacehub.DTO.Community.CommunityMemberListRequest;
 import org.spacehub.DTO.Community.CommunityMemberRequest;
 import org.spacehub.DTO.Community.CommunityRoomsRequest;
@@ -18,7 +17,7 @@ import org.spacehub.service.community.CommunityService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
+import org.spacehub.DTO.Community.CreateRoomRequest;
 import java.util.Map;
 
 @RestController
@@ -32,8 +31,10 @@ public class CommunityController {
   }
 
   @PostMapping("/create")
-  public ResponseEntity<ApiResponse<Map<String, Object>>> createCommunity(@RequestParam("name") String name, @RequestParam("description") String description,
-          @RequestParam("createdByEmail") String createdByEmail, @RequestParam("imageFile") MultipartFile imageFile) {
+  public ResponseEntity<ApiResponse<Map<String, Object>>> createCommunity(
+    @RequestParam("name") String name, @RequestParam("description") String description,
+          @RequestParam("createdByEmail") String createdByEmail,
+            @RequestParam("imageFile") MultipartFile imageFile) {
     return communityService.createCommunity(name, description, createdByEmail, imageFile);
   }
 
@@ -98,6 +99,35 @@ public class CommunityController {
   @PostMapping("/updateInfo")
   public ResponseEntity<?> updateCommunityInfo(@RequestBody UpdateCommunityDTO dto) {
     return communityService.updateCommunityInfo(dto);
+  }
+
+  @GetMapping("/all")
+  public ResponseEntity<?> listAllCommunities() {
+    return communityService.listAllCommunities();
+  }
+
+  @GetMapping("/{id}")
+  public ResponseEntity<?> getCommunityDetails(@PathVariable("id") Long communityId,
+                                               @RequestParam("requesterEmail") String requesterEmail) {
+    return communityService.getCommunityDetailsWithAdminFlag(communityId, requesterEmail);
+  }
+
+  @PostMapping("/{id}/rooms/create")
+  public ResponseEntity<?> createRoomInCommunity(@PathVariable("id") Long communityId,
+                                                 @RequestBody CreateRoomRequest request) {
+    request.setCommunityId(communityId);
+    return communityService.createRoomInCommunity(request);
+  }
+
+  @GetMapping("/{id}/rooms/all")
+  public ResponseEntity<?> getRoomsByCommunity(@PathVariable("id") Long communityId) {
+    return communityService.getRoomsByCommunity(communityId);
+  }
+
+  @DeleteMapping("/rooms/{roomId}")
+  public ResponseEntity<?> deleteRoom(@PathVariable("roomId") Long roomId,
+                                      @RequestParam("requesterEmail") String requesterEmail) {
+    return communityService.deleteRoom(roomId, requesterEmail);
   }
 
 }
