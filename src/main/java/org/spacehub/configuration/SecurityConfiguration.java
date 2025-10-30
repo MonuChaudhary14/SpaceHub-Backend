@@ -31,15 +31,11 @@ public class SecurityConfiguration {
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration config = new CorsConfiguration();
-    config.setAllowedOrigins(List.of(
-            "http://127.0.0.1:5500",
-            "https://codewithketan.me"
-    ));
+    config.addAllowedOriginPattern("*");
     config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-    config.setAllowedHeaders(List.of("*"));
-    config.setExposedHeaders(List.of("Authorization"));
+    config.addAllowedHeader("*");
     config.setAllowCredentials(true);
-
+    config.setExposedHeaders(List.of("Authorization"));
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", config);
     return source;
@@ -48,29 +44,29 @@ public class SecurityConfiguration {
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http
-            .cors(withDefaults())
-            .csrf(AbstractHttpConfigurer::disable)
-            .authorizeHttpRequests(auth -> auth
-                    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                    .requestMatchers(
-                            "/ws-messages/**",
-                            "/api/v1/validateforgototp",
-                            "/api/v1/**",
-                            "/api/**",
-                            "/ws/**",
-                            "/swagger-ui/**",
-                            "/v3/api-docs/**",
-                            "/v3/api-docs.yaml",
-                            "/chat/**",
-                            "/files/**",
-                            "/wss/**"
-                    ).permitAll()
-                    .anyRequest().authenticated()
-            )
-            .httpBasic(AbstractHttpConfigurer::disable)
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authenticationProvider(authenticationProvider)
-            .addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class);
+      .cors(withDefaults())
+      .csrf(AbstractHttpConfigurer::disable)
+      .authorizeHttpRequests(auth -> auth
+        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+        .requestMatchers(
+          "/ws-messages/**",
+          "/api/v1/validateforgototp",
+          "/api/v1/**",
+          "/api/**",
+          "/ws/**",
+          "/swagger-ui/**",
+          "/v3/api-docs/**",
+          "/v3/api-docs.yaml",
+          "/chat/**",
+          "/files/**",
+          "/wss/**"
+        ).permitAll()
+        .anyRequest().authenticated()
+      )
+      .httpBasic(AbstractHttpConfigurer::disable)
+      .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+      .authenticationProvider(authenticationProvider)
+      .addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class);
 
     return http.build();
   }
