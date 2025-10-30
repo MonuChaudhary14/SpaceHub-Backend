@@ -24,6 +24,7 @@ import org.spacehub.DTO.Community.UpdateCommunityDTO;
 import org.spacehub.service.S3Service;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -78,6 +79,13 @@ public class CommunityService {
       return ResponseEntity.badRequest()
         .body(new ApiResponse<>(400,
           "All fields (name, description, createdByEmail) are required", null));
+    }
+
+    String normalizedName = name.trim();
+
+    if (communityRepository.existsByNameIgnoreCase(normalizedName)) {
+      return ResponseEntity.status(HttpStatus.CONFLICT)
+        .body(new ApiResponse<>(409, "Community with this name already exists", null));
     }
 
     if (imageFile == null || imageFile.isEmpty()) {

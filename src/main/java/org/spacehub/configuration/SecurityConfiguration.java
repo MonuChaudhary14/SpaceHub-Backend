@@ -35,6 +35,7 @@ public class SecurityConfiguration {
     config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
     config.addAllowedHeader("*");
     config.setExposedHeaders(List.of("Authorization"));
+    config.setAllowCredentials(true);
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", config);
     return source;
@@ -57,8 +58,7 @@ public class SecurityConfiguration {
           "/v3/api-docs/**",
           "/v3/api-docs.yaml",
           "/chat/**",
-          "/files/**",
-          "/wss/**"
+          "/files/**"
         ).permitAll()
         .anyRequest().authenticated()
       )

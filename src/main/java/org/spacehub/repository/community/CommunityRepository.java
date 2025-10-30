@@ -13,5 +13,5 @@ public interface CommunityRepository extends JpaRepository<Community, Long> {
   Community findByName(String name);
   @NonNull
   List<Community> findAll();
-
+  boolean existsByNameIgnoreCase(String name);
 }

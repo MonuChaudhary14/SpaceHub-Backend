@@ -22,6 +22,7 @@ public class Community {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
+  @Column(name = "name", nullable = false, unique = true, length = 200)
   private String name;
 
   private String description;
