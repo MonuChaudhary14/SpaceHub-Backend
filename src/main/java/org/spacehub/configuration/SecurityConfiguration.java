@@ -61,7 +61,10 @@ public class SecurityConfiguration {
                             "/v3/api-docs.yaml",
                             "/chat/**",
                             "/files/**",
-                            "/wss/**"
+                            "/wss/**",
+                            "/ws-messages/**",
+                            "/api/v1/**",
+                            "/chat/**"
                     ).permitAll()
                     .anyRequest().authenticated()
             )
