@@ -1038,27 +1038,42 @@ public class CommunityService {
       m.put("name", c.getName());
       m.put("description", c.getDescription());
 
-      String key = null;
-      try {
-        if (c.getBannerUrl() != null && !c.getBannerUrl().isBlank()) {
-          key = c.getBannerUrl();
-        } else {
-          key = c.getImageUrl();
-        }
-      } catch (Exception ignored) {}
+      String bannerKey = c.getBannerUrl();
+      if (bannerKey == null || bannerKey.isBlank()) {
+        bannerKey = null;
+      }
 
-      if (key != null && !key.isBlank()) {
+      String imageKey = c.getImageUrl();
+      if (imageKey == null || imageKey.isBlank()) {
+        imageKey = null;
+      }
+
+      if (bannerKey != null) {
         try {
-          String presigned = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1));
-          m.put("bannerUrl", presigned);
-          m.put("bannerKey", key);
+          String presignedBanner = s3Service.generatePresignedDownloadUrl(bannerKey, Duration.ofHours(1));
+          m.put("bannerUrl", presignedBanner);
+          m.put("bannerKey", bannerKey);
         } catch (Exception e) {
           m.put("bannerUrl", null);
-          m.put("bannerKey", key);
+          m.put("bannerKey", bannerKey);
         }
       } else {
         m.put("bannerUrl", null);
         m.put("bannerKey", null);
+      }
+
+      if (imageKey != null) {
+        try {
+          String presignedImage = s3Service.generatePresignedDownloadUrl(imageKey, Duration.ofHours(1));
+          m.put("imageUrl", presignedImage);
+          m.put("imageKey", imageKey);
+        } catch (Exception e) {
+          m.put("imageUrl", null);
+          m.put("imageKey", imageKey);
+        }
+      } else {
+        m.put("imageUrl", null);
+        m.put("imageKey", null);
       }
 
       if (c.getCreatedBy() != null) {
