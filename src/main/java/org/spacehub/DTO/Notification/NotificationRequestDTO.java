@@ -13,6 +13,7 @@ public class NotificationRequestDTO {
     private String title;
     private String message;
     private String type;
+    private String senderEmail;
     private Long communityId;
     private Long referenceId;
     private String scope;

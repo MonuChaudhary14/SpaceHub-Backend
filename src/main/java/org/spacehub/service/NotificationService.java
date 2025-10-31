@@ -12,6 +12,7 @@ import org.spacehub.repository.community.CommunityRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +25,8 @@ public class NotificationService {
     public void createNotification(NotificationRequestDTO request) {
         User recipient = userRepository.findByEmail(request.getEmail()).orElseThrow(() -> new RuntimeException("User not found: " + request.getEmail()));
 
+        User sender = userRepository.findByEmail(request.getSenderEmail()).orElseThrow(() -> new RuntimeException("Sender not found: " + request.getSenderEmail()));
+
         Community community = null;
         if (request.getCommunityId() != null) {
             community = communityRepository.findById(request.getCommunityId()).orElseThrow(() -> new RuntimeException("Community not found with ID: " + request.getCommunityId()));
@@ -34,6 +37,7 @@ public class NotificationService {
                 .message(request.getMessage())
                 .type(request.getType())
                 .recipient(recipient)
+                .sender(sender)
                 .community(community)
                 .referenceId(request.getReferenceId())
                 .scope(request.getScope())
@@ -60,7 +64,46 @@ public class NotificationService {
                         .communityId(n.getCommunity() != null ? n.getCommunity().getId() : null)
                         .communityName(n.getCommunity() != null ? n.getCommunity().getName() : null)
                         .referenceId(n.getReferenceId())
+                        .senderName(n.getSender() != null ? n.getSender().getUsername() : null)
+                        .senderEmail(n.getSender() != null ? n.getSender().getEmail() : null)
                         .build()).toList();
+    }
+
+    public List<NotificationResponseDTO> fetchAndMarkRead(String email) {
+        List<Notification> allNotifications = notificationRepository.findByRecipientEmailOrderByCreatedAtDesc(email);
+
+        List<Notification> unread = allNotifications.stream()
+                .filter(notification -> !notification.isRead())
+                .collect(Collectors.toList());
+
+        List<Notification> read = allNotifications.stream()
+                .filter(Notification::isRead)
+                .collect(Collectors.toList());
+
+        List<Notification> combined = unread.stream()
+                .collect(Collectors.toList());
+
+
+        combined.addAll(read);
+
+        unread.forEach(n -> n.setRead(true));
+        notificationRepository.saveAll(unread);
+
+        return combined.stream()
+                .map(notification -> NotificationResponseDTO.builder()
+                        .id(notification.getId())
+                        .title(notification.getTitle())
+                        .message(notification.getMessage())
+                        .type(notification.getType())
+                        .scope(notification.getScope())
+                        .actionable(notification.isActionable())
+                        .read(notification.isRead())
+                        .createdAt(notification.getCreatedAt())
+                        .communityId(notification.getCommunity() != null ? notification.getCommunity().getId() : null)
+                        .communityName(notification.getCommunity() != null ? notification.getCommunity().getName() : null)
+                        .referenceId(notification.getReferenceId())
+                        .build())
+                .collect(Collectors.toList());
     }
 
     public void markAsRead(Long id) {

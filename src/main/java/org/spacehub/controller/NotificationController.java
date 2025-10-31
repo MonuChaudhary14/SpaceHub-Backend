@@ -5,6 +5,7 @@ import org.spacehub.DTO.Notification.NotificationRequestDTO;
 import org.spacehub.DTO.Notification.NotificationResponseDTO;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.service.NotificationService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,6 +17,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class NotificationController {
 
+    @Autowired
     private final NotificationService notificationService;
 
     @PostMapping
@@ -35,6 +37,13 @@ public class NotificationController {
         notificationService.markAsRead(id);
         return ResponseEntity.ok(new ApiResponse<>(200, "Notification marked as read", "success"));
     }
+
+    @GetMapping("/inbox")
+    public ResponseEntity<ApiResponse<List<NotificationResponseDTO>>> openInbox(@RequestParam String email) {
+        List<NotificationResponseDTO> notifications = notificationService.fetchAndMarkRead(email);
+        return ResponseEntity.ok(new ApiResponse<>(200, "Notifications fetched and marked as read", notifications));
+    }
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<String>> deleteNotification(@PathVariable Long id) {

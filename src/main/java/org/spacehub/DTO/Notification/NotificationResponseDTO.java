@@ -18,6 +18,8 @@ public class NotificationResponseDTO {
     private String message;
     private String type;
     private String scope;
+    private String senderName;
+    private String senderEmail;
     private boolean actionable;
     private boolean read;
     private LocalDateTime createdAt;
