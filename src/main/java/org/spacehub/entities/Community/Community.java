@@ -50,6 +50,13 @@ public class Community {
   @Column(name = "image_url")
   private String imageUrl;
 
+  @Column(name="avatar_url")
+  private String avatarUrl;
+
+  @Column(name="banner_url")
+  private String bannerUrl;
+
+
   private LocalDateTime createdAt = LocalDateTime.now();
 
   private LocalDateTime updatedAt = LocalDateTime.now();

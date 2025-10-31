@@ -10,6 +10,7 @@ import org.spacehub.DTO.Community.CommunityRoomsRequest;
 import org.spacehub.DTO.Community.DeleteCommunityDTO;
 import org.spacehub.DTO.Community.JoinCommunity;
 import org.spacehub.DTO.Community.LeaveCommunity;
+import org.spacehub.DTO.Community.RenameRoomRequest;
 import org.spacehub.DTO.Community.UpdateCommunityDTO;
 import org.spacehub.DTO.RejectRequest;
 import org.spacehub.entities.ApiResponse.ApiResponse;
@@ -147,4 +148,36 @@ public class CommunityController {
   ) {
     return communityService.enterOrRequestCommunity(communityId, requesterEmail);
   }
+
+  @PostMapping("/{id}/upload-avatar")
+  public ResponseEntity<?> uploadCommunityAvatar(
+    @PathVariable("id") Long communityId,
+    @RequestParam("requesterEmail") String requesterEmail,
+    @RequestParam("imageFile") MultipartFile imageFile) {
+    return communityService.uploadCommunityAvatar(communityId, requesterEmail, imageFile);
+  }
+
+  @PostMapping("/{id}/upload-banner")
+  public ResponseEntity<?> uploadCommunityBanner(
+    @PathVariable("id") Long communityId,
+    @RequestParam("requesterEmail") String requesterEmail,
+    @RequestParam("imageFile") MultipartFile imageFile) {
+    return communityService.uploadCommunityBanner(communityId, requesterEmail, imageFile);
+  }
+
+  @PutMapping("/{communityId}/rooms/{roomId}/rename")
+  public ResponseEntity<?> renameRoom(
+    @PathVariable Long communityId,
+    @PathVariable Long roomId,
+    @RequestBody RenameRoomRequest req) {
+    req.setRequesterEmail(req.getRequesterEmail()); // just to match DTO usage
+    return communityService.renameRoomInCommunity(communityId, roomId, req);
+  }
+
+  @GetMapping("/{id}/roles")
+  public ResponseEntity<?> getRoles(@PathVariable("id") Long communityId,
+                                    @RequestParam("requesterEmail") String requesterEmail) {
+    return communityService.getRolesForRequester(communityId, requesterEmail);
+  }
+
 }
