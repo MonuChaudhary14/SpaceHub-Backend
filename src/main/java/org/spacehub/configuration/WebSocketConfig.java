@@ -8,15 +8,15 @@ import org.spacehub.handler.ChatWebSocketHandler;
 @EnableWebSocket
 public class WebSocketConfig implements WebSocketConfigurer{
 
-    private final ChatWebSocketHandler chatWebSocketHandler;
+  private final ChatWebSocketHandler chatWebSocketHandler;
 
-    public WebSocketConfig(ChatWebSocketHandler chatWebSocketHandler) {
-        this.chatWebSocketHandler = chatWebSocketHandler;
-    }
+  public WebSocketConfig(ChatWebSocketHandler chatWebSocketHandler) {
+    this.chatWebSocketHandler = chatWebSocketHandler;
+  }
 
-    @Override
-    public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(chatWebSocketHandler, "/chat")
-                .setAllowedOrigins("https://codewithketan.me", "http://127.0.0.1:5500", "http://localhost:5173");
-    }
+  @Override
+  public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
+    registry.addHandler(chatWebSocketHandler, "/chat")
+      .setAllowedOrigins("*");
+  }
 }

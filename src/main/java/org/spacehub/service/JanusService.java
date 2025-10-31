@@ -74,7 +74,7 @@ public class JanusService {
     String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
     restTemplate.postForEntity(handleUrl, request, JsonNode.class);
 
-    return pollForPluginEvent(sessionId, 10, 400);
+    return pollForPluginEvent(sessionId);
   }
 
   public JsonNode sendOffer(String sessionId, String handleId, String sdpOffer) {
@@ -97,7 +97,7 @@ public class JanusService {
     String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
     restTemplate.postForEntity(handleUrl, request, JsonNode.class);
 
-    JsonNode event = pollForPluginEvent(sessionId, 10, 400);
+    JsonNode event = pollForPluginEvent(sessionId);
 
     if (event != null) {
       if (event.has("jsep") || (event.has("plugindata") &&
@@ -106,7 +106,8 @@ public class JanusService {
         return event;
       }
     }
-    throw new RuntimeException("Failed to receive SDP answer from Janus");
+
+    throw new RuntimeException("Failed to receive valid SDP answer from Janus");
   }
 
   public void sendIce(String sessionId, String handleId, Object candidate) {
@@ -137,16 +138,16 @@ public class JanusService {
     restTemplate.postForEntity(handleUrl, request, JsonNode.class);
   }
 
-  private JsonNode pollForPluginEvent(String sessionId, int attempts, long delayMs) {
+  private JsonNode pollForPluginEvent(String sessionId) {
     try {
-      for (int i = 0; i < attempts; i++) {
+      for (int i = 0; i < 10; i++) {
         String sessionPollingUrl = String.format("%s/%s?rid=%d&maxev=1", janusUrl, sessionId,
                 System.currentTimeMillis());
         ResponseEntity<JsonNode> resp = restTemplate.getForEntity(sessionPollingUrl, JsonNode.class);
         JsonNode body = resp.getBody();
 
         if (body == null) {
-          Thread.sleep(delayMs);
+          Thread.sleep(400);
           continue;
         }
 
@@ -167,7 +168,7 @@ public class JanusService {
           return eventNode;
         }
 
-        Thread.sleep(delayMs);
+        Thread.sleep((long) 400);
       }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();

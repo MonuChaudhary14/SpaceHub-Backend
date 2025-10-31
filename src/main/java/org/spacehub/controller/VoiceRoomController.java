@@ -26,11 +26,11 @@ public class VoiceRoomController {
     JsonNode joinEvent = janusService.joinAudioRoom(sessionId, handleId, roomId, displayName);
 
     return ResponseEntity.ok(Map.of(
-            "message", "Room created and joined successfully",
-            "sessionId", sessionId,
-            "handleId", handleId,
-            "roomId", roomId,
-            "joinEvent", Objects.toString(joinEvent, "")
+      "message", "Room created and joined successfully",
+      "sessionId", sessionId,
+      "handleId", handleId,
+      "roomId", roomId,
+      "joinEvent", Objects.toString(joinEvent, "")
     ));
   }
 
@@ -43,11 +43,11 @@ public class VoiceRoomController {
     JsonNode joinEvent = janusService.joinAudioRoom(sessionId, handleId, roomId, displayName);
 
     return ResponseEntity.ok(Map.of(
-            "message", "Joined room successfully",
-            "roomId", roomId,
-            "sessionId", sessionId,
-            "handleId", handleId,
-            "joinEvent", Objects.toString(joinEvent, "")
+      "message", "Joined room successfully",
+      "roomId", roomId,
+      "sessionId", sessionId,
+      "handleId", handleId,
+      "joinEvent", Objects.toString(joinEvent, "")
     ));
   }
 

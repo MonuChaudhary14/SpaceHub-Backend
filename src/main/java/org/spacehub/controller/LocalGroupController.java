@@ -1,6 +1,5 @@
 package org.spacehub.controller;
 
-import org.spacehub.DTO.LocalGroup.CreateLocalGroupRequest;
 import org.spacehub.DTO.LocalGroup.DeleteLocalGroupRequest;
 import org.spacehub.DTO.LocalGroup.JoinLocalGroupRequest;
 import org.spacehub.DTO.LocalGroup.LocalGroupResponse;
@@ -50,5 +49,21 @@ public class LocalGroupController {
   @GetMapping("/{id}")
   public ResponseEntity<ApiResponse<LocalGroupResponse>> getLocalGroup(@PathVariable("id") Long id) {
     return localGroupService.getLocalGroup(id);
+  }
+
+  @GetMapping("/search")
+  public ResponseEntity<?> searchLocalGroups(
+    @RequestParam("q") String q,
+    @RequestParam(value = "requesterEmail", required = false) String requesterEmail,
+    @RequestParam(value = "page", defaultValue = "0") int page,
+    @RequestParam(value = "size", defaultValue = "20") int size) {
+    return localGroupService.searchLocalGroups(q, requesterEmail, page, size);
+  }
+
+  @PostMapping("/{id}/enter")
+  public ResponseEntity<?> enterLocalGroup(
+    @PathVariable("id") Long groupId,
+    @RequestParam("requesterEmail") String requesterEmail) {
+    return localGroupService.enterOrJoinLocalGroup(groupId, requesterEmail);
   }
 }
