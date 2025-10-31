@@ -34,8 +34,8 @@ public class CommunityController {
   @PostMapping("/create")
   public ResponseEntity<ApiResponse<Map<String, Object>>> createCommunity(
     @RequestParam("name") String name, @RequestParam("description") String description,
-          @RequestParam("createdByEmail") String createdByEmail,
-            @RequestParam("imageFile") MultipartFile imageFile) {
+    @RequestParam("createdByEmail") String createdByEmail,
+    @RequestParam("imageFile") MultipartFile imageFile) {
     return communityService.createCommunity(name, description, createdByEmail, imageFile);
   }
 
@@ -45,17 +45,17 @@ public class CommunityController {
   }
 
   @PostMapping("/requestJoin")
-  public ResponseEntity<?> requestJoin(@RequestBody JoinCommunity joinCommunity){
+  public ResponseEntity<?> requestJoin(@RequestBody JoinCommunity joinCommunity) {
     return communityService.requestToJoinCommunity(joinCommunity);
   }
 
   @PostMapping("/cancelRequest")
-  public ResponseEntity<?> cancelJoinRequest(@RequestBody CancelJoinRequest cancelJoinRequest){
+  public ResponseEntity<?> cancelJoinRequest(@RequestBody CancelJoinRequest cancelJoinRequest) {
     return communityService.cancelRequestCommunity(cancelJoinRequest);
   }
 
   @PostMapping("/acceptRequest")
-  public ResponseEntity<?> acceptRequest(@RequestBody AcceptRequest acceptRequest){
+  public ResponseEntity<?> acceptRequest(@RequestBody AcceptRequest acceptRequest) {
     return communityService.acceptRequest(acceptRequest);
   }
 
@@ -65,7 +65,7 @@ public class CommunityController {
   }
 
   @PostMapping("/rejectRequest")
-  public ResponseEntity<?> rejectRequest(@RequestBody RejectRequest rejectRequest){
+  public ResponseEntity<?> rejectRequest(@RequestBody RejectRequest rejectRequest) {
     return communityService.rejectRequest(rejectRequest);
   }
 
@@ -178,6 +178,13 @@ public class CommunityController {
   public ResponseEntity<?> getRoles(@PathVariable("id") Long communityId,
                                     @RequestParam("requesterEmail") String requesterEmail) {
     return communityService.getRolesForRequester(communityId, requesterEmail);
+  }
+
+  @GetMapping("/discover")
+  public ResponseEntity<?> discoverCommunities(
+    @RequestParam(value = "page", defaultValue = "0") int page,
+    @RequestParam(value = "size", defaultValue = "20") int size) {
+    return communityService.discoverCommunities(page, size);
   }
 
 }

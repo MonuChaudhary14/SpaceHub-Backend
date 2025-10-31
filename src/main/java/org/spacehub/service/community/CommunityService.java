@@ -955,6 +955,8 @@ public class CommunityService {
         "/banner/" + fileName;
 
       s3Service.uploadFile(key, imageFile.getInputStream(), imageFile.getSize());
+      community.setBannerUrl(key);
+      communityRepository.save(community);
       String presigned = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(2));
       Map<String, Object> body = Map.of("presignedUrl", presigned, "key", key);
 
@@ -1024,6 +1026,57 @@ public class CommunityService {
       isAdmin = isUserAdminInCommunity(community, requester);
     }
     return ResponseEntity.ok(new ApiResponse<>(200, "Roles fetched", new RolesResponse(isAdmin)));
+  }
+
+  public ResponseEntity<ApiResponse<Map<String, Object>>> discoverCommunities(int page, int size) {
+    Pageable pageable = PageRequest.of(Math.max(0, page), Math.max(1, size));
+    Page<Community> communityPage = communityRepository.findAll(pageable);
+
+    List<Map<String, Object>> out = communityPage.getContent().stream().map(c -> {
+      Map<String, Object> m = new HashMap<>();
+      m.put("communityId", c.getId());
+      m.put("name", c.getName());
+      m.put("description", c.getDescription());
+
+      String key = null;
+      try {
+        if (c.getBannerUrl() != null && !c.getBannerUrl().isBlank()) {
+          key = c.getBannerUrl();
+        } else {
+          key = c.getImageUrl();
+        }
+      } catch (Exception ignored) {}
+
+      if (key != null && !key.isBlank()) {
+        try {
+          String presigned = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1));
+          m.put("bannerUrl", presigned);
+          m.put("bannerKey", key);
+        } catch (Exception e) {
+          m.put("bannerUrl", null);
+          m.put("bannerKey", key);
+        }
+      } else {
+        m.put("bannerUrl", null);
+        m.put("bannerKey", null);
+      }
+
+      if (c.getCreatedBy() != null) {
+        m.put("createdBy", c.getCreatedBy().getEmail());
+      }
+      m.put("createdAt", c.getCreatedAt());
+
+      return m;
+    }).collect(Collectors.toList());
+
+    Map<String, Object> body = new HashMap<>();
+    body.put("communities", out);
+    body.put("page", communityPage.getNumber());
+    body.put("size", communityPage.getSize());
+    body.put("totalElements", communityPage.getTotalElements());
+    body.put("totalPages", communityPage.getTotalPages());
+
+    return ResponseEntity.ok(new ApiResponse<>(200, "Discover communities fetched", body));
   }
 
 }
