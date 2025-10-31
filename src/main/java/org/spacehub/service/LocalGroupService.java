@@ -277,4 +277,67 @@ public class LocalGroupService {
     }
   }
 
+  public ResponseEntity<ApiResponse<Map<String, String>>> createInviteLink(Long groupId, String requesterEmail) {
+
+    LocalGroup group = localGroupRepository.findById(groupId).orElseThrow(() -> new ResourceNotFoundException("Local group not found"));
+
+    User requester = userRepository.findByEmail(requesterEmail).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+    if (!Objects.equals(group.getCreatedBy().getId(), requester.getId())) {
+      return ResponseEntity.status(403).body(new ApiResponse<>(403, "Only the creator can generate invite links", null));
+    }
+
+    String inviteCode = UUID.randomUUID().toString().substring(0, 8);
+    group.setInviteCode(inviteCode);
+    localGroupRepository.save(group);
+
+    String inviteUrl = "https://spacehub.com/invite/" + inviteCode;
+
+    return ResponseEntity.ok(new ApiResponse<>(200, "Invite link generated successfully", Map.of("inviteLink", inviteUrl)));
+
+  }
+
+  public ResponseEntity<ApiResponse<String>> joinViaInviteCode(String inviteCode, String userEmail) {
+
+    if (inviteCode == null || userEmail == null || userEmail.isBlank()) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "inviteCode and userEmail required", null));
+    }
+
+    LocalGroup group = localGroupRepository.findAll().stream()
+            .filter(groupInvite -> inviteCode.equals(groupInvite.getInviteCode())).findFirst().orElseThrow(() -> new ResourceNotFoundException("Invalid invite code"));
+
+    User user = userRepository.findByEmail(userEmail).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+    boolean presentMember = group.getMembers().stream().anyMatch(person -> person.getId().equals(user.getId()));
+    if (presentMember) {
+      return ResponseEntity.status(403).body(new ApiResponse<>(403, "User already in group", null));
+    }
+
+    group.getMembers().add(user);
+    localGroupRepository.save(group);
+    return ResponseEntity.ok(new ApiResponse<>(200, "Joined via invite successfully", null));
+  }
+
+  public ResponseEntity<ApiResponse<String>> leaveLocalGroup(Long groupId, String userEmail) {
+
+    LocalGroup group = localGroupRepository.findById(groupId).orElseThrow(() -> new ResourceNotFoundException("Local group not found"));
+
+    User user = userRepository.findByEmail(userEmail).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+    if (group.getCreatedBy().getId().equals(user.getId())) {
+      return ResponseEntity.status(403).body(new ApiResponse<>(403, "Creator cannot leave their own group", null));
+    }
+
+    boolean removed = group.getMembers().removeIf(person -> person.getId().equals(user.getId()));
+
+    if (!removed) {
+      return ResponseEntity.status(404).body(new ApiResponse<>(404, "User not part of this group", null));
+    }
+
+    localGroupRepository.save(group);
+    return ResponseEntity.ok(new ApiResponse<>(200, "Left local group successfully", null));
+  }
+
+
+
 }

@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("api/v1/local-group")
@@ -66,4 +67,20 @@ public class LocalGroupController {
     @RequestParam("requesterEmail") String requesterEmail) {
     return localGroupService.enterOrJoinLocalGroup(groupId, requesterEmail);
   }
+
+  @PostMapping("/{id}/leave")
+  public ResponseEntity<ApiResponse<String>> leaveGroup(@PathVariable("id") Long groupId, @RequestParam("userEmail") String userEmail) {
+    return localGroupService.leaveLocalGroup(groupId, userEmail);
+  }
+
+  @PostMapping("/{id}/invite")
+  public ResponseEntity<ApiResponse<Map<String, String>>> createInviteLink(@PathVariable("id") Long groupId, @RequestParam("requesterEmail") String requesterEmail) {
+    return localGroupService.createInviteLink(groupId, requesterEmail);
+  }
+
+  @PostMapping("/join/invite")
+  public ResponseEntity<ApiResponse<String>> joinViaInvite(@RequestParam("inviteCode") String inviteCode, @RequestParam("userEmail") String userEmail) {
+    return localGroupService.joinViaInviteCode(inviteCode, userEmail);
+  }
+
 }

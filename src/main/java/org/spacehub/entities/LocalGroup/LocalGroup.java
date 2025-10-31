@@ -42,6 +42,15 @@ public class LocalGroup {
   @ToString.Exclude
   private Set<User> members = new HashSet<>();
 
+  @Column(name = "chat_room_id", unique = true)
+  private String chatRoomId;
+
+  @Column(name = "voice_room_id", unique = true)
+  private String voiceRoomId;
+
+  @Column(name = "invite_code", unique = true)
+  private String inviteCode;
+
   private LocalDateTime createdAt = LocalDateTime.now();
 
   private LocalDateTime updatedAt = LocalDateTime.now();
