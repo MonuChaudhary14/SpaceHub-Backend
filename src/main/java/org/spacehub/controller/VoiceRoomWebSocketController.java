@@ -102,19 +102,20 @@ public class VoiceRoomWebSocketController {
 
   @MessageMapping("/ice")
   public void handleIceCandidate(Map<String, Object> payload) {
+    System.out.println("handleIce received: " + payload);
     String userId = (String) payload.get("userId");
     String roomId = (String) payload.get("roomId");
     Object candidateObj = payload.get("candidate");
     if (userId == null || roomId == null || candidateObj == null) {
+      System.out.println("handleIce: missing fields");
       return;
     }
-
     String sessionId = userSessionMap.get(userId);
     String handleId = userHandleMap.get(userId);
     if (sessionId == null || handleId == null) {
+      System.out.println("Logs for errror -> User Id:" + userId);
       return;
     }
-
     janusService.sendIce(sessionId, handleId, candidateObj);
   }
 

@@ -115,9 +115,9 @@ public class JanusService {
             "transaction", UUID.randomUUID().toString(),
             "candidate", candidate
     );
-
     String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
-    restTemplate.postForEntity(handleUrl, request, JsonNode.class);
+    ResponseEntity<JsonNode> resp = restTemplate.postForEntity(handleUrl, request, JsonNode.class);
+    System.out.println("Error for log -> sendIce -> " + resp.getStatusCode() + " body: " + resp.getBody());
   }
 
   public void setMute(String sessionId, String handleId, boolean mute) {
