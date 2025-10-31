@@ -4,6 +4,7 @@ import org.spacehub.DTO.LocalGroup.DeleteLocalGroupRequest;
 import org.spacehub.DTO.LocalGroup.JoinLocalGroupRequest;
 import org.spacehub.DTO.LocalGroup.LocalGroupResponse;
 import org.spacehub.entities.ApiResponse.ApiResponse;
+import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.LocalGroup.LocalGroup;
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.UserRepository;
@@ -28,6 +29,7 @@ public class LocalGroupService {
   private final LocalGroupRepository localGroupRepository;
   private final UserRepository userRepository;
   private final S3Service s3Service;
+  private final ChatRoomService chatRoomService;
 
   public static class ResourceNotFoundException extends RuntimeException {
     public ResourceNotFoundException(String message) {
@@ -35,10 +37,11 @@ public class LocalGroupService {
     }
   }
 
-  public LocalGroupService(LocalGroupRepository localGroupRepository, UserRepository userRepository, S3Service s3Service) {
+  public LocalGroupService(LocalGroupRepository localGroupRepository, UserRepository userRepository, S3Service s3Service, ChatRoomService chatRoomService) {
     this.localGroupRepository = localGroupRepository;
     this.userRepository = userRepository;
     this.s3Service = s3Service;
+    this.chatRoomService = chatRoomService;
   }
 
   public ResponseEntity<ApiResponse<LocalGroupResponse>> createLocalGroup(
@@ -74,6 +77,12 @@ public class LocalGroupService {
       group.setCreatedAt(LocalDateTime.now());
       group.setUpdatedAt(LocalDateTime.now());
       group.getMembers().add(creator);
+
+      String roomCode = UUID.randomUUID().toString().substring(0, 8);
+      ChatRoom chatRoom = ChatRoom.builder().name(name + " Chat Room")
+              .roomCode(roomCode).community(null).build();
+
+      group.setChatRoom(chatRoom);
 
       LocalGroup saved = localGroupRepository.save(group);
 
@@ -165,6 +174,9 @@ public class LocalGroupService {
       r.setTotalMembers(g.getMembers().size());
     } else {
       r.setTotalMembers(0);
+    }
+    if (g.getChatRoom() != null) {
+      r.setChatRoomCode(g.getChatRoom().getRoomCode());
     }
     List<String> memberEmails = g.getMembers().stream().map(User::getEmail).collect(Collectors.toList());
     r.setMemberEmails(memberEmails);

@@ -4,7 +4,9 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.User.User;
+import org.spacehub.entities.VoiceRoom.VoiceRoom;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -50,6 +52,14 @@ public class LocalGroup {
 
   @Column(name = "invite_code", unique = true)
   private String inviteCode;
+
+  @OneToOne(cascade = CascadeType.ALL)
+  @JoinColumn(name = "chat_room_id", referencedColumnName = "id")
+  private ChatRoom chatRoom;
+
+  @OneToOne(cascade = CascadeType.ALL)
+  @JoinColumn(name = "voice_room_id", referencedColumnName = "id")
+  private VoiceRoom voiceRoom;
 
   private LocalDateTime createdAt = LocalDateTime.now();
 

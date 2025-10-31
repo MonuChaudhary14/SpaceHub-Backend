@@ -15,4 +15,6 @@ public class LocalGroupResponse {
   private int totalMembers;
   private List<String> memberEmails;
   private String imageUrl;
+  private String chatRoomCode;
+
 }
