@@ -10,6 +10,6 @@ import java.util.List;
 @Repository
 public interface ScheduledMessageRepository extends JpaRepository<ScheduledMessage, Long>{
 
-    List<ScheduledMessage> findBySentFalseAndScheduledTimeBefore(LocalDateTime time);
+  List<ScheduledMessage> findBySentFalseAndScheduledTimeBefore(LocalDateTime time);
 
 }

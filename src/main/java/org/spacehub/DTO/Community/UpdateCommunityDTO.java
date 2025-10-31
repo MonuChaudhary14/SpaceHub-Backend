@@ -5,8 +5,8 @@ import lombok.Data;
 @Data
 public class UpdateCommunityDTO {
 
-    private Long communityId;
-    private String name;
-    private String description;
+  private Long communityId;
+  private String name;
+  private String description;
 
 }

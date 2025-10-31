@@ -1,11 +1,13 @@
 package org.spacehub.service.service_auth;
 
+import lombok.Getter;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
+@Getter
 @Service
 public class RedisService {
 

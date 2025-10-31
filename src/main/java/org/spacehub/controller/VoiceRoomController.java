@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 
 @RestController
@@ -17,40 +18,37 @@ public class VoiceRoomController {
   private final JanusService janusService;
 
   @PostMapping("/create")
-  public ResponseEntity<?> createRoom() {
+  public ResponseEntity<?> createRoom(@RequestParam String displayName) {
     String sessionId = janusService.createSession();
     String handleId = janusService.attachAudioBridgePlugin(sessionId);
     int roomId = 1000 + new Random().nextInt(9000);
     janusService.createAudioRoom(sessionId, handleId, roomId);
+    JsonNode joinEvent = janusService.joinAudioRoom(sessionId, handleId, roomId, displayName);
 
     return ResponseEntity.ok(Map.of(
-      "message", "Room created successfully",
+      "message", "Room created and joined successfully",
       "sessionId", sessionId,
       "handleId", handleId,
-      "roomId", roomId
+      "roomId", roomId,
+      "joinEvent", Objects.toString(joinEvent, "")
     ));
   }
 
   @PostMapping("/join")
-  public ResponseEntity<?> joinRoom(@RequestParam String sessionId,
-                                    @RequestParam String handleId,
-                                    @RequestParam int roomId,
+  public ResponseEntity<?> joinRoom(@RequestParam int roomId,
                                     @RequestParam String displayName) {
-    String token = janusService.joinAudioRoom(sessionId, handleId, roomId, displayName);
+
+    String sessionId = janusService.createSession();
+    String handleId = janusService.attachAudioBridgePlugin(sessionId);
+    JsonNode joinEvent = janusService.joinAudioRoom(sessionId, handleId, roomId, displayName);
+
     return ResponseEntity.ok(Map.of(
       "message", "Joined room successfully",
       "roomId", roomId,
       "sessionId", sessionId,
       "handleId", handleId,
-      "status", token
+      "joinEvent", Objects.toString(joinEvent, "")
     ));
-  }
-
-  @PostMapping("/leave")
-  public ResponseEntity<?> leaveRoom(@RequestParam String sessionId,
-                                     @RequestParam String handleId) {
-    janusService.leaveRoom(sessionId, handleId);
-    return ResponseEntity.ok(Map.of("message", "Left the room successfully"));
   }
 
   @PostMapping("/send-offer")

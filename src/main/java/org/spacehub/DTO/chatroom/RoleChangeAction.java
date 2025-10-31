@@ -12,9 +12,9 @@ import org.spacehub.entities.Community.Role;
 @Builder
 public class RoleChangeAction {
 
-    private String roomCode;
-    private String requesterId;
-    private String targetUserId;
-    private Role newRole;
+  private String roomCode;
+  private String requesterId;
+  private String targetUserId;
+  private Role newRole;
 
 }

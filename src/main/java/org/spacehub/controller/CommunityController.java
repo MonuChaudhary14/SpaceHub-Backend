@@ -1,90 +1,150 @@
 package org.spacehub.controller;
 
-import org.spacehub.DTO.*;
-import org.spacehub.DTO.Community.*;
+import org.spacehub.DTO.AcceptRequest;
+import org.spacehub.DTO.CancelJoinRequest;
+import org.spacehub.DTO.Community.CommunityBlockRequest;
+import org.spacehub.DTO.Community.CommunityChangeRoleRequest;
+import org.spacehub.DTO.Community.CommunityMemberListRequest;
+import org.spacehub.DTO.Community.CommunityMemberRequest;
+import org.spacehub.DTO.Community.CommunityRoomsRequest;
+import org.spacehub.DTO.Community.DeleteCommunityDTO;
+import org.spacehub.DTO.Community.JoinCommunity;
+import org.spacehub.DTO.Community.LeaveCommunity;
+import org.spacehub.DTO.Community.UpdateCommunityDTO;
+import org.spacehub.DTO.RejectRequest;
+import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.service.community.CommunityService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.spacehub.DTO.Community.CreateRoomRequest;
 import java.util.Map;
 
 @RestController
 @RequestMapping("api/v1/community")
 public class CommunityController {
 
-    @Autowired
-    private CommunityService communityService;
+  private final CommunityService communityService;
 
-    @PostMapping("/create")
-    public ResponseEntity<?> createCommunity(@RequestBody CommunityDTO community) {
-        return ResponseEntity.status(200).body(communityService.createCommunity(community));
+  public CommunityController(CommunityService communityService) {
+    this.communityService = communityService;
+  }
+
+  @PostMapping("/create")
+  public ResponseEntity<ApiResponse<Map<String, Object>>> createCommunity(
+    @RequestParam("name") String name, @RequestParam("description") String description,
+          @RequestParam("createdByEmail") String createdByEmail,
+            @RequestParam("imageFile") MultipartFile imageFile) {
+    return communityService.createCommunity(name, description, createdByEmail, imageFile);
+  }
+
+  @PostMapping("/delete")
+  public ResponseEntity<?> deleteCommunity(@RequestBody DeleteCommunityDTO deleteCommunity) {
+    return communityService.deleteCommunityByName(deleteCommunity);
+  }
+
+  @PostMapping("/requestJoin")
+  public ResponseEntity<?> requestJoin(@RequestBody JoinCommunity joinCommunity){
+    return communityService.requestToJoinCommunity(joinCommunity);
+  }
+
+  @PostMapping("/cancelRequest")
+  public ResponseEntity<?> cancelJoinRequest(@RequestBody CancelJoinRequest cancelJoinRequest){
+    return communityService.cancelRequestCommunity(cancelJoinRequest);
+  }
+
+  @PostMapping("/acceptRequest")
+  public ResponseEntity<?> acceptRequest(@RequestBody AcceptRequest acceptRequest){
+    return communityService.acceptRequest(acceptRequest);
+  }
+
+  @PostMapping("/leave")
+  public ResponseEntity<?> leaveCommunity(@RequestBody LeaveCommunity leaveCommunity) {
+    return communityService.leaveCommunity(leaveCommunity);
+  }
+
+  @PostMapping("/rejectRequest")
+  public ResponseEntity<?> rejectRequest(@RequestBody RejectRequest rejectRequest){
+    return communityService.rejectRequest(rejectRequest);
+  }
+
+  @PostMapping("/getCommunityRooms")
+  public ResponseEntity<?> getCommunityRooms(@RequestBody CommunityRoomsRequest request) {
+    if (request.getCommunityId() == null) {
+      return ResponseEntity.badRequest().body("communityId is required");
     }
+    return communityService.getCommunityWithRooms(request.getCommunityId());
+  }
 
-    @PostMapping("/delete")
-    public ResponseEntity<?> deleteCommunity(@RequestBody DeleteCommunityDTO deleteCommunity) {
-        return communityService.deleteCommunityByName(deleteCommunity);
-    }
+  @PostMapping("/removeMember")
+  public ResponseEntity<?> removeMember(@RequestBody CommunityMemberRequest request) {
+    return communityService.removeMemberFromCommunity(request);
+  }
 
-    @PostMapping("/requestJoin")
-    public ResponseEntity<?> requestJoin(@RequestBody JoinCommunity joinCommunity){
-        return ResponseEntity.status(200).body(communityService.requestToJoinCommunity(joinCommunity));
-    }
+  @PostMapping("/changeRole")
+  public ResponseEntity<?> changeRole(@RequestBody CommunityChangeRoleRequest request) {
+    return communityService.changeMemberRole(request);
+  }
 
-    @PostMapping("/cancelRequest")
-    public ResponseEntity<?> cancelJoinRequest(@RequestBody CancelJoinRequest cancelJoinRequest){
-        return ResponseEntity.status(200).body(communityService.cancelRequestCommunity(cancelJoinRequest));
-    }
+  @PostMapping("/members")
+  public ResponseEntity<?> getCommunityMembers(@RequestBody CommunityMemberListRequest request) {
+    return communityService.getCommunityMembers(request.getCommunityId());
+  }
 
-    @PostMapping("/acceptRequest")
-    public ResponseEntity<?> acceptRequest(@RequestBody AcceptRequest acceptRequest){
-        return ResponseEntity.status(200).body(communityService.acceptRequest(acceptRequest));
-    }
+  @PostMapping("/blockMember")
+  public ResponseEntity<?> blockOrUnblockMember(@RequestBody CommunityBlockRequest request) {
+    return communityService.blockOrUnblockMember(request);
+  }
 
-    @PostMapping("/leave")
-    public ResponseEntity<?> leaveCommunity(@RequestBody LeaveCommunity leaveCommunity) {
-        return ResponseEntity.status(200).body(communityService.leaveCommunity(leaveCommunity).getBody());
-    }
+  @PostMapping("/updateInfo")
+  public ResponseEntity<?> updateCommunityInfo(@RequestBody UpdateCommunityDTO dto) {
+    return communityService.updateCommunityInfo(dto);
+  }
 
-    @PostMapping("/rejectRequest")
-    public ResponseEntity<?> rejectRequest(@RequestBody RejectRequest rejectRequest){
-        return ResponseEntity.status(200).body(communityService.rejectRequest(rejectRequest));
-    }
+  @GetMapping("/all")
+  public ResponseEntity<?> listAllCommunities() {
+    return communityService.listAllCommunities();
+  }
 
-    @PostMapping("/getCommunityRooms")
-    public ResponseEntity<?> getCommunityRooms(@RequestBody CommunityRoomsRequest request) {
-        if (request.getCommunityId() == null) {
-            return ResponseEntity.badRequest().body("communityId is required");
-        }
-        return communityService.getCommunityWithRooms(request.getCommunityId());
-    }
+  @GetMapping("/{id}")
+  public ResponseEntity<?> getCommunityDetails(@PathVariable("id") Long communityId,
+                                               @RequestParam("requesterEmail") String requesterEmail) {
+    return communityService.getCommunityDetailsWithAdminFlag(communityId, requesterEmail);
+  }
 
-    @PostMapping("/removeMember")
-    public ResponseEntity<?> removeMember(@RequestBody CommunityMemberRequest request) {
-        return communityService.removeMemberFromCommunity(request);
-    }
+  @PostMapping("/{id}/rooms/create")
+  public ResponseEntity<?> createRoomInCommunity(@PathVariable("id") Long communityId,
+                                                 @RequestBody CreateRoomRequest request) {
+    request.setCommunityId(communityId);
+    return communityService.createRoomInCommunity(request);
+  }
 
-    @PostMapping("/changeRole")
-    public ResponseEntity<?> changeRole(@RequestBody CommunityChangeRoleRequest request) {
-        return communityService.changeMemberRole(request);
-    }
+  @GetMapping("/{id}/rooms/all")
+  public ResponseEntity<?> getRoomsByCommunity(@PathVariable("id") Long communityId) {
+    return communityService.getRoomsByCommunity(communityId);
+  }
 
-    @PostMapping("/members")
-    public ResponseEntity<?> getCommunityMembers(@RequestBody CommunityMemberListRequest request) {
-        return communityService.getCommunityMembers(request.getCommunityId());
-    }
+  @DeleteMapping("/rooms/{roomId}")
+  public ResponseEntity<?> deleteRoom(@PathVariable("roomId") Long roomId,
+                                      @RequestParam("requesterEmail") String requesterEmail) {
+    return communityService.deleteRoom(roomId, requesterEmail);
+  }
 
-    @PostMapping("/blockMember")
-    public ResponseEntity<?> blockOrUnblockMember(@RequestBody CommunityBlockRequest request) {
-        return communityService.blockOrUnblockMember(request);
-    }
+  @GetMapping("/search")
+  public ResponseEntity<?> searchCommunities(
+    @RequestParam("q") String q,
+    @RequestParam(value = "requesterEmail", required = false) String requesterEmail,
+    @RequestParam(value = "page", defaultValue = "0") int page,
+    @RequestParam(value = "size", defaultValue = "20") int size
+  ) {
+    return communityService.searchCommunities(q, requesterEmail, page, size);
+  }
 
-    @PostMapping("/updateInfo")
-    public ResponseEntity<?> updateCommunityInfo(@RequestBody UpdateCommunityDTO dto) {
-        return communityService.updateCommunityInfo(dto);
-    }
-
+  @PostMapping("/{id}/enter")
+  public ResponseEntity<?> enterCommunity(
+    @PathVariable("id") Long communityId,
+    @RequestParam("requesterEmail") String requesterEmail
+  ) {
+    return communityService.enterOrRequestCommunity(communityId, requesterEmail);
+  }
 }

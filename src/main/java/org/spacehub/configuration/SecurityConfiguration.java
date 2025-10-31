@@ -31,11 +31,22 @@ public class SecurityConfiguration {
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration config = new CorsConfiguration();
-    config.addAllowedOriginPattern("*");
+
+    config.setAllowedOrigins(List.of(
+            "http://127.0.0.1:5500",
+            "http://localhost:5500",
+            "http://localhost:5173",
+            "http://localhost:8080",
+            "https://codewithketan.me",
+            "https://space-hub-frontend.vercel.app",
+            "https://www.spacehubx.me",
+            "https://audio-room-tawny.vercel.app"
+    ));
     config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-    config.addAllowedHeader("*");
+    config.setAllowedHeaders(List.of("*"));
     config.setExposedHeaders(List.of("Authorization"));
     config.setAllowCredentials(true);
+    config.setMaxAge(3600L);
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", config);
     return source;
@@ -48,11 +59,8 @@ public class SecurityConfiguration {
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
                     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                    .requestMatchers("/api/v1/validateforgototp", "/api/v1/**", "/api/**", "/ws/**",
-                            "/swagger-ui/**", "/v3/api-docs/**", "/v3/api-docs.yaml").permitAll()
-                    .requestMatchers("/chat/**").permitAll()
-                    .requestMatchers("/files/**").permitAll()
-                    .anyRequest().permitAll()
+                    .requestMatchers("/**").permitAll()
+                    .anyRequest().authenticated()
             )
             .httpBasic(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

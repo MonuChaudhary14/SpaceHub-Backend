@@ -12,30 +12,30 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 @Configuration
 public class S3Configuration {
 
-    @Value("${aws.accessKeyId}")
-    private String accessKey;
+  @Value("${aws.accessKeyId}")
+  private String accessKey;
 
-    @Value("${aws.secretKey}")
-    private String secretKey;
+  @Value("${aws.secretKey}")
+  private String secretKey;
 
-    @Value("${aws.region}")
-    private String region;
+  @Value("${aws.region}")
+  private String region;
 
-    @Bean
-    public S3Client s3Client() {
-        AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKey, secretKey);
-        return S3Client.builder()
-                .region(Region.of(region))
-                .credentialsProvider(StaticCredentialsProvider.create(credentials))
-                .build();
-    }
+  @Bean
+  public S3Client s3Client() {
+    AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKey, secretKey);
+    return S3Client.builder()
+            .region(Region.of(region))
+            .credentialsProvider(StaticCredentialsProvider.create(credentials))
+            .build();
+  }
 
-    @Bean
-    public S3Presigner s3Presigner() {
-        AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKey, secretKey);
-        return S3Presigner.builder()
-                .region(Region.of(region))
-                .credentialsProvider(StaticCredentialsProvider.create(credentials))
-                .build();
-    }
+  @Bean
+  public S3Presigner s3Presigner() {
+    AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKey, secretKey);
+    return S3Presigner.builder()
+            .region(Region.of(region))
+            .credentialsProvider(StaticCredentialsProvider.create(credentials))
+            .build();
+  }
 }

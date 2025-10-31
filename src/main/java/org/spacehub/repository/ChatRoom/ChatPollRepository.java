@@ -8,6 +8,6 @@ import java.util.List;
 
 public interface ChatPollRepository extends JpaRepository<ChatPoll, Long> {
 
-    List<ChatPoll> findByRoomOrderByTimestampAsc(ChatRoom room);
+  List<ChatPoll> findByRoomOrderByTimestampAsc(ChatRoom room);
 
 }

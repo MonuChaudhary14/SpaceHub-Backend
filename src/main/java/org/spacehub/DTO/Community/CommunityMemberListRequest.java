@@ -4,6 +4,6 @@ import lombok.Data;
 
 @Data
 public class CommunityMemberListRequest {
-    private Long communityId;
-    private String requesterEmail;
+  private Long communityId;
+  private String requesterEmail;
 }

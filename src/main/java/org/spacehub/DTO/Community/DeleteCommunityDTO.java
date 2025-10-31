@@ -5,7 +5,7 @@ import lombok.Data;
 @Data
 public class DeleteCommunityDTO {
 
-    private String name;
-    private String userEmail;
+  private String name;
+  private String userEmail;
 
 }

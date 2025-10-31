@@ -1,4 +1,4 @@
-package org.spacehub.repository.commnunity;
+package org.spacehub.repository.community;
 
 import org.spacehub.entities.Community.CommunityUser;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,6 +9,6 @@ import java.util.List;
 @Repository
 public interface CommunityUserRepository extends JpaRepository<CommunityUser, Long> {
 
-    List<CommunityUser> findByCommunityId(Long communityId);
+  List<CommunityUser> findByCommunityId(Long communityId);
 
 }

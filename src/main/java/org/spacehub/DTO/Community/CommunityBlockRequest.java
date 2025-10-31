@@ -11,9 +11,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CommunityBlockRequest {
 
-    private Long communityId;
-    private String targetUserEmail;
-    private String requesterEmail;
-    private boolean block;
+  private Long communityId;
+  private String targetUserEmail;
+  private String requesterEmail;
+  private boolean block;
 
 }

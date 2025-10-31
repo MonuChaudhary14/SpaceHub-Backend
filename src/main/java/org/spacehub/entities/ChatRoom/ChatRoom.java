@@ -1,33 +1,36 @@
 package org.spacehub.entities.ChatRoom;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import org.spacehub.entities.Community.Community;
+
+import java.io.Serial;
+import java.io.Serializable;
 
 @Entity
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ChatRoom {
+public class ChatRoom implements Serializable {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Serial
+  private static final long serialVersionUID = 1L;
 
-    private String roomName;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @Column(unique = true, nullable = false)
-    private String roomCode;
+  private String name;
 
-    @Column(nullable = false)
-    private String createdBy;
+  @Column(unique = true, nullable = false)
+  private String roomCode;
 
-    @ManyToOne
-    @JoinColumn(name = "community_id", nullable = false)
-    @JsonIgnore
-    private Community community;
+  @ManyToOne
+  @JoinColumn(name = "community_id")
+  @JsonBackReference
+  private Community community;
 
 }
+

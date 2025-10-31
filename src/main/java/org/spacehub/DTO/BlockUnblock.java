@@ -5,6 +5,7 @@ import lombok.Data;
 @Data
 public class BlockUnblock {
 
-    private String userEmail;
-    private String friendEmail;
+  private String userEmail;
+  private String friendEmail;
+
 }

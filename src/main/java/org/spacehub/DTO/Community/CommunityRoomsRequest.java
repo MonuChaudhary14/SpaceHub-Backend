@@ -4,5 +4,5 @@ import lombok.Data;
 
 @Data
 public class CommunityRoomsRequest {
-    private Long communityId;
+  private Long communityId;
 }

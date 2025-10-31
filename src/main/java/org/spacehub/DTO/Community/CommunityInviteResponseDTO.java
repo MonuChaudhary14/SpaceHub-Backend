@@ -9,12 +9,12 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class CommunityInviteResponseDTO {
-    private String inviteCode;
-    private String inviteLink;
-    private UUID communityId;
-    private String email;
-    private int maxUses;
-    private int uses;
-    private LocalDateTime expiresAt;
-    private String status;
+  private String inviteCode;
+  private String inviteLink;
+  private UUID communityId;
+  private String email;
+  private int maxUses;
+  private int uses;
+  private LocalDateTime expiresAt;
+  private String status;
 }

@@ -2,291 +2,183 @@ package org.spacehub.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.spacehub.entities.ChatRoom.ChatMessage;
-import org.spacehub.entities.ChatRoom.ChatPoll;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.ChatRoom.ChatRoomUser;
-import org.spacehub.entities.Community.CommunityUser;
-import org.spacehub.entities.Community.Role;
 import org.spacehub.service.ChatRoom.ChatMessageQueue;
-import org.spacehub.service.ChatRoom.ChatPollService;
-import org.spacehub.service.ChatRoom.ChatRoomService;
-import org.spacehub.service.ChatRoom.ChatRoomUserService;
-import org.spacehub.service.community.CommunityService;
+import org.spacehub.service.ChatRoomService;
+import org.spacehub.service.ChatRoomUserService;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
+import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
-import org.springframework.web.socket.CloseStatus;
-
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Component
 public class ChatWebSocketHandler extends TextWebSocketHandler {
 
-    private final Map<String, Set<WebSocketSession>> rooms = new ConcurrentHashMap<>();
-    private final Map<WebSocketSession, String> sessionRoom = new ConcurrentHashMap<>();
-    private final Map<WebSocketSession, String> userSessions = new ConcurrentHashMap<>();
+  private final Map<String, Set<WebSocketSession>> rooms = new ConcurrentHashMap<>();
+  private final Map<WebSocketSession, String> sessionRoom = new ConcurrentHashMap<>();
+  private final Map<WebSocketSession, String> userSessions = new ConcurrentHashMap<>();
+  private static final Logger logger = LoggerFactory.getLogger(ChatWebSocketHandler.class);
+  private final ChatRoomService chatRoomService;
+  private final ChatMessageQueue chatMessageQueue;
+  private final ChatRoomUserService chatRoomUserService;
+  private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private final ChatRoomService chatRoomService;
-    private final ChatMessageQueue chatMessageQueue;
-    private final ChatRoomUserService chatRoomUserService;
-    private final ChatPollService chatPollService;
-    private final CommunityService communityService;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+  public ChatWebSocketHandler(ChatRoomService chatRoomService,
+                              ChatMessageQueue chatMessageQueue,
+                              ChatRoomUserService chatRoomUserService) {
+    this.chatRoomService = chatRoomService;
+    this.chatMessageQueue = chatMessageQueue;
+    this.chatRoomUserService = chatRoomUserService;
+  }
 
-    public ChatWebSocketHandler(ChatRoomService chatRoomService,
-                                ChatMessageQueue chatMessageQueue,
-                                ChatRoomUserService chatRoomUserService,
-                                ChatPollService chatPollService,
-                                CommunityService communityService) {
-        this.chatRoomService = chatRoomService;
-        this.chatMessageQueue = chatMessageQueue;
-        this.chatRoomUserService = chatRoomUserService;
-        this.chatPollService = chatPollService;
-        this.communityService = communityService;
+  @Override
+  public void afterConnectionEstablished(WebSocketSession session) throws Exception {
+    String query = null;
+    if (session.getUri() != null) {
+      query = session.getUri().getQuery();
+    }
+    Map<String, String> params = parseQuery(query);
+
+    String roomCode = params.get("roomCode");
+    String userId = params.get("userId");
+
+    if (!validateConnection(session, roomCode, userId)) {
+      return;
     }
 
-    @Override
-    public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        String query = session.getUri() != null ? session.getUri().getQuery() : null;
-        Map<String, String> params = parseQuery(query);
+    Optional<ChatRoom> optionalRoom = chatRoomService.findByRoomCode(roomCode);
+    if (optionalRoom.isEmpty()) {
+      session.close();
+      return;
+    }
 
-        String roomCode = params.get("roomCode");
-        String userId = params.get("userId");
+    ChatRoom room = optionalRoom.get();
+    if (!isUserMemberOfRoom(room, userId)) {
+      session.close();
+      return;
+    }
 
-        if (roomCode == null || userId == null) {
-            session.close();
-            return;
-        }
+    addSessionToRoom(session, roomCode, userId);
+    sendExistingMessages(session, room);
+  }
 
-        Long userIdLong;
+
+  public void broadcastMessageToRoom(ChatMessage message) {
+    String roomCode = message.getRoomCode();
+    Set<WebSocketSession> sessions = rooms.getOrDefault(roomCode, ConcurrentHashMap.newKeySet());
+
+    Map<String, Object> payload = Map.of(
+      "senderId", message.getSenderId(),
+      "message", message.getMessage(),
+      "timestamp", message.getTimestamp()
+    );
+
+    String json;
+    try {
+      json = objectMapper.writeValueAsString(payload);
+    }
+    catch (Exception e) {
+      logger.error("Error sending message", e);
+      return;
+    }
+
+    sessions.removeIf(s -> !s.isOpen());
+
+    for (WebSocketSession session : sessions) {
+      if (session.isOpen()) {
         try {
-            userIdLong = Long.parseLong(userId);
-        }
-        catch (NumberFormatException e) {
-            session.sendMessage(new TextMessage("{\"error\":\"Invalid userId.\"}"));
-            session.close();
-            return;
-        }
-
-        Optional<ChatRoom> OptionalRoom = chatRoomService.findByRoomCode(roomCode);
-        if (OptionalRoom.isEmpty()) {
-            session.close();
-            return;
-        }
-
-        ChatRoom room = OptionalRoom.get();
-
-        List<CommunityUser> communityMembers = (List<CommunityUser>) (communityService.getCommunityMembers(room.getCommunity().getId()).getBody());
-        if (communityMembers == null) communityMembers = List.of();
-
-        boolean isBanned = communityMembers.stream()
-                .anyMatch(member -> member.getUser().getId().equals(userIdLong) && member.isBanned());
-
-        boolean isBlocked = communityMembers.stream()
-                .anyMatch(member -> member.getUser().getId().equals(userIdLong) && member.isBlocked());
-
-        if (isBanned || isBlocked) {
-            session.sendMessage(new TextMessage("{\"error\":\"You are banned or blocked from this room.\"}"));
-            session.close();
-            return;
-        }
-
-        List<ChatRoomUser> members = chatRoomUserService.getMembers(room);
-        boolean isMember = members.stream().anyMatch(member -> member.getUserId().equals(userId));
-        if (!isMember) {
-            session.close();
-            return;
-        }
-
-        rooms.computeIfAbsent(roomCode, k -> ConcurrentHashMap.newKeySet()).add(session);
-        sessionRoom.put(session, roomCode);
-        userSessions.put(session, userId);
-
-        for (ChatMessage message : chatMessageQueue.getMessagesForRoom(room)) {
-            sendJson(session, Map.of(
-                    "type", "message",
-                    "senderId", message.getSenderId(),
-                    "message", message.getMessage(),
-                    "timestamp", message.getTimestamp()
-            ));
-        }
-
-        for (ChatPoll poll : chatPollService.getPollsForRoom(roomCode)) {
-            sendJson(session, Map.of(
-                    "type", "poll",
-                    "pollId", poll.getId(),
-                    "question", poll.getQuestion(),
-                    "options", poll.getOptions(),
-                    "timestamp", poll.getTimestamp()
-            ));
-        }
-    }
-
-    @Override
-    protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
-        String userId = userSessions.get(session);
-        String roomCode = sessionRoom.get(session);
-
-        if (userId == null || roomCode == null) return;
-
-        Optional<ChatRoom> OptionalRoom = chatRoomService.findByRoomCode(roomCode);
-        if (OptionalRoom.isEmpty()) return;
-
-        ChatRoom room = OptionalRoom.get();
-
-        if (isUserBlockedInRoom(userId, room)) {
-            session.sendMessage(new TextMessage("{error:You are blocked from sending messages.}"));
-            return;
-        }
-
-        Map<String, Object> payload = objectMapper.readValue(message.getPayload(), Map.class);
-        String type = (String) payload.get("type");
-
-        switch (type) {
-            case "message" -> handleChatMessage(userId, room, (String) payload.get("message"));
-            case "poll" -> handlePollCreation(userId, roomCode, payload);
-            case "vote" -> handleVote(userId, roomCode, payload);
-        }
-    }
-
-    @Override
-    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
-        String roomCode = sessionRoom.remove(session);
-        String userId = userSessions.remove(session);
-
-        if (roomCode != null && userId != null) {
-            Set<WebSocketSession> sessions = rooms.getOrDefault(roomCode, ConcurrentHashMap.newKeySet());
-            sessions.remove(session);
-            if (sessions.isEmpty()) rooms.remove(roomCode);
-        }
-    }
-
-    private Map<String, String> parseQuery(String query) {
-        Map<String, String> map = new HashMap<>();
-        if (query == null) return map;
-        for (String param : query.split("&")) {
-            String[] pair = param.split("=");
-            if (pair.length == 2) {
-                String key = URLDecoder.decode(pair[0], StandardCharsets.UTF_8);
-                String value = URLDecoder.decode(pair[1], StandardCharsets.UTF_8);
-                map.put(key, value);
-            }
-        }
-        return map;
-    }
-
-    private void handleChatMessage(String userId, ChatRoom room, String messageText) throws Exception{
-
-
-        boolean canSend = chatRoomUserService.getMembers(room).stream().anyMatch(member -> member.getUserId().equals(userId) &&
-                        (member.getRole() == Role.ADMIN || member.getRole() == Role.WORKSPACE_OWNER || member.getRole() == Role.MEMBER));
-
-        if (!canSend) return;
-
-        ChatMessage chatMessage = ChatMessage.builder()
-                .senderId(userId)
-                .message(messageText)
-                .timestamp(System.currentTimeMillis())
-                .room(room)
-                .build();
-
-        chatMessageQueue.enqueue(chatMessage);
-
-        broadcastToRoom(room.getRoomCode(), Map.of(
-                "type", "message",
-                "senderId", userId,
-                "message", messageText,
-                "timestamp", chatMessage.getTimestamp()
-        ));
-    }
-
-    private void handlePollCreation(String userId, String roomCode, Map<String, Object> message) {
-        try {
-            ChatPoll poll = chatPollService.createPoll(roomCode, userId, message);
-            broadcastToRoom(roomCode, Map.of(
-                    "type", "poll",
-                    "pollId", poll.getId(),
-                    "question", poll.getQuestion(),
-                    "options", poll.getOptions(),
-                    "timestamp", poll.getTimestamp()
-            ));
-        }
-        catch (RuntimeException ignored) {
-        }
-    }
-
-    private void handleVote(String userId, String roomCode, Map<String, Object> message) {
-        try {
-            chatPollService.vote(roomCode, userId, message);
-            broadcastToRoom(roomCode, Map.of(
-                    "type", "vote",
-                    "pollId", message.get("pollId"),
-                    "userId", userId,
-                    "optionIndex", message.get("optionIndex")
-            ));
-        }
-        catch (RuntimeException ignored) {
-        }
-    }
-
-    private void broadcastToRoom(String roomCode, Map<String, Object> data) {
-        String json;
-        try {
-            json = objectMapper.writeValueAsString(data);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return;
-        }
-
-        Set<WebSocketSession> sessions = rooms.getOrDefault(roomCode, ConcurrentHashMap.newKeySet());
-        sessions.removeIf(session -> !session.isOpen());
-
-        for (WebSocketSession session : sessions) {
-            try {
-                if (session.isOpen()) session.sendMessage(new TextMessage(json));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    private void sendJson(WebSocketSession session, Map<String, Object> data) {
-        try {
-            session.sendMessage(new TextMessage(objectMapper.writeValueAsString(data)));
+          session.sendMessage(new TextMessage(json));
         }
         catch (Exception e) {
-            e.printStackTrace();
+          logger.error("Error sending message", e);
         }
+      }
+    }
+  }
+
+  private Map<String, String> parseQuery(String query) {
+    Map<String, String> params = new HashMap<>();
+    if (query == null || query.isEmpty()) {
+      return params;
+    }
+    try {
+      String[] pairs = query.split("&");
+      for (String pair : pairs) {
+        String[] keyValue = pair.split("=", 2);
+        if (keyValue.length == 2) {
+          params.put(keyValue[0], keyValue[1]);
+        }
+      }
+    } catch (Exception e) {
+      logger.error("Error sending message", e);
     }
 
-    public void broadcastMessageToRoom(ChatMessage message) {
-        broadcastToRoom(message.getRoom().getRoomCode(), Map.of(
-                "type", "message",
-                "senderId", message.getSenderId(),
-                "message", message.getMessage(),
-                "timestamp", message.getTimestamp()
-        ));
+    return params;
+  }
+
+  private boolean validateConnection(WebSocketSession session, String roomCode, String userId) throws Exception {
+    if (roomCode == null || userId == null) {
+      session.close();
+      return false;
+    }
+    return true;
+  }
+
+  private boolean isUserMemberOfRoom(ChatRoom room, String userId) {
+    List<ChatRoomUser> members = chatRoomUserService.getMembers(room);
+    for (ChatRoomUser member : members) {
+      if (member.getUserId().equals(userId)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private void addSessionToRoom(WebSocketSession session, String roomCode, String userId) {
+    rooms.computeIfAbsent(roomCode, k -> ConcurrentHashMap.newKeySet()).add(session);
+    sessionRoom.put(session, roomCode);
+    userSessions.put(session, userId);
+  }
+
+  private void sendExistingMessages(WebSocketSession session, ChatRoom room) {
+    List<ChatMessage> messages = chatMessageQueue.getMessagesForRoom(room);
+
+    for (ChatMessage message : messages) {
+      Map<String, Object> payload = new HashMap<>();
+      payload.put("senderId", message.getSenderId());
+      payload.put("message", message.getMessage());
+      payload.put("timestamp", message.getTimestamp());
+      try {
+        String json = objectMapper.writeValueAsString(payload);
+        session.sendMessage(new TextMessage(json));
+      } catch (Exception e) {
+        logger.error("Error sending message", e);
+      }
+    }
+  }
+
+  public void afterConnectionClosed(@NonNull WebSocketSession session, @NonNull CloseStatus status) {
+    String roomCode = sessionRoom.remove(session);
+    String userId = userSessions.remove(session);
+
+    if (roomCode != null) {
+      Set<WebSocketSession> sessions = rooms.get(roomCode);
+      if (sessions != null) {
+        sessions.remove(session);
+        if (sessions.isEmpty()) {
+          rooms.remove(roomCode);
+        }
+      }
     }
 
-    private boolean isUserBlockedInRoom(String userIdStr, ChatRoom room) {
-        Long userId;
-        try {
-            userId = Long.parseLong(userIdStr);
-        }
-        catch (NumberFormatException e) {
-            return true;
-        }
-
-        List<CommunityUser> communityMembers = (List<CommunityUser>) (communityService.getCommunityMembers(room.getCommunity().getId()).getBody());
-        if (communityMembers == null) communityMembers = List.of();
-
-        return communityMembers.stream().filter(member -> member.getUser().getId().equals(userId))
-                .anyMatch(member -> member.isBanned() || member.isBlocked());
-    }
-
+    logger.info("User {} disconnected from room {} (session: {})", userId, roomCode, session.getId());
+  }
 
 }

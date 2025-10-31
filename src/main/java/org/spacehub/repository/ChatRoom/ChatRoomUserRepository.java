@@ -1,4 +1,4 @@
-package org.spacehub.repository.ChatRoom;
+package org.spacehub.repository;
 
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.ChatRoom.ChatRoomUser;
@@ -11,9 +11,10 @@ import java.util.Optional;
 @Repository
 public interface ChatRoomUserRepository extends JpaRepository<ChatRoomUser, Long> {
 
-    List<ChatRoomUser> findByRoomAndUserId(ChatRoom room, String userId);
+  List<ChatRoomUser> findByRoom(ChatRoom room);
 
-    List<ChatRoomUser> findByRoom(ChatRoom room);
+  Optional<ChatRoomUser> findByRoomAndUserId(ChatRoom room, String userId);
 
-    void deleteByRoomAndUserId(ChatRoom room, String userId);
+  void deleteByRoomAndUserId(ChatRoom room, String userId);
+
 }

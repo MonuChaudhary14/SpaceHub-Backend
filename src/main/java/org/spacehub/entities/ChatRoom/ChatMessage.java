@@ -10,21 +10,21 @@ import lombok.*;
 @Builder
 public class ChatMessage {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    private String senderId;
+  private String senderId;
 
-    @Column(length = 1000)
-    private String message;
+  @Column(length = 1000)
+  private String message;
 
-    private Long timestamp;
+  private Long timestamp;
 
-    @ManyToOne
-    @JoinColumn(name = "room_id")
-    private ChatRoom room;
+  @ManyToOne
+  @JoinColumn(name = "room_id")
+  private ChatRoom room;
 
-    private String roomCode;
+  private String roomCode;
 
 }
