@@ -38,7 +38,7 @@ public class User implements UserDetails {
   @Column(unique = true)
   @JsonProperty("username")
   private String username;
-  @Column(unique = true)
+  @Column(unique = true, nullable = true)
   private String email;
   private String password;
   @Enumerated(EnumType.STRING)
@@ -49,7 +49,8 @@ public class User implements UserDetails {
   private Boolean isVerifiedLogin = false;
   private Boolean isVerifiedForgot = false;
   private Integer passwordVersion = 0;
-
+  @Column(unique = true)
+  private String phoneNumber;
   private String avatarUrl;
   private String coverPhotoUrl;
   private String bio;
@@ -89,7 +90,7 @@ public class User implements UserDetails {
 
   @Override
   public String getUsername() {
-    return username;
+    return this.email != null ? this.email : this.phoneNumber;
   }
 
   @Override

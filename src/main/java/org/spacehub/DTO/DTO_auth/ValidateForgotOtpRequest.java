@@ -6,11 +6,11 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ValidateForgotOtpRequest {
-  private String email;
+  private String identifier;
   private String otp;
 
-  public ValidateForgotOtpRequest(String email, String otp) {
-    this.email = email;
+  public ValidateForgotOtpRequest(String identifier, String otp) {
+    this.identifier = identifier;
     this.otp = otp;
   }
 }

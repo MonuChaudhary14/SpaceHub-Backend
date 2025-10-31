@@ -6,6 +6,6 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ResendOtpRequest {
-  private String email;
+  private String identifier;
   private String sessionToken;
 }

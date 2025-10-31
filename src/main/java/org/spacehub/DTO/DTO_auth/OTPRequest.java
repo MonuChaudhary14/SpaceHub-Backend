@@ -6,7 +6,7 @@ import org.spacehub.entities.OTP.OtpType;
 @Data
 public class OTPRequest {
 
-  private String email;
+  private String identifier;
   private String otp;
   private OtpType type;
 

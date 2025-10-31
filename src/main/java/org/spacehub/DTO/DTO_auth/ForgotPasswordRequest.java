@@ -7,10 +7,10 @@ import lombok.Setter;
 @Setter
 @Getter
 public class ForgotPasswordRequest {
-  private String email;
+  private String identifier;
 
-  public ForgotPasswordRequest(String email) {
-    this.email = email;
+  public ForgotPasswordRequest(String identifier) {
+    this.identifier = identifier;
   }
 
 }

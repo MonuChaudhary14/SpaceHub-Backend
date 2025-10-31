@@ -2,44 +2,33 @@ package org.spacehub.service.service_auth;
 
 import org.spacehub.DTO.DTO_auth.TokenResponse;
 import org.spacehub.entities.User.User;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
 
 @Service
 public class VerificationService {
 
   private final UserNameService userNameService;
-  private final AuthenticationManager authenticationManager;
   private final RefreshTokenService refreshTokenService;
-  private final UserService userService;
+  private final PasswordEncoder passwordEncoder;
 
   public VerificationService(UserNameService userNameService,
-                             AuthenticationManager authenticationManager,
                              RefreshTokenService refreshTokenService,
-                             UserService userService) {
+                             PasswordEncoder passwordEncoder) {
     this.userNameService = userNameService;
-    this.authenticationManager = authenticationManager;
     this.refreshTokenService = refreshTokenService;
-    this.userService = userService;
+    this.passwordEncoder = passwordEncoder;
   }
 
-  public boolean checkCredentials(String email, String password) {
-    try {
-      Authentication authentication = authenticationManager
-              .authenticate(new UsernamePasswordAuthenticationToken(email, password));
-      return authentication.isAuthenticated();
-    }
-    catch (Exception e) {
+  public boolean checkCredentials(User user, String rawPassword) {
+    if (user == null || rawPassword == null) {
       return false;
     }
+    return passwordEncoder.matches(rawPassword, user.getPassword());
   }
 
   public TokenResponse generateTokens(User user) {
-    UserDetails userDetails = userService.loadUserByUsername(user.getEmail());
-    String accessToken = userNameService.generateToken(userDetails);
+    String accessToken = userNameService.generateToken(user);
 
     var refreshTokenEntity = refreshTokenService.createRefreshToken(user);
     String refreshToken = refreshTokenEntity.getToken();

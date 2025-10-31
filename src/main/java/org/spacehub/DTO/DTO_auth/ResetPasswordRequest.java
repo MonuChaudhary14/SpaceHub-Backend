@@ -6,12 +6,12 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ResetPasswordRequest {
-  private String email;
+  private String identifier;
   private String newPassword;
   private String tempToken;
 
-  public ResetPasswordRequest(String email, String newPassword, String tempToken) {
-    this.email = email;
+  public ResetPasswordRequest(String identifier, String newPassword, String tempToken) {
+    this.identifier = identifier;
     this.newPassword = newPassword;
     this.tempToken = tempToken;
   }
