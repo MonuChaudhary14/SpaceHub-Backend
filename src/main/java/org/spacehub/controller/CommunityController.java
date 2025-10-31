@@ -170,7 +170,7 @@ public class CommunityController {
     @PathVariable Long communityId,
     @PathVariable Long roomId,
     @RequestBody RenameRoomRequest req) {
-    req.setRequesterEmail(req.getRequesterEmail()); // just to match DTO usage
+    req.setRequesterEmail(req.getRequesterEmail());
     return communityService.renameRoomInCommunity(communityId, roomId, req);
   }
 

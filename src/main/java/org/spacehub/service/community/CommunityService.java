@@ -883,30 +883,35 @@ public class CommunityService {
 
   public ResponseEntity<?> uploadCommunityAvatar(Long communityId, String requesterEmail, MultipartFile imageFile) {
     if (requesterEmail == null || requesterEmail.isBlank()) {
-      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "requesterEmail is required", null));
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "requesterEmail is required",
+        null));
     }
     if (imageFile == null || imageFile.isEmpty()) {
-      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Image file is required", null));
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Image file is required",
+        null));
     }
 
     try {
       Community community = communityRepository.findById(communityId).orElse(null);
-      if (community == null) return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Community not found", null));
+      if (community == null) return ResponseEntity.badRequest().body(new ApiResponse<>(400,
+        "Community not found", null));
 
       User requester = userRepository.findByEmail(requesterEmail).orElse(null);
-      if (requester == null) return ResponseEntity.badRequest().body(new ApiResponse<>(400, "User not found", null));
+      if (requester == null) return ResponseEntity.badRequest().body(new ApiResponse<>(400,
+        "User not found", null));
 
-      // only admin/creator can change avatar (decide policy)
       if (!isUserAdminInCommunity(community, requester)) {
-        return ResponseEntity.status(403).body(new ApiResponse<>(403, "Only community admin can change avatar", null));
+        return ResponseEntity.status(403).body(new ApiResponse<>(403,
+          "Only community admin can change avatar", null));
       }
 
       validateImage(imageFile);
       String fileName = System.currentTimeMillis() + "_" + imageFile.getOriginalFilename();
-      String key = "communities/" + community.getName().replaceAll("[^a-zA-Z0-9]", "_") + "/avatar/" + fileName;
+      String key = "communities/" + community.getName().replaceAll("[^a-zA-Z0-9]", "_") +
+        "/avatar/" + fileName;
 
       s3Service.uploadFile(key, imageFile.getInputStream(), imageFile.getSize());
-      community.setImageUrl(key); // reuse imageUrl for avatar (or add avatarUrl field if you prefer)
+      community.setImageUrl(key);
       communityRepository.save(community);
 
       String presigned = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(2));
@@ -922,73 +927,78 @@ public class CommunityService {
 
   public ResponseEntity<?> uploadCommunityBanner(Long communityId, String requesterEmail, MultipartFile imageFile) {
     if (requesterEmail == null || requesterEmail.isBlank()) {
-      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "requesterEmail is required", null));
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "requesterEmail is required",
+        null));
     }
     if (imageFile == null || imageFile.isEmpty()) {
-      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Image file is required", null));
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Image file is required",
+        null));
     }
 
     try {
       Community community = communityRepository.findById(communityId).orElse(null);
-      if (community == null) return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Community not found", null));
+      if (community == null) return ResponseEntity.badRequest().body(new ApiResponse<>(400,
+        "Community not found", null));
 
       User requester = userRepository.findByEmail(requesterEmail).orElse(null);
-      if (requester == null) return ResponseEntity.badRequest().body(new ApiResponse<>(400, "User not found", null));
+      if (requester == null) return ResponseEntity.badRequest().body(new ApiResponse<>(400,
+        "User not found", null));
 
-      // only community creator or admin allowed to change banner
       if (!isUserAdminInCommunity(community, requester)) {
-        return ResponseEntity.status(403).body(new ApiResponse<>(403, "Only community admin can change banner", null));
+        return ResponseEntity.status(403).body(new ApiResponse<>(403,
+          "Only community admin can change banner", null));
       }
 
       validateImage(imageFile);
       String fileName = System.currentTimeMillis() + "_" + imageFile.getOriginalFilename();
-      String key = "communities/" + community.getName().replaceAll("[^a-zA-Z0-9]", "_") + "/banner/" + fileName;
+      String key = "communities/" + community.getName().replaceAll("[^a-zA-Z0-9]", "_") +
+        "/banner/" + fileName;
 
       s3Service.uploadFile(key, imageFile.getInputStream(), imageFile.getSize());
-      // save banner key — if you don't have a banner field in Community, add one (recommended)
-      // assume community has bannerUrl field OR reuse imageUrl if you want one image only
-      // e.g. community.setBannerUrl(key);
-      // communityRepository.save(community);
-
-      // If you don't have bannerUrl property, add in Community entity: private String bannerUrl;
-      // For now I'll save it to imageUrlBannerKey via a map in response:
       String presigned = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(2));
       Map<String, Object> body = Map.of("presignedUrl", presigned, "key", key);
-      // Save to DB if you've added the field:
-      // community.setBannerUrl(key); communityRepository.save(community);
 
       return ResponseEntity.ok(new ApiResponse<>(200, "Banner updated successfully", body));
     } catch (IOException e) {
-      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Error uploading image: " + e.getMessage(), null));
+      return ResponseEntity.internalServerError().body(new ApiResponse<>(500,
+        "Error uploading image: " + e.getMessage(), null));
     } catch (RuntimeException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
     }
   }
 
   public ResponseEntity<?> renameRoomInCommunity(Long communityId, Long roomId, RenameRoomRequest req) {
-    if (req.getRequesterEmail() == null || req.getRequesterEmail().isBlank() || req.getNewRoomName() == null || req.getNewRoomName().isBlank()) {
-      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "requesterEmail and newRoomName are required", null));
+    if (req.getRequesterEmail() == null || req.getRequesterEmail().isBlank() || req.getNewRoomName() == null ||
+      req.getNewRoomName().isBlank()) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400,
+        "requesterEmail and newRoomName are required", null));
     }
 
     try {
-      Community community = communityRepository.findById(communityId).orElseThrow(() -> new ResourceNotFoundException("Community not found"));
-      User requester = userRepository.findByEmail(req.getRequesterEmail()).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+      Community community = communityRepository.findById(communityId).orElseThrow(() ->
+        new ResourceNotFoundException("Community not found"));
+      User requester = userRepository.findByEmail(req.getRequesterEmail()).orElseThrow(() ->
+        new ResourceNotFoundException("User not found"));
       if (!isUserAdminInCommunity(community, requester)) {
-        return ResponseEntity.status(403).body(new ApiResponse<>(403, "Only admin can rename rooms", null));
+        return ResponseEntity.status(403).body(new ApiResponse<>(403,
+          "Only admin can rename rooms", null));
       }
 
-      ChatRoom room = chatRoomRepository.findById(roomId).orElseThrow(() -> new ResourceNotFoundException("Room not found"));
+      ChatRoom room = chatRoomRepository.findById(roomId).orElseThrow(() ->
+        new ResourceNotFoundException("Room not found"));
 
       if (!room.getCommunity().getId().equals(communityId)) {
-        return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Room doesn't belong to the community", null));
+        return ResponseEntity.badRequest().body(new ApiResponse<>(400,
+          "Room doesn't belong to the community", null));
       }
 
-      // optional: check duplicate room name
       boolean exists = chatRoomRepository.findByCommunityId(communityId)
         .stream()
-        .anyMatch(r -> r.getName().equalsIgnoreCase(req.getNewRoomName().trim()) && !r.getId().equals(roomId));
+        .anyMatch(r -> r.getName().equalsIgnoreCase(req.getNewRoomName().trim()) &&
+          !r.getId().equals(roomId));
       if (exists) {
-        return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Another room with this name already exists", null));
+        return ResponseEntity.badRequest().body(new ApiResponse<>(400,
+          "Another room with this name already exists", null));
       }
 
       room.setName(req.getNewRoomName().trim());
@@ -997,14 +1007,16 @@ public class CommunityService {
     } catch (ResourceNotFoundException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
     } catch (Exception e) {
-      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
+      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: "
+        + e.getMessage(), null));
     }
   }
 
 
   public ResponseEntity<?> getRolesForRequester(Long communityId, String requesterEmail) {
     Community community = communityRepository.findById(communityId).orElse(null);
-    if (community == null) return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Community not found", null));
+    if (community == null) return ResponseEntity.badRequest().body(new ApiResponse<>(400,
+      "Community not found", null));
 
     User requester = userRepository.findByEmail(requesterEmail).orElse(null);
     boolean isAdmin = false;
