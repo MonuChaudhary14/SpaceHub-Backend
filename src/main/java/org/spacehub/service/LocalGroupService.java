@@ -9,6 +9,7 @@ import org.spacehub.entities.LocalGroup.LocalGroup;
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.UserRepository;
 import org.spacehub.repository.LocalGroupRepository;
+import org.spacehub.service.Interface.ILocalGroupService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,7 +25,7 @@ import java.util.*;
 
 @Transactional
 @Service
-public class LocalGroupService {
+public class LocalGroupService implements ILocalGroupService {
 
   private final LocalGroupRepository localGroupRepository;
   private final UserRepository userRepository;

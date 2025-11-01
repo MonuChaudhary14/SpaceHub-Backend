@@ -1,17 +1,19 @@
-package org.spacehub.service.service_auth;
+package org.spacehub.service.serviceAuth;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.spacehub.entities.OTP.OtpType;
 import org.spacehub.entities.Auth.RegistrationRequest;
 import org.spacehub.entities.User.User;
+import org.spacehub.service.serviceAuth.authInterfaces.IEmailService;
+import org.spacehub.service.serviceAuth.authInterfaces.IOTPService;
 import org.springframework.stereotype.Service;
 import java.security.SecureRandom;
 
 @Service
-public class OTPService {
+public class OTPService implements IOTPService {
 
   private final RedisService redisService;
-  private final EmailService emailService;
+  private final IEmailService emailService;
   private final VerificationService verificationService;
   private static final SecureRandom random = new SecureRandom();
   private final ObjectMapper objectMapper = new ObjectMapper();
@@ -23,7 +25,7 @@ public class OTPService {
   private static final int BLOCK_DURATION = 300;
   private static final int TEMP_TOKEN_EXPIRE = 2592000;
 
-  public OTPService(RedisService redisService, EmailService emailService, VerificationService verificationService) {
+  public OTPService(RedisService redisService, IEmailService emailService, VerificationService verificationService) {
     this.redisService = redisService;
     this.emailService = emailService;
     this.verificationService = verificationService;

@@ -37,10 +37,16 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import java.time.Duration;
-import java.util.*;
 import java.util.stream.Collectors;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 @Transactional
 @Service
@@ -671,36 +677,6 @@ public class CommunityService {
     response.put("members", members);
 
     return ResponseEntity.ok(new ApiResponse<>(200, "Community details fetched", response));
-  }
-  public ResponseEntity<ApiResponse<List<Community>>> getUserCommunities(String email) {
-    try {
-      User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found with email: " + email));
-
-      List<Community> memberCommunities = communityRepository.findByMembersContaining(user);
-
-      List<Community> adminOrOwnerCommunities =
-              communityRepository.findDistinctByCommunityUsers_UserAndCommunityUsers_RoleIn(
-                      user, List.of(Role.ADMIN, Role.WORKSPACE_OWNER));
-
-      Set<Community> allCommunities = new HashSet<>();
-      allCommunities.addAll(memberCommunities);
-      allCommunities.addAll(adminOrOwnerCommunities);
-
-      List<Community> result = new ArrayList<>(allCommunities);
-
-      return ResponseEntity.ok(
-              new ApiResponse<>(200, "User communities fetched successfully", result)
-      );
-
-    }
-    catch (RuntimeException e) {
-      return ResponseEntity.status(404)
-              .body(new ApiResponse<>(404, e.getMessage(), null));
-    }
-    catch (Exception e) {
-      return ResponseEntity.status(500)
-              .body(new ApiResponse<>(500, "An unexpected error occurred: " + e.getMessage(), null));
-    }
   }
 
   private boolean isUserAdminInCommunity(Community community, User user) {

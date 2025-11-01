@@ -1,16 +1,24 @@
 package org.spacehub.DTO.chatroom;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.UUID;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class RoomMemberAction {
 
-  private String roomCode;
-  private String userId;
-  private String targetUserId;
+  @NotNull
+  private UUID roomCode;
+
+  @NotNull
+  private UUID userId;
+
+  @NotNull
+  private UUID targetUserId;
 
 }

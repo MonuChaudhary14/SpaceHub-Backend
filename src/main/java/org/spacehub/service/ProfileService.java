@@ -3,6 +3,7 @@ package org.spacehub.service;
 import org.spacehub.DTO.UserProfileDTO;
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.UserRepository;
+import org.spacehub.service.Interface.IProfileService;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -11,7 +12,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 
 @Service
-public class ProfileService {
+public class ProfileService implements IProfileService {
 
   private final UserRepository userRepository;
   private final S3Service s3Service;

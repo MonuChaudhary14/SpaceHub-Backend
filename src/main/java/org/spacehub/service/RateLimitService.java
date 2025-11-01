@@ -7,11 +7,12 @@ import io.github.bucket4j.distributed.proxy.ProxyManager;
 import io.github.bucket4j.redis.redisson.Bucket4jRedisson;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
+import org.spacehub.service.Interface.IRateLimitService;
 import org.springframework.stereotype.Service;
 import java.time.Duration;
 
 @Service
-public class RateLimitService {
+public class RateLimitService implements IRateLimitService {
 
   private final ProxyManager<String> proxyManager;
 

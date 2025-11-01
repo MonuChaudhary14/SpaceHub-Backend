@@ -1,5 +1,6 @@
 package org.spacehub.service;
 
+import org.spacehub.service.Interface.IS3Service;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -13,7 +14,7 @@ import java.io.InputStream;
 import java.time.Duration;
 
 @Service
-public class S3Service {
+public class S3Service implements IS3Service {
 
   private final S3Client s3Client;
   private final S3Presigner s3Presigner;

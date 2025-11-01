@@ -5,7 +5,7 @@ import org.spacehub.DTO.DTO_auth.TokenResponse;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.RefreshTokenRepository;
-import org.spacehub.service.service_auth.UserNameService;
+import org.spacehub.service.serviceAuth.UserNameService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;

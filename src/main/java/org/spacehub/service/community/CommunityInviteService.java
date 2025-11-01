@@ -7,6 +7,7 @@ import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.Community.CommunityInvite;
 import org.spacehub.entities.Community.InviteStatus;
 import org.spacehub.repository.community.CommunityInviteRepository;
+import org.spacehub.service.community.CommunityInterfaces.ICommunityInviteService;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -15,7 +16,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
-public class CommunityInviteService {
+public class CommunityInviteService implements ICommunityInviteService {
 
   private final CommunityInviteRepository inviteRepository;
 
