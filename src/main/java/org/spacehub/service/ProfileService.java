@@ -22,8 +22,8 @@ public class ProfileService implements IProfileService {
     this.s3Service = s3Service;
   }
 
-  public UserProfileResponse getProfile(Long userId) {
-    User user = userRepository.findById(userId)
+  public UserProfileResponse getProfileByEmail(String email) {
+    User user = userRepository.findByEmail(email)
       .orElseThrow(() -> new RuntimeException("User not found"));
 
     UserProfileResponse resp = new UserProfileResponse();
@@ -55,38 +55,31 @@ public class ProfileService implements IProfileService {
     return resp;
   }
 
-  public User updateProfile(Long userId, UserProfileDTO dto) {
-    User user = userRepository.findById(userId)
+  public User updateProfileByEmail(String email, UserProfileDTO dto) {
+    User user = userRepository.findByEmail(email)
       .orElseThrow(() -> new RuntimeException("User not found"));
 
     if (dto.getFirstName() != null) {
       user.setFirstName(dto.getFirstName());
     }
-
     if (dto.getLastName() != null) {
       user.setLastName(dto.getLastName());
     }
-
     if (dto.getBio() != null) {
       user.setBio(dto.getBio());
     }
-
     if (dto.getLocation() != null) {
       user.setLocation(dto.getLocation());
     }
-
     if (dto.getWebsite() != null) {
       user.setWebsite(dto.getWebsite());
     }
-
     if (dto.getDateOfBirth() != null) {
       user.setDateOfBirth(LocalDate.parse(dto.getDateOfBirth()));
     }
-
     if (dto.getIsPrivate() != null) {
       user.setIsPrivate(dto.getIsPrivate());
     }
-
     if (dto.getUsername() != null) {
       user.setUsername(dto.getUsername());
     }
@@ -94,11 +87,11 @@ public class ProfileService implements IProfileService {
     return userRepository.save(user);
   }
 
-
-  public User uploadAvatar(Long userId, MultipartFile file) throws IOException {
+  public User uploadAvatarByEmail(String email, MultipartFile file) throws IOException {
     validateImage(file);
 
-    User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+    User user = userRepository.findByEmail(email)
+      .orElseThrow(() -> new RuntimeException("User not found"));
 
     String key = "avatars/" + file.getOriginalFilename();
     s3Service.uploadFile(key, file.getInputStream(), file.getSize());
@@ -107,10 +100,11 @@ public class ProfileService implements IProfileService {
     return userRepository.save(user);
   }
 
-  public User uploadCoverPhoto(Long userId, MultipartFile file) throws IOException {
+  public User uploadCoverPhotoByEmail(String email, MultipartFile file) throws IOException {
     validateImage(file);
 
-    User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+    User user = userRepository.findByEmail(email)
+      .orElseThrow(() -> new RuntimeException("User not found"));
 
     String key = "covers/" + file.getOriginalFilename();
     s3Service.uploadFile(key, file.getInputStream(), file.getSize());
@@ -123,11 +117,9 @@ public class ProfileService implements IProfileService {
     if (file.isEmpty()) {
       throw new RuntimeException("File is empty");
     }
-
     if (file.getSize() > 2 * 1024 * 1024) {
       throw new RuntimeException("File size exceeds 2 MB");
     }
-
     String contentType = file.getContentType();
     if (contentType == null || !contentType.startsWith("image/")) {
       throw new RuntimeException("Only image files are allowed");

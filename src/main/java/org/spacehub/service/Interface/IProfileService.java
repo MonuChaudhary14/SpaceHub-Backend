@@ -8,13 +8,12 @@ import java.io.IOException;
 
 public interface IProfileService {
 
-  UserProfileResponse getProfile(Long userId);
+  UserProfileResponse getProfileByEmail(String email);
 
-  User updateProfile(Long userId, UserProfileDTO dto);
+  User updateProfileByEmail(String email, UserProfileDTO dto);
 
-  User uploadAvatar(Long userId, MultipartFile file) throws IOException;
+  User uploadAvatarByEmail(String email, MultipartFile file) throws IOException;
 
-  User uploadCoverPhoto(Long userId, MultipartFile file) throws IOException;
+  User uploadCoverPhotoByEmail(String email, MultipartFile file) throws IOException;
 
 }
-
