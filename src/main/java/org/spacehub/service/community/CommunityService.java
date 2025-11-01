@@ -687,6 +687,12 @@ public class CommunityService {
 
   public ResponseEntity<?> createRoomInCommunity(CreateRoomRequest request) {
     try {
+
+      if (request.getRequesterEmail() == null || request.getRequesterEmail().isBlank()) {
+        return ResponseEntity.badRequest()
+                .body(new ApiResponse<>(400, "Requester email is required", null));
+      }
+
       Community community = communityRepository.findById(request.getCommunityId())
         .orElseThrow(() -> new ResourceNotFoundException("Community not found with ID: " +
           request.getCommunityId()));
@@ -730,6 +736,7 @@ public class CommunityService {
     } catch (ResourceNotFoundException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
     } catch (Exception e) {
+      e.printStackTrace();
       return ResponseEntity.internalServerError().body(new ApiResponse<>(500,
         "An unexpected error occurred: " + e.getMessage(), null));
     }
