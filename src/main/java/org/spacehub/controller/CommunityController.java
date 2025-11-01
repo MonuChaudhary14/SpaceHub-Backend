@@ -160,8 +160,15 @@ public class CommunityController {
   public ResponseEntity<?> uploadCommunityBanner(
     @PathVariable("id") Long communityId,
     @RequestParam("requesterEmail") String requesterEmail,
-    @RequestParam("imageFile") MultipartFile imageFile) {
-    return communityService.uploadCommunityBanner(communityId, requesterEmail, imageFile);
+    @RequestParam(value = "imageFile", required = false) MultipartFile bannerFile,
+    @RequestParam(value = "avatarFile", required = false) MultipartFile communityAvatarFile,
+    @RequestParam(value = "userAvatarFile", required = false) MultipartFile userAvatarFile,
+    @RequestParam(value = "name", required = false) String name,
+    @RequestParam(value = "description", required = false) String description
+  ) {
+    return communityService.uploadCommunityBanner(
+      communityId, requesterEmail, bannerFile, communityAvatarFile, userAvatarFile, name, description
+    );
   }
 
   @PutMapping("/{communityId}/rooms/{roomId}/rename")

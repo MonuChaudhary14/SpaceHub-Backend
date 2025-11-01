@@ -37,6 +37,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import java.time.Duration;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -926,53 +927,131 @@ public class CommunityService {
 
       return ResponseEntity.ok(new ApiResponse<>(200, "Avatar updated successfully", body));
     } catch (IOException e) {
-      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Error uploading image: " + e.getMessage(), null));
+      return ResponseEntity.internalServerError().body(new ApiResponse<>(500,
+        "Error uploading image: " + e.getMessage(), null));
     } catch (RuntimeException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
     }
   }
 
-  public ResponseEntity<?> uploadCommunityBanner(Long communityId, String requesterEmail, MultipartFile imageFile) {
+  public ResponseEntity<?> uploadCommunityBanner(
+    Long communityId,
+    String requesterEmail,
+    MultipartFile bannerFile,
+    MultipartFile communityAvatarFile,
+    MultipartFile userAvatarFile,
+    String newName,
+    String newDescription
+  ) {
     if (requesterEmail == null || requesterEmail.isBlank()) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, "requesterEmail is required",
-        null));
-    }
-    if (imageFile == null || imageFile.isEmpty()) {
-      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Image file is required",
         null));
     }
 
     try {
       Community community = communityRepository.findById(communityId).orElse(null);
-      if (community == null) return ResponseEntity.badRequest().body(new ApiResponse<>(400,
-        "Community not found", null));
+      if (community == null) {
+        return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Community not found",
+          null));
+      }
 
       User requester = userRepository.findByEmail(requesterEmail).orElse(null);
-      if (requester == null) return ResponseEntity.badRequest().body(new ApiResponse<>(400,
-        "User not found", null));
+      if (requester == null) {
+        return ResponseEntity.badRequest()
+          .body(new ApiResponse<>(400, "User not found", null));
+      }
 
       if (!isUserAdminInCommunity(community, requester)) {
         return ResponseEntity.status(403).body(new ApiResponse<>(403,
-          "Only community admin can change banner", null));
+          "Only community admin can change banner/info", null));
       }
 
-      validateImage(imageFile);
-      String fileName = System.currentTimeMillis() + "_" + imageFile.getOriginalFilename();
-      String key = "communities/" + community.getName().replaceAll("[^a-zA-Z0-9]", "_") +
-        "/banner/" + fileName;
+      Map<String, Object> body = new HashMap<>();
 
-      s3Service.uploadFile(key, imageFile.getInputStream(), imageFile.getSize());
-      community.setBannerUrl(key);
+      if (newName != null && !newName.isBlank()) {
+        String normalized = newName.trim();
+        if (!normalized.equalsIgnoreCase(community.getName())) {
+          if (communityRepository.existsByNameIgnoreCase(normalized)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+              .body(new ApiResponse<>(409, "Community name already in use", null));
+          }
+          community.setName(normalized);
+          body.put("name", normalized);
+        }
+      }
+
+      if (newDescription != null) {
+        community.setDescription(newDescription);
+        body.put("description", newDescription);
+      }
+
+      String name = Objects.toString(community.getName(), "community_" + community.getId());
+      String safeCommunityName = name.replaceAll("[^a-zA-Z0-9]", "_");
+
+      if (communityAvatarFile != null && !communityAvatarFile.isEmpty()) {
+        validateImage(communityAvatarFile);
+        String fileName = System.currentTimeMillis() + "_" + communityAvatarFile.getOriginalFilename();
+        String avatarKey = "communities/" + safeCommunityName + "/avatar/" + fileName;
+        s3Service.uploadFile(avatarKey, communityAvatarFile.getInputStream(), communityAvatarFile.getSize());
+        community.setImageUrl(avatarKey);
+        try {
+          String presigned = s3Service.generatePresignedDownloadUrl(avatarKey, Duration.ofHours(2));
+          body.put("communityAvatarKey", avatarKey);
+          body.put("communityAvatarUrl", presigned);
+        } catch (Exception e) {
+          body.put("communityAvatarKey", avatarKey);
+          body.put("communityAvatarUrl", null);
+        }
+      }
+
+      if (bannerFile != null && !bannerFile.isEmpty()) {
+        validateImage(bannerFile);
+        String fileName = System.currentTimeMillis() + "_" + bannerFile.getOriginalFilename();
+        String bannerKey = "communities/" + safeCommunityName + "/banner/" + fileName;
+        s3Service.uploadFile(bannerKey, bannerFile.getInputStream(), bannerFile.getSize());
+        community.setBannerUrl(bannerKey);
+        try {
+          String presigned = s3Service.generatePresignedDownloadUrl(bannerKey, Duration.ofHours(2));
+          body.put("bannerKey", bannerKey);
+          body.put("bannerUrl", presigned);
+        } catch (Exception e) {
+          body.put("bannerKey", bannerKey);
+          body.put("bannerUrl", null);
+        }
+      }
+
+      if (userAvatarFile != null && !userAvatarFile.isEmpty()) {
+        validateImage(userAvatarFile);
+        String fileName = System.currentTimeMillis() + "_" + userAvatarFile.getOriginalFilename();
+        String userKey = "users/" + requester.getId() + "/avatar/" + fileName;
+        s3Service.uploadFile(userKey, userAvatarFile.getInputStream(), userAvatarFile.getSize());
+        try {
+          requester.setAvatarUrl(userKey);
+          userRepository.save(requester);
+          String presigned = s3Service.generatePresignedDownloadUrl(userKey, Duration.ofHours(2));
+          body.put("userAvatarKey", userKey);
+          body.put("userAvatarUrl", presigned);
+        } catch (Exception e) {
+          body.put("userAvatarKey", userKey);
+          body.put("userAvatarUrl", null);
+        }
+      }
+
       communityRepository.save(community);
-      String presigned = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(2));
-      Map<String, Object> body = Map.of("presignedUrl", presigned, "key", key);
 
-      return ResponseEntity.ok(new ApiResponse<>(200, "Banner updated successfully", body));
+      if (community.getCreatedBy() != null) body.put("createdBy", community.getCreatedBy().getEmail());
+      body.put("createdAt", community.getCreatedAt());
+
+      return ResponseEntity.ok(new ApiResponse<>(200,
+        "Banner  applied successfully", body));
     } catch (IOException e) {
       return ResponseEntity.internalServerError().body(new ApiResponse<>(500,
         "Error uploading image: " + e.getMessage(), null));
     } catch (RuntimeException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
+    } catch (Exception e) {
+      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: " +
+        e.getMessage(), null));
     }
   }
 
