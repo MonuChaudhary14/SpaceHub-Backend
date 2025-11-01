@@ -2,8 +2,7 @@ package org.spacehub.entities.Community;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 import lombok.ToString;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.User.User;
@@ -12,8 +11,7 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
-@Getter
-@Setter
+@Data
 @ToString
 @Entity
 public class Community {
@@ -49,6 +47,13 @@ public class Community {
 
   @Column(name = "image_url")
   private String imageUrl;
+
+  @Column(name="avatar_url")
+  private String avatarUrl;
+
+  @Column(name="banner_url")
+  private String bannerUrl;
+
 
   private LocalDateTime createdAt = LocalDateTime.now();
 
