@@ -8,7 +8,7 @@ import org.spacehub.DTO.chatroom.RoomMemberAction;
 import org.spacehub.DTO.chatroom.RoomResponseDTO;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.ChatRoom.ChatRoom;
-import org.spacehub.service.ChatRoomService;
+import org.spacehub.service.Interface.IChatRoomService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,9 +18,9 @@ import java.util.List;
 @RequestMapping("api/v1/rooms")
 public class ChatRoomController {
 
-  private final ChatRoomService chatRoomService;
+  private final IChatRoomService chatRoomService;
 
-  public ChatRoomController(ChatRoomService chatRoomService) {
+  public ChatRoomController(IChatRoomService chatRoomService) {
     this.chatRoomService = chatRoomService;
   }
 

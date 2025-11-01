@@ -3,6 +3,7 @@ package org.spacehub.service;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.UserRepository;
+import org.spacehub.service.Interface.IDashBoardService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -11,7 +12,7 @@ import java.io.IOException;
 import java.time.Duration;
 
 @Service
-public class DashBoardService {
+public class DashBoardService implements IDashBoardService {
 
   private final UserRepository userRepository;
   private final S3Service s3Service;

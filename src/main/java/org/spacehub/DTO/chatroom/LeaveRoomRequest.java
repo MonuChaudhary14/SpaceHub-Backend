@@ -3,13 +3,15 @@ package org.spacehub.DTO.chatroom;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
+import java.util.UUID;
+
 @Data
 public class LeaveRoomRequest {
 
   @NotBlank(message = "Room code is required")
-  private String roomCode;
+  private UUID roomCode;
 
   @NotBlank(message = "User ID is required")
-  private String userId;
+  private UUID userId;
 
 }

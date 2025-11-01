@@ -2,13 +2,14 @@ package org.spacehub.service;
 
 import org.spacehub.entities.DirectMessaging.Message;
 import org.spacehub.repository.MessageRepository;
+import org.spacehub.service.Interface.IMessageService;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-public class MessageService {
+public class MessageService implements IMessageService {
   private final MessageRepository repo;
 
   public MessageService(MessageRepository repo) {

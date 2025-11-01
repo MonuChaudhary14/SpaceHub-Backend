@@ -4,13 +4,14 @@ import org.spacehub.entities.ChatRoom.ChatMessage;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.ScheduledMessage.ScheduledMessage;
 import org.spacehub.repository.ScheduledMessageRepository;
-import org.spacehub.service.ChatRoom.ChatMessageQueue;
+import org.spacehub.service.chatRoom.ChatMessageQueue;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class ScheduledMessageService {
@@ -37,14 +38,14 @@ public class ScheduledMessageService {
     List<ScheduledMessage> scheduled = scheduledMessageRepository.findBySentFalseAndScheduledTimeBefore(LocalDateTime.now());
 
     for (ScheduledMessage message : scheduled) {
-      Optional<ChatRoom> optionalRoom = chatRoomService.findByRoomCode(message.getRoomCode());
+      Optional<ChatRoom> optionalRoom = chatRoomService.findByRoomCode(UUID.fromString(message.getRoomCode()));
       if (optionalRoom.isEmpty()) continue;
 
       ChatRoom room = optionalRoom.get();
 
       ChatMessage chatMessage = ChatMessage.builder()
               .room(room)
-              .roomCode(room.getRoomCode())
+              .roomCode(String.valueOf(room.getRoomCode()))
               .senderId(message.getSenderEmail())
               .message(message.getMessage())
               .timestamp(System.currentTimeMillis())

@@ -1,8 +1,9 @@
 package org.spacehub.controller;
 
 import org.spacehub.DTO.UserProfileDTO;
+import org.spacehub.DTO.UserProfileResponse;
 import org.spacehub.entities.User.User;
-import org.spacehub.service.ProfileService;
+import org.spacehub.service.Interface.IProfileService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -11,33 +12,39 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/v1/profile")
 public class ProfileController {
 
-  private final ProfileService profileService;
+  private final IProfileService profileService;
 
-  public ProfileController(ProfileService profileService) {
+  public ProfileController(IProfileService profileService) {
     this.profileService = profileService;
   }
 
-  @GetMapping("/getProfile/{userId}")
-  public ResponseEntity<User> getProfile(@PathVariable Long userId) {
-    User user = profileService.getProfile(userId);
-    return ResponseEntity.ok(user);
+  @GetMapping("/getProfile")
+  public ResponseEntity<UserProfileResponse> getProfile(@RequestParam("email") String email) {
+    UserProfileResponse resp = profileService.getProfileByEmail(email);
+    return ResponseEntity.ok(resp);
   }
 
-  @PutMapping("/updateProfile/{userId}")
-  public ResponseEntity<User> updateProfile(@PathVariable Long userId, @RequestBody UserProfileDTO dto) {
-    User updatedUser = profileService.updateProfile(userId, dto);
+  @PutMapping("/updateProfile")
+  public ResponseEntity<User> updateProfile(
+    @RequestParam("email") String email,
+    @RequestBody UserProfileDTO dto) {
+    User updatedUser = profileService.updateProfileByEmail(email, dto);
     return ResponseEntity.ok(updatedUser);
   }
 
-  @PostMapping("/{userId}/avatar")
-  public ResponseEntity<User> uploadAvatar(@PathVariable Long userId, @RequestParam("file") MultipartFile file) throws Exception {
-    User user = profileService.uploadAvatar(userId, file);
+  @PostMapping("/avatar")
+  public ResponseEntity<User> uploadAvatar(
+    @RequestParam("email") String email,
+    @RequestParam("file") MultipartFile file) throws Exception {
+    User user = profileService.uploadAvatarByEmail(email, file);
     return ResponseEntity.ok(user);
   }
 
-  @PostMapping("/{userId}/cover")
-  public ResponseEntity<User> uploadCover(@PathVariable Long userId, @RequestParam("file") MultipartFile file) throws Exception {
-    User user = profileService.uploadCoverPhoto(userId, file);
+  @PostMapping("/cover")
+  public ResponseEntity<User> uploadCover(
+    @RequestParam("email") String email,
+    @RequestParam("file") MultipartFile file) throws Exception {
+    User user = profileService.uploadCoverPhotoByEmail(email, file);
     return ResponseEntity.ok(user);
   }
 

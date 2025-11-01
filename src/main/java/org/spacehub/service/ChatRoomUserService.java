@@ -4,6 +4,7 @@ import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.ChatRoom.ChatRoomUser;
 import org.spacehub.entities.Community.Role;
 import org.spacehub.repository.ChatRoomUserRepository;
+import org.spacehub.service.Interface.IChatRoomUserService;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -13,7 +14,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-public class ChatRoomUserService {
+public class ChatRoomUserService implements IChatRoomUserService {
 
   private final ChatRoomUserRepository repository;
 

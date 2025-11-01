@@ -2,7 +2,7 @@ package org.spacehub.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
-import org.spacehub.service.JanusService;
+import org.spacehub.service.Interface.IJanusService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,7 +15,7 @@ import java.util.Random;
 @RequiredArgsConstructor
 public class VoiceRoomController {
 
-  private final JanusService janusService;
+  private final IJanusService janusService;
 
   @PostMapping("/create")
   public ResponseEntity<?> createRoom(@RequestParam String displayName) {

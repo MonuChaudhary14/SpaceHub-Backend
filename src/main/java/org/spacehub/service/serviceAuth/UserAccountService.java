@@ -1,4 +1,4 @@
-package org.spacehub.service.service_auth;
+package org.spacehub.service.serviceAuth;
 
 import org.spacehub.DTO.DTO_auth.LoginRequest;
 import org.spacehub.DTO.DTO_auth.OTPRequest;
@@ -12,12 +12,13 @@ import org.spacehub.entities.Auth.RegistrationRequest;
 import org.spacehub.entities.OTP.OtpType;
 import org.spacehub.entities.User.UserRole;
 import org.spacehub.security.EmailValidator;
+import org.spacehub.service.serviceAuth.authInterfaces.IUserAccountService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
-public class UserAccountService {
+public class UserAccountService implements IUserAccountService {
 
   private final VerificationService verificationService;
   private final EmailValidator emailValidator;

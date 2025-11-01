@@ -1,8 +1,9 @@
-package org.spacehub.service.ChatRoom;
+package org.spacehub.service.chatRoom;
 
 import org.spacehub.entities.ChatRoom.ChatMessage;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.repository.ChatRoom.ChatMessageRepository;
+import org.spacehub.service.chatRoom.chatroomInterfaces.IChatMessageService;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -10,7 +11,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-public class ChatMessageService {
+public class ChatMessageService implements IChatMessageService {
 
   private final ChatMessageRepository chatMessageRepository;
 

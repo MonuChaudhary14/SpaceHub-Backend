@@ -2,7 +2,7 @@ package org.spacehub.controller;
 
 import org.spacehub.DTO.PresignedRequestDTO;
 import org.spacehub.entities.ApiResponse.ApiResponse;
-import org.spacehub.service.S3Service;
+import org.spacehub.service.Interface.IS3Service;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -14,9 +14,9 @@ import java.time.Duration;
 @RequestMapping("api/v1/files")
 public class FilesController {
 
-  private final S3Service s3Service;
+  private final IS3Service s3Service;
 
-  public FilesController(S3Service s3Service) {
+  public FilesController(IS3Service s3Service) {
     this.s3Service = s3Service;
   }
 

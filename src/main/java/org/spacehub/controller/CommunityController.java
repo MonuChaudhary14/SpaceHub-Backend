@@ -14,6 +14,7 @@ import org.spacehub.DTO.Community.RenameRoomRequest;
 import org.spacehub.DTO.Community.UpdateCommunityDTO;
 import org.spacehub.DTO.RejectRequest;
 import org.spacehub.entities.ApiResponse.ApiResponse;
+import org.spacehub.service.community.CommunityInterfaces.ICommunityService;
 import org.spacehub.service.community.CommunityService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,9 +26,9 @@ import java.util.Map;
 @RequestMapping("api/v1/community")
 public class CommunityController {
 
-  private final CommunityService communityService;
+  private final ICommunityService communityService;
 
-  public CommunityController(CommunityService communityService) {
+  public CommunityController(ICommunityService communityService) {
     this.communityService = communityService;
   }
 
@@ -107,17 +108,26 @@ public class CommunityController {
     return communityService.listAllCommunities();
   }
 
+  @GetMapping("/my-communities")
+  public ResponseEntity<?> getMyCommunities(
+    @RequestParam("requesterEmail") String requesterEmail) {
+    return communityService.listMyCommunities(requesterEmail);
+  }
+
   @GetMapping("/{id}")
   public ResponseEntity<?> getCommunityDetails(@PathVariable("id") Long communityId,
                                                @RequestParam("requesterEmail") String requesterEmail) {
     return communityService.getCommunityDetailsWithAdminFlag(communityId, requesterEmail);
   }
 
-  @PostMapping("/rooms/create")
-  public ResponseEntity<?> createRoomInCommunity(@RequestBody CreateRoomRequest request) {
-    request.setCommunityId(request.getCommunityId());
+  @PostMapping("/{id}/rooms/create")
+  public ResponseEntity<?> createRoomInCommunity(
+    @PathVariable("id") Long communityId,
+    @RequestBody CreateRoomRequest request) {
+    request.setCommunityId(communityId);
     return communityService.createRoomInCommunity(request);
   }
+
 
   @GetMapping("/{id}/rooms/all")
   public ResponseEntity<?> getRoomsByCommunity(@PathVariable("id") Long communityId) {
@@ -160,8 +170,15 @@ public class CommunityController {
   public ResponseEntity<?> uploadCommunityBanner(
     @PathVariable("id") Long communityId,
     @RequestParam("requesterEmail") String requesterEmail,
-    @RequestParam("imageFile") MultipartFile imageFile) {
-    return communityService.uploadCommunityBanner(communityId, requesterEmail, imageFile);
+    @RequestParam(value = "imageFile", required = false) MultipartFile bannerFile,
+    @RequestParam(value = "avatarFile", required = false) MultipartFile communityAvatarFile,
+    @RequestParam(value = "userAvatarFile", required = false) MultipartFile userAvatarFile,
+    @RequestParam(value = "name", required = false) String name,
+    @RequestParam(value = "description", required = false) String description
+  ) {
+    return communityService.uploadCommunityBanner(
+      communityId, requesterEmail, bannerFile, communityAvatarFile, userAvatarFile, name, description
+    );
   }
 
   @PutMapping("/{communityId}/rooms/{roomId}/rename")

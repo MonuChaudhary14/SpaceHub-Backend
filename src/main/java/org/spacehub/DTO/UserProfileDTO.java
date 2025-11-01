@@ -12,5 +12,6 @@ public class UserProfileDTO {
   private String website;
   private String dateOfBirth;
   private Boolean isPrivate;
+  private String username;
 
 }
