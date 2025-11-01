@@ -31,7 +31,6 @@ public class CommunityInviteService implements ICommunityInviteService {
   public ApiResponse<CommunityInviteResponseDTO> createInvite(UUID communityId, CommunityInviteRequestDTO request) {
     CommunityInvite invite = CommunityInvite.builder()
             .communityId(communityId)
-            .inviterId(request.getInviterId())
             .email(request.getEmail())
             .maxUses(request.getMaxUses())
             .inviteCode(generateInviteCode())
@@ -43,7 +42,7 @@ public class CommunityInviteService implements ICommunityInviteService {
 
     CommunityInviteResponseDTO response = CommunityInviteResponseDTO.builder()
             .inviteCode(invite.getInviteCode())
-            .inviteLink("https://your-domain.com/invite/" + invite.getInviteCode())
+            .inviteLink("https://codewithketan.me/invite/" + invite.getInviteCode())
             .communityId(communityId)
             .email(invite.getEmail())
             .maxUses(invite.getMaxUses())

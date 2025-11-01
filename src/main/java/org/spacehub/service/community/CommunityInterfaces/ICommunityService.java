@@ -7,10 +7,12 @@ import org.spacehub.DTO.RejectRequest;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.Community.Community;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.Map;
 
+@Service
 public interface ICommunityService {
 
   ResponseEntity<ApiResponse<Map<String, Object>>> createCommunity(
