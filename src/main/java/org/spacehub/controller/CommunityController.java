@@ -103,9 +103,14 @@ public class CommunityController {
   }
 
   @GetMapping("/all")
-  public ResponseEntity<?> listAllCommunities(
-    @RequestParam(value = "requesterEmail", required = false) String requesterEmail) {
-    return communityService.listAllCommunities(requesterEmail);
+  public ResponseEntity<?> listAllCommunities() {
+    return communityService.listAllCommunities();
+  }
+
+  @GetMapping("/my-communities")
+  public ResponseEntity<?> getMyCommunities(
+    @RequestParam("requesterEmail") String requesterEmail) {
+    return communityService.listMyCommunities(requesterEmail);
   }
 
   @GetMapping("/{id}")

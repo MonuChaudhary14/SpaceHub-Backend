@@ -641,41 +641,65 @@ public class CommunityService implements ICommunityService {
       throw new RuntimeException("Only image files are allowed");
   }
 
-  public ResponseEntity<ApiResponse<Map<String, List<Map<String, Object>>>>> listAllCommunities(String requesterEmail) {
+  @Override
+  public ResponseEntity<ApiResponse<Map<String, List<Map<String, Object>>>>> listAllCommunities() {
 
     List<Community> all = communityRepository.findAll();
-    if (requesterEmail == null || requesterEmail.isBlank()) {
-      List<Map<String, Object>> out = all.stream().map(c -> {
-        Map<String, Object> m = new HashMap<>();
-        m.put("communityId", c.getId());
-        m.put("name", c.getName());
-        m.put("description", c.getDescription());
 
-        String key = c.getImageUrl();
-        if (key != null && !key.isBlank()) {
-          try {
-            String presigned = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1));
-            m.put("imageUrl", presigned);
-            m.put("imageKey", key);
-          } catch (Exception e) {
-            m.put("imageUrl", null);
-            m.put("imageKey", key);
-          }
-        } else {
+    List<Map<String, Object>> out = all.stream().map(c -> {
+      Map<String, Object> m = new HashMap<>();
+      m.put("communityId", c.getId());
+      m.put("name", c.getName());
+      m.put("description", c.getDescription());
+
+      String key = c.getImageUrl();
+      if (key != null && !key.isBlank()) {
+        try {
+          String presigned = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1));
+          m.put("imageUrl", presigned);
+          m.put("imageKey", key);
+        } catch (Exception e) {
           m.put("imageUrl", null);
+          m.put("imageKey", key);
         }
-        return m;
-      }).toList();
+      } else {
+        m.put("imageUrl", null);
+      }
 
-      return ResponseEntity.ok(new ApiResponse<>(200, "Communities fetched",
-        Map.of("communities", out)));
+      String bannerKey = c.getBannerUrl();
+      if (bannerKey != null && !bannerKey.isBlank()) {
+        try {
+          String presigned = s3Service.generatePresignedDownloadUrl(bannerKey, Duration.ofHours(1));
+          m.put("bannerUrl", presigned);
+        } catch (Exception e) {
+          m.put("bannerUrl", null);
+        }
+      } else {
+        m.put("bannerUrl", null);
+      }
+
+      return m;
+    }).toList();
+
+    return ResponseEntity.ok(new ApiResponse<>(200, "Communities fetched",
+      Map.of("communities", out)));
+  }
+
+  public ResponseEntity<ApiResponse<Map<String, List<Map<String, Object>>>>> listMyCommunities(String requesterEmail) {
+
+    if (requesterEmail == null || requesterEmail.isBlank()) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Requester email is required"));
     }
+
+    List<Community> all = communityRepository.findAll();
     String reqEmailLower = requesterEmail.trim().toLowerCase();
+
     Optional<User> optUser = userRepository.findByEmail(requesterEmail);
     if (optUser.isEmpty()) {
-      return ResponseEntity.ok(new ApiResponse<>(200, "Communities fetched",
+      return ResponseEntity.ok(new ApiResponse<>(200, "User not found, no communities fetched",
         Map.of("communities", List.of())));
     }
+
     Map<Long, Map<String, Object>> dedup = new LinkedHashMap<>();
 
     for (Community c : all) {
@@ -710,12 +734,25 @@ public class CommunityService implements ICommunityService {
         } else {
           m.put("imageUrl", null);
         }
+
+        String bannerKey = c.getBannerUrl();
+        if (bannerKey != null && !bannerKey.isBlank()) {
+          try {
+            String presigned = s3Service.generatePresignedDownloadUrl(bannerKey, Duration.ofHours(1));
+            m.put("bannerUrl", presigned);
+          } catch (Exception e) {
+            m.put("bannerUrl", null);
+          }
+        } else {
+          m.put("bannerUrl", null);
+        }
+
         dedup.put(c.getId(), m);
       }
     }
 
     List<Map<String, Object>> out = new ArrayList<>(dedup.values());
-    return ResponseEntity.ok(new ApiResponse<>(200, "Communities fetched", Map.of("communities", out)));
+    return ResponseEntity.ok(new ApiResponse<>(200, "User's communities fetched", Map.of("communities", out)));
   }
 
   public ResponseEntity<ApiResponse<Map<String, Object>>> getCommunityDetailsWithAdminFlag(Long communityId,

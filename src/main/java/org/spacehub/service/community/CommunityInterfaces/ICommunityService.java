@@ -78,5 +78,7 @@ public interface ICommunityService {
   ResponseEntity<?> getRolesForRequester(Long communityId, String requesterEmail);
 
   ResponseEntity<ApiResponse<Map<String, Object>>> discoverCommunities(int page, int size);
+
+  ResponseEntity<ApiResponse<Map<String, List<Map<String, Object>>>>> listMyCommunities(String requesterEmail);
 }
 
