@@ -1,7 +1,7 @@
 package org.spacehub.controller;
 
 import org.spacehub.DTO.*;
-import org.spacehub.service.FriendService;
+import org.spacehub.service.Interface.IFriendService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -11,9 +11,9 @@ import java.util.List;
 @RequestMapping("api/v1/friends")
 public class FriendController {
 
-  private final FriendService friendService;
+  private final IFriendService friendService;
 
-  public FriendController(FriendService friendService) {
+  public FriendController(IFriendService friendService) {
     this.friendService = friendService;
   }
 

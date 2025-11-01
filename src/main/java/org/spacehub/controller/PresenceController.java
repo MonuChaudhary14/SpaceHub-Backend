@@ -1,7 +1,7 @@
 package org.spacehub.controller;
 
 import org.spacehub.DTO.presence.PresenceMessage;
-import org.spacehub.service.PresenceService;
+import org.spacehub.service.Interface.IPresenceService;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.stereotype.Controller;
@@ -9,9 +9,9 @@ import org.springframework.stereotype.Controller;
 @Controller
 public class PresenceController {
 
-  private final PresenceService presenceService;
+  private final IPresenceService presenceService;
 
-  public PresenceController(PresenceService presenceService) {
+  public PresenceController(IPresenceService presenceService) {
     this.presenceService = presenceService;
   }
 

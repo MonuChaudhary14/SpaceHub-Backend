@@ -2,7 +2,7 @@ package org.spacehub.controller;
 
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.ChatRoom.ChatPoll;
-import org.spacehub.service.chatRoom.ChatPollService;
+import org.spacehub.service.chatRoom.chatroomInterfaces.IChatPollService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,9 +13,9 @@ import java.util.Map;
 @RequestMapping("/api/v1/chat/polls")
 public class PollController {
 
-  private final ChatPollService chatPollService;
+  private final IChatPollService chatPollService;
 
-  public PollController(ChatPollService chatPollService) {
+  public PollController(IChatPollService chatPollService) {
     this.chatPollService = chatPollService;
   }
 

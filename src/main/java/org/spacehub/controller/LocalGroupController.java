@@ -4,7 +4,7 @@ import org.spacehub.DTO.LocalGroup.DeleteLocalGroupRequest;
 import org.spacehub.DTO.LocalGroup.JoinLocalGroupRequest;
 import org.spacehub.DTO.LocalGroup.LocalGroupResponse;
 import org.spacehub.entities.ApiResponse.ApiResponse;
-import org.spacehub.service.LocalGroupService;
+import org.spacehub.service.Interface.ILocalGroupService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -16,9 +16,9 @@ import java.util.Map;
 @RequestMapping("api/v1/local-group")
 public class LocalGroupController {
 
-  private final LocalGroupService localGroupService;
+  private final ILocalGroupService localGroupService;
 
-  public LocalGroupController(LocalGroupService localGroupService) {
+  public LocalGroupController(ILocalGroupService localGroupService) {
     this.localGroupService = localGroupService;
   }
 
