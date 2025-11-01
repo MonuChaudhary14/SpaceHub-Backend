@@ -736,7 +736,7 @@ public class CommunityService {
       newRoom.setName(request.getRoomName().trim());
       newRoom.setCommunity(community);
 
-      String code = UUID.randomUUID().toString().substring(0, 8);
+      UUID code = UUID.randomUUID();
       newRoom.setRoomCode(code);
 
       ChatRoom savedRoom = chatRoomRepository.save(newRoom);
