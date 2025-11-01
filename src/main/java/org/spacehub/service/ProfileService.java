@@ -1,12 +1,12 @@
 package org.spacehub.service;
 
 import org.spacehub.DTO.UserProfileDTO;
+import org.spacehub.DTO.UserProfileResponse;
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.UserRepository;
 import org.spacehub.service.Interface.IProfileService;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDate;
@@ -22,24 +22,45 @@ public class ProfileService implements IProfileService {
     this.s3Service = s3Service;
   }
 
-  public User getProfile(Long userId) {
-    User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+  public UserProfileResponse getProfile(Long userId) {
+    User user = userRepository.findById(userId)
+      .orElseThrow(() -> new RuntimeException("User not found"));
 
-    if (user.getAvatarUrl() != null && !user.getAvatarUrl().isEmpty()) {
-      user.setAvatarUrl(s3Service.generatePresignedDownloadUrl(user.getAvatarUrl(), Duration.ofMinutes(15)));
+    UserProfileResponse resp = new UserProfileResponse();
+    resp.setId(user.getId());
+    resp.setFirstName(user.getFirstName());
+    resp.setLastName(user.getLastName());
+    resp.setUsername(user.getUsername());
+    resp.setEmail(user.getEmail());
+    resp.setBio(user.getBio());
+    resp.setLocation(user.getLocation());
+    resp.setWebsite(user.getWebsite());
+    resp.setDateOfBirth(user.getDateOfBirth());
+    resp.setIsPrivate(user.getIsPrivate());
+    resp.setCreatedAt(user.getCreatedAt());
+    resp.setUpdatedAt(user.getUpdatedAt());
+
+    String avatarKey = user.getAvatarUrl();
+    String coverKey  = user.getCoverPhotoUrl();
+    resp.setAvatarKey(avatarKey);
+    resp.setCoverKey(coverKey);
+
+    if (avatarKey != null && !avatarKey.isBlank()) {
+      resp.setAvatarPreviewUrl(s3Service.generatePresignedDownloadUrl(avatarKey, Duration.ofMinutes(15)));
+    }
+    if (coverKey != null && !coverKey.isBlank()) {
+      resp.setCoverPreviewUrl(s3Service.generatePresignedDownloadUrl(coverKey, Duration.ofMinutes(15)));
     }
 
-    if (user.getCoverPhotoUrl() != null && !user.getCoverPhotoUrl().isEmpty()) {
-      user.setCoverPhotoUrl(s3Service.generatePresignedDownloadUrl(user.getCoverPhotoUrl(), Duration.ofMinutes(15)));
-    }
-
-    return user;
+    return resp;
   }
 
-  public User updateProfile(Long userId, UserProfileDTO dto) {
-    User user = getProfile(userId);
 
-    if (dto.getFirstName() != null){
+  public User updateProfile(Long userId, UserProfileDTO dto) {
+    User user = userRepository.findById(userId)
+      .orElseThrow(() -> new RuntimeException("User not found"));
+
+    if (dto.getFirstName() != null) {
       user.setFirstName(dto.getFirstName());
     }
 
@@ -47,11 +68,11 @@ public class ProfileService implements IProfileService {
       user.setLastName(dto.getLastName());
     }
 
-    if (dto.getBio() != null){
+    if (dto.getBio() != null) {
       user.setBio(dto.getBio());
     }
 
-    if (dto.getLocation() != null){
+    if (dto.getLocation() != null) {
       user.setLocation(dto.getLocation());
     }
 
@@ -67,8 +88,13 @@ public class ProfileService implements IProfileService {
       user.setIsPrivate(dto.getIsPrivate());
     }
 
+    if (dto.getUsername() != null) {
+      user.setUsername(dto.getUsername());
+    }
+
     return userRepository.save(user);
   }
+
 
   public User uploadAvatar(Long userId, MultipartFile file) throws IOException {
     validateImage(file);

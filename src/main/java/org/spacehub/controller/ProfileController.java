@@ -1,6 +1,7 @@
 package org.spacehub.controller;
 
 import org.spacehub.DTO.UserProfileDTO;
+import org.spacehub.DTO.UserProfileResponse;
 import org.spacehub.entities.User.User;
 import org.spacehub.service.ProfileService;
 import org.springframework.http.ResponseEntity;
@@ -18,9 +19,9 @@ public class ProfileController {
   }
 
   @GetMapping("/getProfile/{userId}")
-  public ResponseEntity<User> getProfile(@PathVariable Long userId) {
-    User user = profileService.getProfile(userId);
-    return ResponseEntity.ok(user);
+  public ResponseEntity<UserProfileResponse> getProfile(@PathVariable Long userId) {
+    UserProfileResponse resp = profileService.getProfile(userId);
+    return ResponseEntity.ok(resp);
   }
 
   @PutMapping("/updateProfile/{userId}")

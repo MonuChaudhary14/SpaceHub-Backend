@@ -52,9 +52,15 @@ public class User implements UserDetails {
 
   private String avatarUrl;
   private String coverPhotoUrl;
+
+  @Column(columnDefinition = "TEXT")
   private String bio;
+
   private String location;
+
+  @Column(length = 500)
   private String website;
+
   private LocalDate dateOfBirth;
 
   private Integer followersCount = 0;
