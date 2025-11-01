@@ -28,7 +28,7 @@ public class VoiceRoom implements Serializable{
 
     private boolean active = true;
 
-    @OneToOne(mappedBy = "voiceRoom")
+    @OneToOne(mappedBy = "voiceRoom",  cascade = CascadeType.ALL)
     private LocalGroup localGroup;
 
 }

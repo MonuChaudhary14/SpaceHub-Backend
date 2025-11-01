@@ -9,6 +9,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.time.LocalDate;
 
 @Service
 public class DashBoardService {
@@ -21,7 +22,7 @@ public class DashBoardService {
     this.s3Service = s3Service;
   }
 
-  public ApiResponse<String> saveUsernameByEmail(String email, String username) {
+  public ApiResponse<String> saveUsernameByEmail(String email, String username, String dob) {
 
     if (email == null || email.isBlank() || username == null || username.isBlank()) {
       return new ApiResponse<>(400, "Email and username are required", null);
@@ -32,6 +33,10 @@ public class DashBoardService {
         new RuntimeException("User not found with email: " + email));
 
       user.setUsername(username);
+      if(dob != null && !dob.isEmpty()) {
+        LocalDate dateOfBirth = LocalDate.parse(dob);
+        user.setDateOfBirth(dateOfBirth);
+      }
       userRepository.save(user);
 
       return new ApiResponse<>(200, "Username updated successfully", username);

@@ -1,6 +1,7 @@
 package org.spacehub.entities.LocalGroup;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -24,8 +25,10 @@ public class LocalGroup {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
+  @NotBlank(message = "Local Group name cannot be empty")
   private String name;
 
+  @NotBlank(message = "Description cannot be blank")
   private String description;
 
   @Column(name = "image_url")
@@ -44,22 +47,16 @@ public class LocalGroup {
   @ToString.Exclude
   private Set<User> members = new HashSet<>();
 
-  @Column(name = "chat_room_id", unique = true)
-  private String chatRoomId;
-
-  @Column(name = "voice_room_id", unique = true)
-  private String voiceRoomId;
-
   @Column(name = "invite_code", unique = true)
   private String inviteCode;
+
+  @OneToOne
+  @JoinColumn(name = "voice_room_id")
+  private VoiceRoom voiceRoom;
 
   @OneToOne(cascade = CascadeType.ALL)
   @JoinColumn(name = "chat_room_id", referencedColumnName = "id")
   private ChatRoom chatRoom;
-
-  @OneToOne(cascade = CascadeType.ALL)
-  @JoinColumn(name = "voice_room_id", referencedColumnName = "id")
-  private VoiceRoom voiceRoom;
 
   private LocalDateTime createdAt = LocalDateTime.now();
 
