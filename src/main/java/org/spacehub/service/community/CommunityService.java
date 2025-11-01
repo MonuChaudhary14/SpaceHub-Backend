@@ -7,6 +7,8 @@ import org.spacehub.DTO.Community.JoinCommunity;
 import org.spacehub.DTO.CancelJoinRequest;
 import org.spacehub.DTO.AcceptRequest;
 import org.spacehub.DTO.Community.LeaveCommunity;
+import org.spacehub.DTO.Community.RenameRoomRequest;
+import org.spacehub.DTO.Community.RolesResponse;
 import org.spacehub.DTO.RejectRequest;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.ChatRoom.ChatRoom;
@@ -687,6 +689,12 @@ public class CommunityService {
 
   public ResponseEntity<?> createRoomInCommunity(CreateRoomRequest request) {
     try {
+
+      if (request.getRequesterEmail() == null || request.getRequesterEmail().isBlank()) {
+        return ResponseEntity.badRequest()
+                .body(new ApiResponse<>(400, "Requester email is required", null));
+      }
+
       Community community = communityRepository.findById(request.getCommunityId())
         .orElseThrow(() -> new ResourceNotFoundException("Community not found with ID: " +
           request.getCommunityId()));
@@ -730,6 +738,7 @@ public class CommunityService {
     } catch (ResourceNotFoundException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
     } catch (Exception e) {
+      e.printStackTrace();
       return ResponseEntity.internalServerError().body(new ApiResponse<>(500,
         "An unexpected error occurred: " + e.getMessage(), null));
     }
@@ -877,6 +886,219 @@ public class CommunityService {
           Map.of("requested", true, "message", "Join request sent")));
       }
     }
+  }
+
+  public ResponseEntity<?> uploadCommunityAvatar(Long communityId, String requesterEmail, MultipartFile imageFile) {
+    if (requesterEmail == null || requesterEmail.isBlank()) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "requesterEmail is required",
+        null));
+    }
+    if (imageFile == null || imageFile.isEmpty()) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Image file is required",
+        null));
+    }
+
+    try {
+      Community community = communityRepository.findById(communityId).orElse(null);
+      if (community == null) return ResponseEntity.badRequest().body(new ApiResponse<>(400,
+        "Community not found", null));
+
+      User requester = userRepository.findByEmail(requesterEmail).orElse(null);
+      if (requester == null) return ResponseEntity.badRequest().body(new ApiResponse<>(400,
+        "User not found", null));
+
+      if (!isUserAdminInCommunity(community, requester)) {
+        return ResponseEntity.status(403).body(new ApiResponse<>(403,
+          "Only community admin can change avatar", null));
+      }
+
+      validateImage(imageFile);
+      String fileName = System.currentTimeMillis() + "_" + imageFile.getOriginalFilename();
+      String key = "communities/" + community.getName().replaceAll("[^a-zA-Z0-9]", "_") +
+        "/avatar/" + fileName;
+
+      s3Service.uploadFile(key, imageFile.getInputStream(), imageFile.getSize());
+      community.setImageUrl(key);
+      communityRepository.save(community);
+
+      String presigned = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(2));
+      Map<String, Object> body = Map.of("presignedUrl", presigned, "key", key);
+
+      return ResponseEntity.ok(new ApiResponse<>(200, "Avatar updated successfully", body));
+    } catch (IOException e) {
+      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Error uploading image: " + e.getMessage(), null));
+    } catch (RuntimeException e) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
+    }
+  }
+
+  public ResponseEntity<?> uploadCommunityBanner(Long communityId, String requesterEmail, MultipartFile imageFile) {
+    if (requesterEmail == null || requesterEmail.isBlank()) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "requesterEmail is required",
+        null));
+    }
+    if (imageFile == null || imageFile.isEmpty()) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Image file is required",
+        null));
+    }
+
+    try {
+      Community community = communityRepository.findById(communityId).orElse(null);
+      if (community == null) return ResponseEntity.badRequest().body(new ApiResponse<>(400,
+        "Community not found", null));
+
+      User requester = userRepository.findByEmail(requesterEmail).orElse(null);
+      if (requester == null) return ResponseEntity.badRequest().body(new ApiResponse<>(400,
+        "User not found", null));
+
+      if (!isUserAdminInCommunity(community, requester)) {
+        return ResponseEntity.status(403).body(new ApiResponse<>(403,
+          "Only community admin can change banner", null));
+      }
+
+      validateImage(imageFile);
+      String fileName = System.currentTimeMillis() + "_" + imageFile.getOriginalFilename();
+      String key = "communities/" + community.getName().replaceAll("[^a-zA-Z0-9]", "_") +
+        "/banner/" + fileName;
+
+      s3Service.uploadFile(key, imageFile.getInputStream(), imageFile.getSize());
+      community.setBannerUrl(key);
+      communityRepository.save(community);
+      String presigned = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(2));
+      Map<String, Object> body = Map.of("presignedUrl", presigned, "key", key);
+
+      return ResponseEntity.ok(new ApiResponse<>(200, "Banner updated successfully", body));
+    } catch (IOException e) {
+      return ResponseEntity.internalServerError().body(new ApiResponse<>(500,
+        "Error uploading image: " + e.getMessage(), null));
+    } catch (RuntimeException e) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
+    }
+  }
+
+  public ResponseEntity<?> renameRoomInCommunity(Long communityId, Long roomId, RenameRoomRequest req) {
+    if (req.getRequesterEmail() == null || req.getRequesterEmail().isBlank() || req.getNewRoomName() == null ||
+      req.getNewRoomName().isBlank()) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400,
+        "requesterEmail and newRoomName are required", null));
+    }
+
+    try {
+      Community community = communityRepository.findById(communityId).orElseThrow(() ->
+        new ResourceNotFoundException("Community not found"));
+      User requester = userRepository.findByEmail(req.getRequesterEmail()).orElseThrow(() ->
+        new ResourceNotFoundException("User not found"));
+      if (!isUserAdminInCommunity(community, requester)) {
+        return ResponseEntity.status(403).body(new ApiResponse<>(403,
+          "Only admin can rename rooms", null));
+      }
+
+      ChatRoom room = chatRoomRepository.findById(roomId).orElseThrow(() ->
+        new ResourceNotFoundException("Room not found"));
+
+      if (!room.getCommunity().getId().equals(communityId)) {
+        return ResponseEntity.badRequest().body(new ApiResponse<>(400,
+          "Room doesn't belong to the community", null));
+      }
+
+      boolean exists = chatRoomRepository.findByCommunityId(communityId)
+        .stream()
+        .anyMatch(r -> r.getName().equalsIgnoreCase(req.getNewRoomName().trim()) &&
+          !r.getId().equals(roomId));
+      if (exists) {
+        return ResponseEntity.badRequest().body(new ApiResponse<>(400,
+          "Another room with this name already exists", null));
+      }
+
+      room.setName(req.getNewRoomName().trim());
+      chatRoomRepository.save(room);
+      return ResponseEntity.ok(new ApiResponse<>(200, "Room renamed successfully", room));
+    } catch (ResourceNotFoundException e) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
+    } catch (Exception e) {
+      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: "
+        + e.getMessage(), null));
+    }
+  }
+
+
+  public ResponseEntity<?> getRolesForRequester(Long communityId, String requesterEmail) {
+    Community community = communityRepository.findById(communityId).orElse(null);
+    if (community == null) return ResponseEntity.badRequest().body(new ApiResponse<>(400,
+      "Community not found", null));
+
+    User requester = userRepository.findByEmail(requesterEmail).orElse(null);
+    boolean isAdmin = false;
+    if (requester != null) {
+      isAdmin = isUserAdminInCommunity(community, requester);
+    }
+    return ResponseEntity.ok(new ApiResponse<>(200, "Roles fetched", new RolesResponse(isAdmin)));
+  }
+
+  public ResponseEntity<ApiResponse<Map<String, Object>>> discoverCommunities(int page, int size) {
+    Pageable pageable = PageRequest.of(Math.max(0, page), Math.max(1, size));
+    Page<Community> communityPage = communityRepository.findAll(pageable);
+
+    List<Map<String, Object>> out = communityPage.getContent().stream().map(c -> {
+      Map<String, Object> m = new HashMap<>();
+      m.put("communityId", c.getId());
+      m.put("name", c.getName());
+      m.put("description", c.getDescription());
+
+      String bannerKey = c.getBannerUrl();
+      if (bannerKey == null || bannerKey.isBlank()) {
+        bannerKey = null;
+      }
+
+      String imageKey = c.getImageUrl();
+      if (imageKey == null || imageKey.isBlank()) {
+        imageKey = null;
+      }
+
+      if (bannerKey != null) {
+        try {
+          String presignedBanner = s3Service.generatePresignedDownloadUrl(bannerKey, Duration.ofHours(1));
+          m.put("bannerUrl", presignedBanner);
+          m.put("bannerKey", bannerKey);
+        } catch (Exception e) {
+          m.put("bannerUrl", null);
+          m.put("bannerKey", bannerKey);
+        }
+      } else {
+        m.put("bannerUrl", null);
+        m.put("bannerKey", null);
+      }
+
+      if (imageKey != null) {
+        try {
+          String presignedImage = s3Service.generatePresignedDownloadUrl(imageKey, Duration.ofHours(1));
+          m.put("imageUrl", presignedImage);
+          m.put("imageKey", imageKey);
+        } catch (Exception e) {
+          m.put("imageUrl", null);
+          m.put("imageKey", imageKey);
+        }
+      } else {
+        m.put("imageUrl", null);
+        m.put("imageKey", null);
+      }
+
+      if (c.getCreatedBy() != null) {
+        m.put("createdBy", c.getCreatedBy().getEmail());
+      }
+      m.put("createdAt", c.getCreatedAt());
+
+      return m;
+    }).collect(Collectors.toList());
+
+    Map<String, Object> body = new HashMap<>();
+    body.put("communities", out);
+    body.put("page", communityPage.getNumber());
+    body.put("size", communityPage.getSize());
+    body.put("totalElements", communityPage.getTotalElements());
+    body.put("totalPages", communityPage.getTotalPages());
+
+    return ResponseEntity.ok(new ApiResponse<>(200, "Discover communities fetched", body));
   }
 
 }
