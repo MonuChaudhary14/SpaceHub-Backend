@@ -38,6 +38,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.io.IOException;
@@ -640,30 +641,80 @@ public class CommunityService implements ICommunityService {
       throw new RuntimeException("Only image files are allowed");
   }
 
-  public ResponseEntity<ApiResponse<Map<String, List<Map<String, Object>>>>> listAllCommunities() {
+  public ResponseEntity<ApiResponse<Map<String, List<Map<String, Object>>>>> listAllCommunities(String requesterEmail) {
+
     List<Community> all = communityRepository.findAll();
-    List<Map<String, Object>> out = all.stream().map(c -> {
-      Map<String, Object> m = new HashMap<>();
-      m.put("communityId", c.getId());
-      m.put("name", c.getName());
-      m.put("description", c.getDescription());
+    if (requesterEmail == null || requesterEmail.isBlank()) {
+      List<Map<String, Object>> out = all.stream().map(c -> {
+        Map<String, Object> m = new HashMap<>();
+        m.put("communityId", c.getId());
+        m.put("name", c.getName());
+        m.put("description", c.getDescription());
 
-      String key = c.getImageUrl();
-      if (key != null && !key.isBlank()) {
-        try {
-          String presigned = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1));
-          m.put("imageUrl", presigned);
-          m.put("imageKey", key);
-        } catch (Exception e) {
+        String key = c.getImageUrl();
+        if (key != null && !key.isBlank()) {
+          try {
+            String presigned = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1));
+            m.put("imageUrl", presigned);
+            m.put("imageKey", key);
+          } catch (Exception e) {
+            m.put("imageUrl", null);
+            m.put("imageKey", key);
+          }
+        } else {
           m.put("imageUrl", null);
-          m.put("imageKey", key);
         }
-      } else {
-        m.put("imageUrl", null);
-      }
-      return m;
-    }).toList();
+        return m;
+      }).toList();
 
+      return ResponseEntity.ok(new ApiResponse<>(200, "Communities fetched",
+        Map.of("communities", out)));
+    }
+    String reqEmailLower = requesterEmail.trim().toLowerCase();
+    Optional<User> optUser = userRepository.findByEmail(requesterEmail);
+    if (optUser.isEmpty()) {
+      return ResponseEntity.ok(new ApiResponse<>(200, "Communities fetched",
+        Map.of("communities", List.of())));
+    }
+    Map<Long, Map<String, Object>> dedup = new LinkedHashMap<>();
+
+    for (Community c : all) {
+      boolean matchesCreator = c.getCreatedBy() != null
+        && c.getCreatedBy().getEmail() != null
+        && c.getCreatedBy().getEmail().equalsIgnoreCase(reqEmailLower);
+
+      boolean matchesMember = false;
+      if (c.getCommunityUsers() != null) {
+        matchesMember = c.getCommunityUsers().stream()
+          .anyMatch(cu -> cu.getUser() != null &&
+            cu.getUser().getEmail() != null &&
+            cu.getUser().getEmail().equalsIgnoreCase(reqEmailLower));
+      }
+
+      if (matchesCreator || matchesMember) {
+        Map<String, Object> m = new HashMap<>();
+        m.put("communityId", c.getId());
+        m.put("name", c.getName());
+        m.put("description", c.getDescription());
+
+        String key = c.getImageUrl();
+        if (key != null && !key.isBlank()) {
+          try {
+            String presigned = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1));
+            m.put("imageUrl", presigned);
+            m.put("imageKey", key);
+          } catch (Exception e) {
+            m.put("imageUrl", null);
+            m.put("imageKey", key);
+          }
+        } else {
+          m.put("imageUrl", null);
+        }
+        dedup.put(c.getId(), m);
+      }
+    }
+
+    List<Map<String, Object>> out = new ArrayList<>(dedup.values());
     return ResponseEntity.ok(new ApiResponse<>(200, "Communities fetched", Map.of("communities", out)));
   }
 
