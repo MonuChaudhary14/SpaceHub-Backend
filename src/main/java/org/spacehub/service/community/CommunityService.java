@@ -180,11 +180,14 @@ public class CommunityService implements ICommunityService {
   }
 
   @CachePut(value = "communities", key = "#joinCommunity.communityName")
-  public ResponseEntity<?> requestToJoinCommunity(@RequestBody JoinCommunity joinCommunity) {
+  public ResponseEntity<ApiResponse<?>> requestToJoinCommunity(@RequestBody JoinCommunity joinCommunity) {
 
     if (joinCommunity.getCommunityName() == null || joinCommunity.getCommunityName().isEmpty() ||
       joinCommunity.getUserEmail() == null || joinCommunity.getUserEmail().isEmpty()) {
-      return ResponseEntity.badRequest().body("Check the fields");
+
+      return ResponseEntity.badRequest().body(
+        new ApiResponse<>(400, "Check the fields")
+      );
     }
 
     Community community = communityRepository.findByName(joinCommunity.getCommunityName());
@@ -193,7 +196,9 @@ public class CommunityService implements ICommunityService {
       Optional<User> optionalUser = userRepository.findByEmail(joinCommunity.getUserEmail());
 
       if (optionalUser.isEmpty()) {
-        return ResponseEntity.badRequest().body("User not found");
+        return ResponseEntity.badRequest().body(
+          new ApiResponse<>(400, "User not found")
+        );
       }
 
       User user = optionalUser.get();
@@ -202,15 +207,21 @@ public class CommunityService implements ICommunityService {
         .anyMatch(cu -> cu.getUser().getId().equals(user.getId()));
 
       if (isAlreadyMember) {
-        return ResponseEntity.status(403).body("You are already in this community");
+        return ResponseEntity.status(403).body(
+          new ApiResponse<>(403, "You are already in this community")
+        );
       }
 
       community.getPendingRequests().add(user);
       communityRepository.save(community);
 
-      return ResponseEntity.ok().body("Request send to community");
+      return ResponseEntity.ok().body(
+        new ApiResponse<>(200, "Request send to community")
+      );
     } else {
-      return ResponseEntity.badRequest().body("Community not found");
+      return ResponseEntity.badRequest().body(
+        new ApiResponse<>(400, "Community not found")
+      );
     }
   }
 
@@ -248,10 +259,12 @@ public class CommunityService implements ICommunityService {
   }
 
   @CacheEvict(value = "communities", key = "#acceptRequest.communityName")
-  public ResponseEntity<?> acceptRequest(AcceptRequest acceptRequest) {
+  public ResponseEntity<ApiResponse<?>> acceptRequest(AcceptRequest acceptRequest) {
 
     if (isEmpty(acceptRequest.getUserEmail(), acceptRequest.getCommunityName(), acceptRequest.getCreatorEmail())) {
-      return ResponseEntity.badRequest().body("Check the fields");
+      return ResponseEntity.badRequest().body(
+        new ApiResponse<>(400, "Check the fields")
+      );
     }
 
     try {
@@ -260,11 +273,15 @@ public class CommunityService implements ICommunityService {
       User user = findUserByEmail(acceptRequest.getUserEmail());
 
       if (!community.getCreatedBy().getId().equals(creator.getId())) {
-        return ResponseEntity.status(403).body("You are not authorized to accept requests");
+        return ResponseEntity.status(403).body(
+          new ApiResponse<>(403, "You are not authorized to accept requests")
+        );
       }
 
       if (!community.getPendingRequests().contains(user)) {
-        return ResponseEntity.badRequest().body("No pending request from this user");
+        return ResponseEntity.badRequest().body(
+          new ApiResponse<>(400, "No pending request from this user")
+        );
       }
 
       community.getPendingRequests().remove(user);
@@ -278,10 +295,16 @@ public class CommunityService implements ICommunityService {
       newMember.setBanned(false);
       communityUserRepository.save(newMember);
 
-      return ResponseEntity.ok("User has been added to the community successfully");
-
+      ApiResponse<Object> response = new ApiResponse<>(
+        200,
+        "User has been added to the community successfully",
+        null
+      );
+      return ResponseEntity.ok(response);
     } catch (ResourceNotFoundException ex) {
-      return ResponseEntity.badRequest().body(ex.getMessage());
+      return ResponseEntity.badRequest().body(
+        new ApiResponse<>(400, ex.getMessage())
+      );
     }
   }
 
