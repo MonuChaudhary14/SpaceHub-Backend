@@ -113,10 +113,9 @@ public class CommunityController {
     return communityService.getCommunityDetailsWithAdminFlag(communityId, requesterEmail);
   }
 
-  @PostMapping("/{id}/rooms/create")
-  public ResponseEntity<?> createRoomInCommunity(@PathVariable("id") Long communityId,
-                                                 @RequestBody CreateRoomRequest request) {
-    request.setCommunityId(communityId);
+  @PostMapping("/rooms/create")
+  public ResponseEntity<?> createRoomInCommunity(@RequestBody CreateRoomRequest request) {
+    request.setCommunityId(request.getCommunityId());
     return communityService.createRoomInCommunity(request);
   }
 
