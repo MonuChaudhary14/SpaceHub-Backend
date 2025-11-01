@@ -50,11 +50,20 @@ public class User implements UserDetails {
   private Boolean isVerifiedForgot = false;
   private Integer passwordVersion = 0;
 
+  @Column(length = 1000)
   private String avatarUrl;
+
+  @Column(length = 1000)
   private String coverPhotoUrl;
+
+  @Column(columnDefinition = "TEXT")
   private String bio;
+
   private String location;
+
+  @Column(length = 500)
   private String website;
+
   private LocalDate dateOfBirth;
 
   private Integer followersCount = 0;
