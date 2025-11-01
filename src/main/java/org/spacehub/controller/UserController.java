@@ -12,7 +12,7 @@ import org.spacehub.DTO.DTO_auth.TokenResponse;
 import org.spacehub.DTO.DTO_auth.ValidateForgotOtpRequest;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.Auth.RegistrationRequest;
-import org.spacehub.service.service_auth.UserAccountService;
+import org.spacehub.service.serviceAuth.UserAccountService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

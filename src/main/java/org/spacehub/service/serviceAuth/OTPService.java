@@ -1,11 +1,11 @@
-package org.spacehub.service.service_auth;
+package org.spacehub.service.serviceAuth;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.spacehub.entities.OTP.OtpType;
 import org.spacehub.entities.Auth.RegistrationRequest;
 import org.spacehub.entities.User.User;
-import org.spacehub.service.service_auth.authInterfaces.IEmailService;
-import org.spacehub.service.service_auth.authInterfaces.IOTPService;
+import org.spacehub.service.serviceAuth.authInterfaces.IEmailService;
+import org.spacehub.service.serviceAuth.authInterfaces.IOTPService;
 import org.springframework.stereotype.Service;
 import java.security.SecureRandom;
 

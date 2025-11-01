@@ -1,8 +1,8 @@
-package org.spacehub.service.service_auth;
+package org.spacehub.service.serviceAuth;
 
 import org.spacehub.DTO.DTO_auth.TokenResponse;
 import org.spacehub.entities.User.User;
-import org.spacehub.service.service_auth.authInterfaces.IVerificationService;
+import org.spacehub.service.serviceAuth.authInterfaces.IVerificationService;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Service;

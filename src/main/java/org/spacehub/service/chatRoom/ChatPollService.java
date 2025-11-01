@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class ChatPollService implements IChatPollService {
@@ -36,7 +37,7 @@ public class ChatPollService implements IChatPollService {
 
   public ChatPoll createPoll(String roomCode, String userId, Map<String, Object> body) {
 
-    ChatRoom room = chatRoomService.findByRoomCode(roomCode).orElseThrow(() -> new RuntimeException("Room not found"));
+    ChatRoom room = chatRoomService.findByRoomCode(UUID.fromString(roomCode)).orElseThrow(() -> new RuntimeException("Room not found"));
 
     boolean checkAccess = chatRoomUserService.getMembers(room).stream().anyMatch(member -> member.getUserId().equals(userId) &&
                     (member.getRole() == Role.ADMIN || member.getRole() == Role.WORKSPACE_OWNER));
@@ -67,7 +68,7 @@ public class ChatPollService implements IChatPollService {
   }
 
   public List<ChatPoll> getPollsForRoom(String roomCode) {
-    ChatRoom room = chatRoomService.findByRoomCode(roomCode).orElseThrow(() -> new RuntimeException("Room not found"));
+    ChatRoom room = chatRoomService.findByRoomCode(UUID.fromString(roomCode)).orElseThrow(() -> new RuntimeException("Room not found"));
     return pollRepository.findByRoomOrderByTimestampAsc(room);
   }
 

@@ -53,7 +53,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
       return;
     }
 
-    Optional<ChatRoom> optionalRoom = chatRoomService.findByRoomCode(roomCode);
+    Optional<ChatRoom> optionalRoom = chatRoomService.findByRoomCode(UUID.fromString(roomCode));
     if (optionalRoom.isEmpty()) {
       session.close();
       return;

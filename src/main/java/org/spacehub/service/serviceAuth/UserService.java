@@ -1,8 +1,8 @@
-package org.spacehub.service.service_auth;
+package org.spacehub.service.serviceAuth;
 
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.UserRepository;
-import org.spacehub.service.service_auth.authInterfaces.IUserService;
+import org.spacehub.service.serviceAuth.authInterfaces.IUserService;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;

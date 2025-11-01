@@ -1,10 +1,10 @@
-package org.spacehub.service.service_auth;
+package org.spacehub.service.serviceAuth;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.spacehub.entities.User.User;
-import org.spacehub.service.service_auth.authInterfaces.IUserNameService;
+import org.spacehub.service.serviceAuth.authInterfaces.IUserNameService;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 

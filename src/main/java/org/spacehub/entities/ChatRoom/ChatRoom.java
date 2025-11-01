@@ -7,6 +7,7 @@ import org.spacehub.entities.Community.Community;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.UUID;
 
 @Entity
 @Data
@@ -25,7 +26,7 @@ public class ChatRoom implements Serializable {
   private String name;
 
   @Column(unique = true, nullable = false)
-  private String roomCode;
+  private UUID roomCode;
 
   @ManyToOne
   @JoinColumn(name = "community_id")

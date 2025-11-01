@@ -1,4 +1,4 @@
-package org.spacehub.service.service_auth.authInterfaces;
+package org.spacehub.service.serviceAuth.authInterfaces;
 
 import io.jsonwebtoken.Claims;
 import org.springframework.security.core.userdetails.UserDetails;

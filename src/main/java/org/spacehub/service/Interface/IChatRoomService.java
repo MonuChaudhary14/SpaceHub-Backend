@@ -10,10 +10,11 @@ import org.spacehub.entities.ChatRoom.ChatRoom;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface IChatRoomService {
 
-  Optional<ChatRoom> findByRoomCode(String roomCode);
+  Optional<ChatRoom> findByRoomCode(UUID roomCode);
 
   ApiResponse<RoomResponseDTO> createRoom(CreateRoomRequest requestDTO);
 

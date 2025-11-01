@@ -1,8 +1,8 @@
-package org.spacehub.service.service_auth;
+package org.spacehub.service.serviceAuth;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
-import org.spacehub.service.service_auth.authInterfaces.IEmailService;
+import org.spacehub.service.serviceAuth.authInterfaces.IEmailService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
