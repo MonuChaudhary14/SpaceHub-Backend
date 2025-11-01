@@ -13,6 +13,7 @@ import org.spacehub.entities.Community.Role;
 import org.spacehub.repository.ChatRoom.ChatMessageRepository;
 import org.spacehub.repository.ChatRoom.ChatRoomRepository;
 import org.spacehub.repository.community.CommunityRepository;
+import org.spacehub.service.Interface.IChatRoomService;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -23,7 +24,7 @@ import java.util.UUID;
 
 @Transactional
 @Service
-public class ChatRoomService {
+public class ChatRoomService implements IChatRoomService {
 
   private final ChatRoomRepository chatRoomRepository;
   private final ChatMessageRepository chatMessageRepository;

@@ -1,5 +1,6 @@
 package org.spacehub.service;
 
+import org.spacehub.service.Interface.IJanusService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -8,7 +9,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @Service
-public class JanusService {
+public class JanusService implements IJanusService {
 
   private final String janusUrl = "http://localhost:8088/janus";
 

@@ -1,4 +1,4 @@
-package org.spacehub.service.ChatRoom;
+package org.spacehub.service.chatRoom;
 
 import org.spacehub.entities.ChatRoom.ChatPoll;
 import org.spacehub.entities.ChatRoom.ChatRoom;
@@ -6,6 +6,7 @@ import org.spacehub.entities.ChatRoom.ChatVote;
 import org.spacehub.entities.Community.Role;
 import org.spacehub.repository.ChatRoom.ChatPollRepository;
 import org.spacehub.repository.ChatRoom.ChatVoteRepository;
+import org.spacehub.service.chatRoom.chatroomInterfaces.IChatPollService;
 import org.spacehub.service.ChatRoomService;
 import org.spacehub.service.ChatRoomUserService;
 import org.springframework.stereotype.Service;
@@ -16,7 +17,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @Service
-public class ChatPollService {
+public class ChatPollService implements IChatPollService {
 
   private final ChatPollRepository pollRepository;
   private final ChatVoteRepository voteRepository;
@@ -93,13 +94,7 @@ public class ChatPollService {
     else {
       vote = ChatVote.builder().poll(poll).userId(userId).optionIndex(optionIndex).build();
     }
-
     voteRepository.save(vote);
-  }
-
-  public List<ChatVote> getVotes(Long pollId) {
-    ChatPoll poll = pollRepository.findById(pollId).orElseThrow(() -> new RuntimeException("Poll not found"));
-    return voteRepository.findByPoll(poll);
   }
 
 }

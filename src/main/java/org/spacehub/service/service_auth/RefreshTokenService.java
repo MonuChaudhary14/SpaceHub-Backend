@@ -3,12 +3,13 @@ package org.spacehub.service.service_auth;
 import org.spacehub.entities.Auth.RefreshToken;
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.RefreshTokenRepository;
+import org.spacehub.service.service_auth.authInterfaces.IRefreshTokenService;
 import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
 @Service
-public class RefreshTokenService {
+public class RefreshTokenService implements IRefreshTokenService {
 
   private final RefreshTokenRepository refreshTokenRepository;
   private static final long refreshTokenDay = 365;

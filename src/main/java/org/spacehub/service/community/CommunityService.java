@@ -24,6 +24,7 @@ import org.spacehub.repository.community.CommunityUserRepository;
 import org.spacehub.DTO.Community.CommunityBlockRequest;
 import org.spacehub.DTO.Community.UpdateCommunityDTO;
 import org.spacehub.service.S3Service;
+import org.spacehub.service.community.CommunityInterfaces.ICommunityService;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.http.HttpStatus;
@@ -51,7 +52,7 @@ import java.util.UUID;
 
 @Transactional
 @Service
-public class CommunityService {
+public class CommunityService implements ICommunityService {
 
   private final CommunityRepository communityRepository;
   private final UserRepository userRepository;
@@ -739,7 +740,6 @@ public class CommunityService {
     } catch (ResourceNotFoundException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
     } catch (Exception e) {
-      e.printStackTrace();
       return ResponseEntity.internalServerError().body(new ApiResponse<>(500,
         "An unexpected error occurred: " + e.getMessage(), null));
     }

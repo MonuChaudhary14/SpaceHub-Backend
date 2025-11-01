@@ -2,7 +2,7 @@ package org.spacehub.controller;
 
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.ChatRoom.ChatPoll;
-import org.spacehub.service.ChatRoom.ChatPollService;
+import org.spacehub.service.chatRoom.ChatPollService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

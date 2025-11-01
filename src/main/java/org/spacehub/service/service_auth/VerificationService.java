@@ -2,6 +2,7 @@ package org.spacehub.service.service_auth;
 
 import org.spacehub.DTO.DTO_auth.TokenResponse;
 import org.spacehub.entities.User.User;
+import org.spacehub.service.service_auth.authInterfaces.IVerificationService;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Service;
@@ -9,7 +10,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 
 @Service
-public class VerificationService {
+public class VerificationService implements IVerificationService {
 
   private final UserNameService userNameService;
   private final AuthenticationManager authenticationManager;

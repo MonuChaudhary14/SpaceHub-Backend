@@ -1,8 +1,9 @@
-package org.spacehub.service.ChatRoom;
+package org.spacehub.service.chatRoom;
 
 import org.spacehub.entities.ChatRoom.ChatMessage;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.handler.ChatWebSocketHandler;
+import org.spacehub.service.chatRoom.chatroomInterfaces.IChatMessageQueue;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -12,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
-public class ChatMessageQueue {
+public class ChatMessageQueue implements IChatMessageQueue {
 
   private final List<ChatMessage> queue = new ArrayList<>();
   private final ChatMessageService chatMessageService;

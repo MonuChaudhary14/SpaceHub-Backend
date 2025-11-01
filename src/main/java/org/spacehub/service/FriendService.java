@@ -5,6 +5,7 @@ import org.spacehub.entities.Friends.Friends;
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.FriendsRepository;
 import org.spacehub.repository.UserRepository;
+import org.spacehub.service.Interface.IFriendService;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -14,7 +15,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
-public class FriendService {
+public class FriendService implements IFriendService {
 
   private final FriendsRepository friendsRepository;
   private final UserRepository userRepository;

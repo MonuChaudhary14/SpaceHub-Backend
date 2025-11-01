@@ -1,5 +1,6 @@
 package org.spacehub.service;
 
+import org.spacehub.service.Interface.IPresenceService;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.spacehub.DTO.presence.OnlineUsersDTO;
@@ -8,7 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 @Service
-public class PresenceService {
+public class PresenceService implements IPresenceService {
 
   private final SimpMessagingTemplate messagingTemplate;
   private final ConcurrentMap<Long, ConcurrentMap<String, Integer>> online = new ConcurrentHashMap<>();
