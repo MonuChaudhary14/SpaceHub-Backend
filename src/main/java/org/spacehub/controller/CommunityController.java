@@ -14,7 +14,7 @@ import org.spacehub.DTO.Community.RenameRoomRequest;
 import org.spacehub.DTO.Community.UpdateCommunityDTO;
 import org.spacehub.DTO.RejectRequest;
 import org.spacehub.entities.ApiResponse.ApiResponse;
-import org.spacehub.service.community.CommunityService;
+import org.spacehub.service.community.CommunityInterfaces.ICommunityService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -25,9 +25,9 @@ import java.util.Map;
 @RequestMapping("api/v1/community")
 public class CommunityController {
 
-  private final CommunityService communityService;
+  private final ICommunityService communityService;
 
-  public CommunityController(CommunityService communityService) {
+  public CommunityController(ICommunityService communityService) {
     this.communityService = communityService;
   }
 
@@ -108,7 +108,7 @@ public class CommunityController {
   }
 
   @GetMapping("/user/all/community")
-  public ResponseEntity<?> listAllUserCommunities(@RequestBody String emailId) {
+  public ResponseEntity<?> listAllUserCommunities(@RequestParam String emailId) {
     return communityService.getUserCommunities(emailId);
   }
 
@@ -120,7 +120,6 @@ public class CommunityController {
 
   @PostMapping("/rooms/create")
   public ResponseEntity<?> createRoomInCommunity(@RequestBody CreateRoomRequest request) {
-    request.setCommunityId(request.getCommunityId());
     return communityService.createRoomInCommunity(request);
   }
 
@@ -171,9 +170,7 @@ public class CommunityController {
     @RequestParam(value = "name", required = false) String name,
     @RequestParam(value = "description", required = false) String description
   ) {
-    return communityService.uploadCommunityBanner(
-      communityId, requesterEmail, bannerFile, communityAvatarFile, userAvatarFile, name, description
-    );
+    return communityService.uploadCommunityBanner(communityId, requesterEmail, bannerFile, communityAvatarFile, userAvatarFile, name, description);
   }
 
   @PutMapping("/{communityId}/rooms/{roomId}/rename")
@@ -181,7 +178,6 @@ public class CommunityController {
     @PathVariable Long communityId,
     @PathVariable Long roomId,
     @RequestBody RenameRoomRequest req) {
-    req.setRequesterEmail(req.getRequesterEmail());
     return communityService.renameRoomInCommunity(communityId, roomId, req);
   }
 

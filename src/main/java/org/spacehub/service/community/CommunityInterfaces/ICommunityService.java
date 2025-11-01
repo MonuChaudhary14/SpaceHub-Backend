@@ -51,6 +51,8 @@ public interface ICommunityService {
     String requesterEmail
   );
 
+  ResponseEntity<?> getUserCommunities(String emailId);
+
   ResponseEntity<?> createRoomInCommunity(CreateRoomRequest request);
 
   ResponseEntity<ApiResponse<List<Map<String, Object>>>> getRoomsByCommunity(Long communityId);
