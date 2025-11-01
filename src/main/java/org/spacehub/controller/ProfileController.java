@@ -3,7 +3,7 @@ package org.spacehub.controller;
 import org.spacehub.DTO.UserProfileDTO;
 import org.spacehub.DTO.UserProfileResponse;
 import org.spacehub.entities.User.User;
-import org.spacehub.service.ProfileService;
+import org.spacehub.service.Interface.IProfileService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -12,9 +12,9 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/v1/profile")
 public class ProfileController {
 
-  private final ProfileService profileService;
+  private final IProfileService profileService;
 
-  public ProfileController(ProfileService profileService) {
+  public ProfileController(IProfileService profileService) {
     this.profileService = profileService;
   }
 

@@ -1,7 +1,7 @@
 package org.spacehub.controller;
 
 import org.spacehub.entities.DirectMessaging.Message;
-import org.spacehub.service.MessageService;
+import org.spacehub.service.Interface.IMessageService;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
@@ -11,10 +11,10 @@ import java.util.List;
 @RequestMapping("/api/v1/messages")
 public class MessageController {
 
-  private final MessageService service;
+  private final IMessageService service;
   private final SimpMessagingTemplate messagingTemplate;
 
-  public MessageController(MessageService service, SimpMessagingTemplate messagingTemplate) {
+  public MessageController(IMessageService service, SimpMessagingTemplate messagingTemplate) {
     this.service = service;
     this.messagingTemplate = messagingTemplate;
   }

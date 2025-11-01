@@ -3,7 +3,7 @@ package org.spacehub.controller;
 import jakarta.validation.Valid;
 import org.spacehub.DTO.DashBoard.UsernameRequest;
 import org.spacehub.entities.ApiResponse.ApiResponse;
-import org.spacehub.service.DashBoardService;
+import org.spacehub.service.Interface.IDashBoardService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,9 +13,9 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/v1/dashboard")
 public class DashboardController {
 
-  private final DashBoardService dashboardService;
+  private final IDashBoardService dashboardService;
 
-  public DashboardController(DashBoardService dashboardService) {
+  public DashboardController(IDashBoardService dashboardService) {
     this.dashboardService = dashboardService;
   }
 

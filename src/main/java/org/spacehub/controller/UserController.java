@@ -13,6 +13,7 @@ import org.spacehub.DTO.DTO_auth.ValidateForgotOtpRequest;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.Auth.RegistrationRequest;
 import org.spacehub.service.serviceAuth.UserAccountService;
+import org.spacehub.service.serviceAuth.authInterfaces.IUserAccountService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,9 +23,9 @@ import java.util.Map;
 @RequestMapping(path = "api/v1")
 public class UserController {
 
-  private final UserAccountService accountService;
+  private final IUserAccountService accountService;
 
-  public UserController(UserAccountService accountService) {
+  public UserController(IUserAccountService accountService) {
     this.accountService = accountService;
   }
 

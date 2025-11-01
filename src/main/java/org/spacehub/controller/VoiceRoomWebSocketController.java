@@ -2,7 +2,7 @@ package org.spacehub.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
-import org.spacehub.service.JanusService;
+import org.spacehub.service.Interface.IJanusService;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class VoiceRoomWebSocketController {
 
-  private final JanusService janusService;
+  private final IJanusService janusService;
   private final SimpMessagingTemplate messagingTemplate;
 
   private final ConcurrentHashMap<String, String> userSessionMap = new ConcurrentHashMap<>();

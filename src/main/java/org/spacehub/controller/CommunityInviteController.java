@@ -4,7 +4,7 @@ package org.spacehub.controller;
 import org.spacehub.DTO.Community.CommunityInviteAcceptDTO;
 import org.spacehub.DTO.Community.CommunityInviteRequestDTO;
 import org.spacehub.entities.ApiResponse.ApiResponse;
-import org.spacehub.service.community.CommunityInviteService;
+import org.spacehub.service.community.CommunityInterfaces.ICommunityInviteService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,9 +14,9 @@ import java.util.UUID;
 @RequestMapping("/api/v1/community/invites")
 public class CommunityInviteController {
 
-  private final CommunityInviteService inviteService;
+  private final ICommunityInviteService inviteService;
 
-  public CommunityInviteController(CommunityInviteService inviteService) {
+  public CommunityInviteController(ICommunityInviteService inviteService) {
     this.inviteService = inviteService;
   }
 
