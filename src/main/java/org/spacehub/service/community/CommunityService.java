@@ -134,7 +134,7 @@ public class CommunityService {
       communityRepository.save(savedCommunity);
 
       Map<String, Object> responseData = new HashMap<>();
-      responseData.put("communityId", savedCommunity.getId());
+      responseData.put("communityId", savedCommunity.getCommunityId());
       responseData.put("name", savedCommunity.getName());
       responseData.put("imageUrl", imageUrl);
 
@@ -151,98 +151,107 @@ public class CommunityService {
     }
   }
 
-  @CacheEvict(value = {"communities"}, key = "#deleteCommunity.name")
-  public ResponseEntity<?> deleteCommunityByName(@RequestBody DeleteCommunityDTO deleteCommunity) {
+  @Transactional
+  public ResponseEntity<ApiResponse<?>> deleteCommunityByName(@RequestBody DeleteCommunityDTO deleteCommunity) {
 
-    String name = deleteCommunity.getName();
+    UUID communityId = deleteCommunity.getCommunityId();
     String userEmail = deleteCommunity.getUserEmail();
 
-    Community community = communityRepository.findByName(name);
-    if (community == null) {
-      return ResponseEntity.badRequest().body("Community not found");
+    if (communityId == null || userEmail == null || userEmail.isBlank()) {
+      return ResponseEntity.badRequest()
+              .body(new ApiResponse<>(400, "Community ID and user email are required", null));
     }
+
+    Optional<Community> optionalCommunity = communityRepository.findByCommunityId(communityId);
+    if (optionalCommunity.isEmpty()) {
+      return ResponseEntity.badRequest()
+              .body(new ApiResponse<>(400, "Community not found", null));
+    }
+
+    Community community = optionalCommunity.get();
 
     Optional<User> userOptional = userRepository.findByEmail(userEmail);
     if (userOptional.isEmpty()) {
-      return ResponseEntity.badRequest().body("User not found");
+      return ResponseEntity.badRequest()
+              .body(new ApiResponse<>(400, "User not found", null));
     }
 
     User user = userOptional.get();
 
     if (!community.getCreatedBy().getId().equals(user.getId())) {
-      return ResponseEntity.status(403).body("You are not authorized to delete this community");
+      return ResponseEntity.status(HttpStatus.FORBIDDEN)
+              .body(new ApiResponse<>(403, "You are not authorized to delete this community", null));
     }
 
     communityRepository.delete(community);
-    return ResponseEntity.ok().body("Community deleted successfully");
+
+    return ResponseEntity.ok()
+            .body(new ApiResponse<>(200, "Community deleted successfully", null));
   }
 
   @CachePut(value = "communities", key = "#joinCommunity.communityName")
   public ResponseEntity<?> requestToJoinCommunity(@RequestBody JoinCommunity joinCommunity) {
 
-    if (joinCommunity.getCommunityName() == null || joinCommunity.getCommunityName().isEmpty() ||
-      joinCommunity.getUserEmail() == null || joinCommunity.getUserEmail().isEmpty()) {
+    if (joinCommunity.getCommunityId() == null || joinCommunity.getUserEmail() == null || joinCommunity.getUserEmail().isEmpty()) {
       return ResponseEntity.badRequest().body("Check the fields");
     }
 
-    Community community = communityRepository.findByName(joinCommunity.getCommunityName());
-
-    if (community != null) {
-      Optional<User> optionalUser = userRepository.findByEmail(joinCommunity.getUserEmail());
-
-      if (optionalUser.isEmpty()) {
-        return ResponseEntity.badRequest().body("User not found");
-      }
-
-      User user = optionalUser.get();
-
-      boolean isAlreadyMember = community.getCommunityUsers().stream()
-        .anyMatch(cu -> cu.getUser().getId().equals(user.getId()));
-
-      if (isAlreadyMember) {
-        return ResponseEntity.status(403).body("You are already in this community");
-      }
-
-      community.getPendingRequests().add(user);
-      communityRepository.save(community);
-
-      return ResponseEntity.ok().body("Request send to community");
-    } else {
+    Optional<Community> optionalCommunity = communityRepository.findByCommunityId(joinCommunity.getCommunityId());
+    if (optionalCommunity.isEmpty()) {
       return ResponseEntity.badRequest().body("Community not found");
     }
+
+    Community community = optionalCommunity.get();
+
+    Optional<User> optionalUser = userRepository.findByEmail(joinCommunity.getUserEmail());
+    if (optionalUser.isEmpty()) {
+      return ResponseEntity.badRequest().body("User not found");
+    }
+
+    User user = optionalUser.get();
+
+    boolean isAlreadyMember = community.getCommunityUsers().stream()
+            .anyMatch(cu -> cu.getUser().getId().equals(user.getId()));
+
+    if (isAlreadyMember) {
+      return ResponseEntity.status(403).body("You are already in this community");
+    }
+
+    community.getPendingRequests().add(user);
+    communityRepository.save(community);
+
+    return ResponseEntity.ok().body("Request sent to community");
   }
 
   @CacheEvict(value = "communities", key = "#cancelJoinRequest.communityName")
   public ResponseEntity<?> cancelRequestCommunity(@RequestBody CancelJoinRequest cancelJoinRequest) {
 
-    if (cancelJoinRequest.getCommunityName() != null && !cancelJoinRequest.getCommunityName().isEmpty() &&
-      cancelJoinRequest.getUserEmail() != null && !cancelJoinRequest.getUserEmail().isEmpty()) {
-      Community community = communityRepository.findByName(cancelJoinRequest.getCommunityName());
-
-      if (community == null) {
-        return ResponseEntity.badRequest().body("Community not found");
-      }
-
-      Optional<User> optionalUser = userRepository.findByEmail(cancelJoinRequest.getUserEmail());
-
-      if (optionalUser.isEmpty()) {
-        return ResponseEntity.badRequest().body("User not found");
-      }
-
-      User user = optionalUser.get();
-
-      if (!community.getPendingRequests().contains(user)) {
-        return ResponseEntity.status(403).body("No request found for this community");
-      }
-
-      community.getPendingRequests().remove(user);
-      communityRepository.save(community);
-
-      return ResponseEntity.ok().body("Cancelled the request to join the community");
-    } else {
+    if (cancelJoinRequest.getCommunityId() == null || cancelJoinRequest.getUserEmail() == null || cancelJoinRequest.getUserEmail().isEmpty()) {
       return ResponseEntity.badRequest().body("Check the fields");
     }
 
+    Optional<Community> optionalCommunity = communityRepository.findByCommunityId(cancelJoinRequest.getCommunityId());
+    if (optionalCommunity.isEmpty()) {
+      return ResponseEntity.badRequest().body("Community not found");
+    }
+
+    Community community = optionalCommunity.get();
+
+    Optional<User> optionalUser = userRepository.findByEmail(cancelJoinRequest.getUserEmail());
+    if (optionalUser.isEmpty()) {
+      return ResponseEntity.badRequest().body("User not found");
+    }
+
+    User user = optionalUser.get();
+
+    if (!community.getPendingRequests().contains(user)) {
+      return ResponseEntity.status(403).body("No request found for this community");
+    }
+
+    community.getPendingRequests().remove(user);
+    communityRepository.save(community);
+
+    return ResponseEntity.ok().body("Cancelled the request to join the community");
   }
 
   @CacheEvict(value = "communities", key = "#acceptRequest.communityName")

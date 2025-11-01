@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 
 @Data
 @ToString
@@ -54,10 +55,26 @@ public class Community {
   @Column(name="banner_url")
   private String bannerUrl;
 
+  @Column(name = "community_id", unique = true, updatable = false, nullable = false)
+  private UUID communityId;
 
-  private LocalDateTime createdAt = LocalDateTime.now();
+  private LocalDateTime createdAt;
 
-  private LocalDateTime updatedAt = LocalDateTime.now();
+  private LocalDateTime updatedAt;
+
+  @PrePersist
+  public void prePersist() {
+    if (communityId == null) {
+      communityId = UUID.randomUUID();
+    }
+    createdAt = LocalDateTime.now();
+    updatedAt = LocalDateTime.now();
+  }
+
+  @PreUpdate
+  public void preUpdate() {
+    updatedAt = LocalDateTime.now();
+  }
 
   @OneToMany(mappedBy = "community", cascade = CascadeType.ALL, orphanRemoval = true)
   @JsonManagedReference

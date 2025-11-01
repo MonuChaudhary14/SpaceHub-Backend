@@ -42,7 +42,7 @@ public class CommunityInviteService {
 
     CommunityInviteResponseDTO response = CommunityInviteResponseDTO.builder()
             .inviteCode(invite.getInviteCode())
-            .inviteLink("https:///invite/" + invite.getInviteCode())
+            .inviteLink("https://your-domain.com/invite/" + invite.getInviteCode())
             .communityId(communityId)
             .email(invite.getEmail())
             .maxUses(invite.getMaxUses())
@@ -87,8 +87,7 @@ public class CommunityInviteService {
 
   public ApiResponse<List<CommunityInviteResponseDTO>> getCommunityInvites(UUID communityId) {
 
-    List<CommunityInviteResponseDTO> invites = inviteRepository.findAll()
-            .stream()
+    List<CommunityInviteResponseDTO> invites = inviteRepository.findAll().stream()
             .filter(invite -> invite.getCommunityId().equals(communityId))
             .map(invite -> CommunityInviteResponseDTO.builder()
                     .inviteCode(invite.getInviteCode())
