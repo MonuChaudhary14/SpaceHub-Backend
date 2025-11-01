@@ -140,11 +140,41 @@ public class LocalGroupService implements ILocalGroupService {
     return ResponseEntity.ok(new ApiResponse<>(200, "Local group deleted successfully", null));
   }
 
-  public ResponseEntity<ApiResponse<List<LocalGroupResponse>>> listAllLocalGroups() {
+  public ResponseEntity<ApiResponse<List<LocalGroupResponse>>> listAllLocalGroups(String requesterEmail) {
     List<LocalGroup> all = localGroupRepository.findAll();
-    List<LocalGroupResponse> out = all.stream().map(this::toResponse).collect(Collectors.toList());
-    return ResponseEntity.ok(new ApiResponse<>(200, "Local groups fetched", out));
+
+    if (requesterEmail == null || requesterEmail.isBlank()) {
+      List<LocalGroupResponse> out = all.stream().map(this::toResponse).collect(Collectors.toList());
+      return ResponseEntity.ok(new ApiResponse<>(200, "All local groups fetched", out));
+    }
+
+    Optional<User> userOpt = userRepository.findByEmail(requesterEmail);
+
+    if (userOpt.isEmpty()) {
+      List<LocalGroupResponse> out = all.stream().map(this::toResponse).collect(Collectors.toList());
+      return ResponseEntity.ok(new ApiResponse<>(200, "All local groups fetched (user not found)",
+        out));
+    }
+
+    Long userId = userOpt.get().getId();
+
+    List<LocalGroupResponse> out = all.stream()
+      .filter(group -> {
+        boolean isCreator = group.getCreatedBy() != null &&
+          group.getCreatedBy().getId().equals(userId);
+
+        boolean isMember = group.getMembers() != null &&
+          group.getMembers().stream()
+            .anyMatch(member -> member.getId().equals(userId));
+
+        return !isCreator && !isMember;
+      })
+      .map(this::toResponse)
+      .collect(Collectors.toList());
+
+    return ResponseEntity.ok(new ApiResponse<>(200, "Filtered local groups fetched", out));
   }
+
 
   public ResponseEntity<ApiResponse<LocalGroupResponse>> getLocalGroup(Long id) {
     LocalGroup group = localGroupRepository.findById(id)
