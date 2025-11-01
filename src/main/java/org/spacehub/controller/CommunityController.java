@@ -107,6 +107,11 @@ public class CommunityController {
     return communityService.listAllCommunities();
   }
 
+  @GetMapping("/user/all/community")
+  public ResponseEntity<?> listAllUserCommunities(@RequestBody String emailId) {
+    return communityService.getUserCommunities(emailId);
+  }
+
   @GetMapping("/{id}")
   public ResponseEntity<?> getCommunityDetails(@PathVariable("id") Long communityId,
                                                @RequestParam("requesterEmail") String requesterEmail) {
