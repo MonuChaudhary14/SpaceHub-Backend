@@ -15,7 +15,6 @@ import org.spacehub.DTO.Community.UpdateCommunityDTO;
 import org.spacehub.DTO.RejectRequest;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.service.community.CommunityInterfaces.ICommunityService;
-import org.spacehub.service.community.CommunityService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -201,6 +200,19 @@ public class CommunityController {
     @RequestParam(value = "page", defaultValue = "0") int page,
     @RequestParam(value = "size", defaultValue = "20") int size) {
     return communityService.discoverCommunities(page, size);
+  }
+
+  @GetMapping("/my-pending-requests")
+  public ResponseEntity<?> getMyAllPendingRequests(
+    @RequestParam("requesterEmail") String requesterEmail) {
+    return communityService.getAllPendingRequestsForAdmin(requesterEmail);
+  }
+
+  @GetMapping("/{id}/pending-requests")
+  public ResponseEntity<?> getPendingRequests(
+    @PathVariable("id") Long communityId,
+    @RequestParam("requesterEmail") String requesterEmail) {
+    return communityService.getPendingRequests(communityId, requesterEmail);
   }
 
 }

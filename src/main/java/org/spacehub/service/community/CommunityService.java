@@ -2,6 +2,7 @@ package org.spacehub.service.community;
 
 import org.spacehub.DTO.Community.CommunityMemberDTO;
 import org.spacehub.DTO.Community.CommunityMemberRequest;
+import org.spacehub.DTO.Community.CommunityPendingRequestDTO;
 import org.spacehub.DTO.Community.DeleteCommunityDTO;
 import org.spacehub.DTO.Community.JoinCommunity;
 import org.spacehub.DTO.CancelJoinRequest;
@@ -15,6 +16,7 @@ import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.Community.Community;
 import org.spacehub.entities.Community.CommunityUser;
 import org.spacehub.DTO.Community.CommunityChangeRoleRequest;
+import org.spacehub.DTO.Community.PendingRequestUserDTO;
 import org.spacehub.entities.Community.Role;
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.ChatRoom.ChatRoomRepository;
@@ -1108,6 +1110,86 @@ public class CommunityService {
     body.put("totalPages", communityPage.getTotalPages());
 
     return ResponseEntity.ok(new ApiResponse<>(200, "Discover communities fetched", body));
+  }
+
+  public ResponseEntity<ApiResponse<?>> getPendingRequests(Long communityId, String requesterEmail) {
+    try {
+      Community community = communityRepository.findById(communityId)
+        .orElseThrow(() -> new ResourceNotFoundException("Community not found with ID: " + communityId));
+
+      User requester = userRepository.findByEmail(requesterEmail)
+        .orElseThrow(() -> new ResourceNotFoundException("Requester not found with email: " + requesterEmail));
+
+      Optional<CommunityUser> communityUserOptional = community.getCommunityUsers()
+        .stream()
+        .filter(cu -> cu.getUser().getId().equals(requester.getId()))
+        .findFirst();
+
+      if (communityUserOptional.isEmpty() || communityUserOptional.get().getRole() != Role.ADMIN) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+          .body(new ApiResponse<>(403, "You must be an admin to view pending requests", null));
+      }
+
+      List<PendingRequestUserDTO> pendingRequests = community.getPendingRequests().stream()
+        .map(user -> new PendingRequestUserDTO(
+          user.getId(),
+          user.getUsername(),
+          user.getEmail()
+        ))
+        .collect(Collectors.toList());
+
+      return ResponseEntity.ok(new ApiResponse<>(200, "Pending requests fetched successfully", pendingRequests));
+
+    } catch (ResourceNotFoundException ex) {
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+        new ApiResponse<>(404, ex.getMessage(), null)
+      );
+    } catch (Exception e) {
+      return ResponseEntity.internalServerError().body(
+        new ApiResponse<>(500, "An unexpected error occurred: " + e.getMessage(), null)
+      );
+    }
+  }
+
+  public ResponseEntity<ApiResponse<?>> getAllPendingRequestsForAdmin(String requesterEmail) {
+    try {
+      User adminUser = userRepository.findByEmail(requesterEmail)
+        .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + requesterEmail));
+
+      List<CommunityUser> adminRoles = communityUserRepository.findByUserAndRole(adminUser, Role.ADMIN);
+      List<CommunityPendingRequestDTO> allRequests = new ArrayList<>();
+
+      for (CommunityUser adminRole : adminRoles) {
+        Community community = adminRole.getCommunity();
+
+        List<PendingRequestUserDTO> pendingRequests = community.getPendingRequests().stream()
+          .map(user -> new PendingRequestUserDTO(
+            user.getId(),
+            user.getUsername(),
+            user.getEmail()
+          ))
+          .collect(Collectors.toList());
+
+        if (!pendingRequests.isEmpty()) {
+          allRequests.add(new CommunityPendingRequestDTO(
+            community.getId(),
+            community.getName(),
+            pendingRequests
+          ));
+        }
+      }
+
+      return ResponseEntity.ok(new ApiResponse<>(200, "All pending requests fetched", allRequests));
+
+    } catch (ResourceNotFoundException ex) {
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+        new ApiResponse<>(404, ex.getMessage(), null)
+      );
+    } catch (Exception e) {
+      return ResponseEntity.internalServerError().body(
+        new ApiResponse<>(500, "An unexpected error occurred: " + e.getMessage(), null)
+      );
+    }
   }
 
 }

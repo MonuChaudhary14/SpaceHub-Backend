@@ -82,5 +82,9 @@ public interface ICommunityService {
   ResponseEntity<ApiResponse<Map<String, Object>>> discoverCommunities(int page, int size);
 
   ResponseEntity<ApiResponse<Map<String, List<Map<String, Object>>>>> listMyCommunities(String requesterEmail);
+
+  ResponseEntity<ApiResponse<?>> getPendingRequests(Long communityId, String requesterEmail);
+
+  ResponseEntity<ApiResponse<?>> getAllPendingRequestsForAdmin(String requesterEmail);
 }
 
