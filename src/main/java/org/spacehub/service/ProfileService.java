@@ -55,7 +55,6 @@ public class ProfileService implements IProfileService {
     return resp;
   }
 
-
   public User updateProfile(Long userId, UserProfileDTO dto) {
     User user = userRepository.findById(userId)
       .orElseThrow(() -> new RuntimeException("User not found"));

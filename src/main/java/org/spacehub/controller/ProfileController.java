@@ -36,6 +36,7 @@ public class ProfileController {
     return ResponseEntity.ok(user);
   }
 
+
   @PostMapping("/{userId}/cover")
   public ResponseEntity<User> uploadCover(@PathVariable Long userId, @RequestParam("file") MultipartFile file) throws Exception {
     User user = profileService.uploadCoverPhoto(userId, file);

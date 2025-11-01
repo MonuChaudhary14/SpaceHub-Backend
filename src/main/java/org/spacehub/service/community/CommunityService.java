@@ -729,8 +729,8 @@ public class CommunityService implements ICommunityService {
       newRoom.setName(request.getRoomName().trim());
       newRoom.setCommunity(community);
 
-      String code = UUID.randomUUID().toString().substring(0, 8);
-      newRoom.setRoomCode(UUID.fromString(code));
+      UUID code = UUID.randomUUID();
+      newRoom.setRoomCode(code);
 
       ChatRoom savedRoom = chatRoomRepository.save(newRoom);
 
