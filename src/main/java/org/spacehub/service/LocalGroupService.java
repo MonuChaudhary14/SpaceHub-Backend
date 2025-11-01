@@ -141,7 +141,7 @@ public class LocalGroupService implements ILocalGroupService {
   }
 
   public ResponseEntity<ApiResponse<List<LocalGroupResponse>>> listAllLocalGroups(String requesterEmail) {
-    List<LocalGroup> all = localGroupRepository.findAll();
+    List<LocalGroup> all = localGroupRepository.findAllWithCreatorAndMembers();
 
     if (requesterEmail == null || requesterEmail.isBlank()) {
       List<LocalGroupResponse> out = all.stream().map(this::toResponse).collect(Collectors.toList());
@@ -167,7 +167,7 @@ public class LocalGroupService implements ILocalGroupService {
           group.getMembers().stream()
             .anyMatch(member -> member.getId().equals(userId));
 
-        return !isCreator && !isMember;
+        return isCreator || isMember;
       })
       .map(this::toResponse)
       .collect(Collectors.toList());

@@ -43,7 +43,7 @@ public class LocalGroupController {
 
   @GetMapping("/all")
   public ResponseEntity<ApiResponse<List<LocalGroupResponse>>> listAllLocalGroups(
-    @RequestParam(value = "requesterEmail") String requesterEmail) {
+    @RequestParam(value = "requesterEmail", required = false) String requesterEmail) {
     return localGroupService.listAllLocalGroups(requesterEmail);
   }
 
