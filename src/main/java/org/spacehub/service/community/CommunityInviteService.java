@@ -45,7 +45,7 @@ public class CommunityInviteService implements ICommunityInviteService {
 
     CommunityInviteResponseDTO response = CommunityInviteResponseDTO.builder()
             .inviteCode(invite.getInviteCode())
-            .inviteLink("https:/codewithketan.me/invite/" + invite.getInviteCode())
+            .inviteLink("http://localhost:8080/invite/" + invite.getInviteCode())
             .communityId(communityId)
             .inviterEmail(invite.getInviterEmail())
             .email(invite.getEmail())
@@ -61,7 +61,11 @@ public class CommunityInviteService implements ICommunityInviteService {
   @Override
   public ApiResponse<String> acceptInvite(CommunityInviteAcceptDTO request) {
 
-    Optional<CommunityInvite> optionalInvite = inviteRepository.findByInviteCode(request.getInviteCode());
+    String rawCode = request.getInviteCode();
+
+    String inviteCode = rawCode.contains("/") ? rawCode.substring(rawCode.lastIndexOf("/") + 1) : rawCode;
+
+    Optional<CommunityInvite> optionalInvite = inviteRepository.findByInviteCode(inviteCode);
 
     if (optionalInvite.isEmpty()) {
       return new ApiResponse<>(400, "Invalid invite link", null);
