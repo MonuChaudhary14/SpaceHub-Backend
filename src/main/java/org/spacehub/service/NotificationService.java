@@ -11,6 +11,7 @@ import org.spacehub.repository.NotificationRepository;
 import org.spacehub.repository.UserRepository;
 import org.spacehub.repository.community.CommunityRepository;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +27,7 @@ public class NotificationService implements INotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final CommunityRepository communityRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Override
     public void createNotification(NotificationRequestDTO request) {
@@ -53,8 +55,11 @@ public class NotificationService implements INotificationService {
                 .createdAt(java.time.LocalDateTime.now())
                 .read(false)
                 .build();
-
         notificationRepository.save(notification);
+
+        NotificationResponseDTO dto = mapToDTO(notification);
+
+        messagingTemplate.convertAndSend("/topic/notifications/" + request.getEmail(), dto);
     }
 
     @Override

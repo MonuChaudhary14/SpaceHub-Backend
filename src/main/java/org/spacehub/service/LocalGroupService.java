@@ -8,7 +8,7 @@ import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.LocalGroup.LocalGroup;
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.UserRepository;
-import org.spacehub.repository.LocalGroupRepository;
+import org.spacehub.repository.localgroup.LocalGroupRepository;
 import org.spacehub.service.Interface.ILocalGroupService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -102,7 +102,6 @@ public class LocalGroupService implements ILocalGroupService {
     }
   }
 
-
   public ResponseEntity<ApiResponse<String>> joinLocalGroup(JoinLocalGroupRequest req) {
     if (req.getGroupId() == null || req.getUserEmail() == null || req.getUserEmail().isBlank()) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400,
@@ -184,8 +183,7 @@ public class LocalGroupService implements ILocalGroupService {
     return ResponseEntity.ok(new ApiResponse<>(200, "Filtered local groups fetched", out));
   }
 
-
-  public ResponseEntity<ApiResponse<LocalGroupResponse>> getLocalGroup(Long id) {
+  public ResponseEntity<ApiResponse<LocalGroupResponse>> getLocalGroup(UUID id) {
     LocalGroup group = localGroupRepository.findById(id)
       .orElseThrow(() -> new ResourceNotFoundException("Local group not found"));
     return ResponseEntity.ok(new ApiResponse<>(200, "Local group fetched", toResponse(group)));
@@ -286,7 +284,7 @@ public class LocalGroupService implements ILocalGroupService {
     return ResponseEntity.ok(new ApiResponse<>(200, "Local group search results", body));
   }
 
-  public ResponseEntity<?> enterOrJoinLocalGroup(Long groupId, String requesterEmail) {
+  public ResponseEntity<?> enterOrJoinLocalGroup(UUID groupId, String requesterEmail) {
     if (requesterEmail == null || requesterEmail.isBlank()) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, "requesterEmail is required",
         null));
@@ -320,5 +318,24 @@ public class LocalGroupService implements ILocalGroupService {
     }
   }
 
+  public ResponseEntity<ApiResponse<String>> leaveLocalGroup(UUID groupId, String userEmail) {
+
+    LocalGroup group = localGroupRepository.findById(groupId).orElseThrow(() -> new ResourceNotFoundException("Local group not found"));
+
+    User user = userRepository.findByEmail(userEmail).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+    if (group.getCreatedBy().getId().equals(user.getId())) {
+      return ResponseEntity.status(403).body(new ApiResponse<>(403, "Creator cannot leave their own group", null));
+    }
+
+    boolean removed = group.getMembers().removeIf(person -> person.getId().equals(user.getId()));
+
+    if (!removed) {
+      return ResponseEntity.status(404).body(new ApiResponse<>(404, "User not part of this group", null));
+    }
+
+    localGroupRepository.save(group);
+    return ResponseEntity.ok(new ApiResponse<>(200, "Left local group successfully", null));
+  }
 
 }

@@ -1,4 +1,4 @@
-package org.spacehub.repository;
+package org.spacehub.repository.localgroup;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -7,8 +7,9 @@ import org.spacehub.entities.LocalGroup.LocalGroup;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
+import java.util.UUID;
 
-public interface LocalGroupRepository extends JpaRepository<LocalGroup, Long> {
+public interface LocalGroupRepository extends JpaRepository<LocalGroup, UUID> {
   Page<LocalGroup> findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCase(
     String name, String description, Pageable pageable);
   @Query("SELECT lg FROM LocalGroup lg LEFT JOIN FETCH lg.createdBy LEFT JOIN FETCH lg.members")

@@ -19,8 +19,7 @@ public class ChatMessageService implements IChatMessageService {
     this.chatMessageRepository = chatMessageRepository;
   }
 
-  @CacheEvict(value = "chatMessages", key = "#messages[0].room.id",
-    condition = "#messages != null && !#messages.isEmpty()")
+  @CacheEvict(value = "chatMessages", key = "#messages[0].room.id", condition = "#messages != null && !#messages.isEmpty()")
   public void saveAll(List<ChatMessage> messages) {
     chatMessageRepository.saveAll(messages);
   }
