@@ -939,19 +939,19 @@ public class CommunityService implements ICommunityService {
   }
 
   @Override
-  public ResponseEntity<?> deleteRoom(UUID roomId, String requesterEmail) {
+  public ResponseEntity<?> deleteRoom(UUID communityId, UUID roomId, String requesterEmail) {
     try {
-      ChatRoom room = chatRoomRepository.findById(roomId).orElseThrow(() ->
-        new ResourceNotFoundException("Room not found with id: " + roomId));
+      ChatRoom room = chatRoomRepository.findById(roomId)
+        .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + roomId));
 
       Community community = room.getCommunity();
-      if (community == null) {
+      if (community == null || !community.getId().equals(communityId)) {
         return ResponseEntity.badRequest().body(new ApiResponse<>(400,
-          "Associated community not found", null));
+          "Room does not belong to the specified community", null));
       }
 
-      User requester = userRepository.findByEmail(requesterEmail).orElseThrow(() ->
-        new ResourceNotFoundException("Requester not found with email: " + requesterEmail));
+      User requester = userRepository.findByEmail(requesterEmail)
+        .orElseThrow(() -> new ResourceNotFoundException("Requester not found with email: " + requesterEmail));
 
       if (!isUserAdminInCommunity(community, requester)) {
         return ResponseEntity.status(403).body(new ApiResponse<>(403,
@@ -959,16 +959,15 @@ public class CommunityService implements ICommunityService {
       }
 
       chatRoomRepository.delete(room);
-
       return ResponseEntity.ok(new ApiResponse<>(200, "Room deleted successfully", null));
-    }
-    catch (ResourceNotFoundException e) {
+    } catch (ResourceNotFoundException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
-    }
-    catch (Exception e) {
-      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
+    } catch (Exception e) {
+      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: "
+        + e.getMessage(), null));
     }
   }
+
 
   public ResponseEntity<?> searchCommunities(String q, String requesterEmail, int page, int size) {
     if (q == null || q.isBlank()) {
