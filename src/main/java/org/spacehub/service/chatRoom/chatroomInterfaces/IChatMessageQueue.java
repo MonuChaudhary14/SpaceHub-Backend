@@ -8,6 +8,7 @@ public interface IChatMessageQueue {
 
   void enqueue(ChatMessage message);
 
+  @SuppressWarnings("unused")
   void sendEveryInterval();
 
   List<ChatMessage> getMessagesForRoom(ChatRoom room);
