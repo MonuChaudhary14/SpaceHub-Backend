@@ -30,7 +30,6 @@ public class LocalGroupService implements ILocalGroupService {
   private final LocalGroupRepository localGroupRepository;
   private final UserRepository userRepository;
   private final S3Service s3Service;
-  private final ChatRoomService chatRoomService;
 
   public static class ResourceNotFoundException extends RuntimeException {
     public ResourceNotFoundException(String message) {
@@ -38,11 +37,11 @@ public class LocalGroupService implements ILocalGroupService {
     }
   }
 
-  public LocalGroupService(LocalGroupRepository localGroupRepository, UserRepository userRepository, S3Service s3Service, ChatRoomService chatRoomService) {
+  public LocalGroupService(LocalGroupRepository localGroupRepository, UserRepository userRepository,
+                           S3Service s3Service) {
     this.localGroupRepository = localGroupRepository;
     this.userRepository = userRepository;
     this.s3Service = s3Service;
-    this.chatRoomService = chatRoomService;
   }
 
   public ResponseEntity<ApiResponse<LocalGroupResponse>> createLocalGroup(
@@ -145,7 +144,8 @@ public class LocalGroupService implements ILocalGroupService {
     }
 
     localGroupRepository.delete(group);
-    return ResponseEntity.ok(new ApiResponse<>(200, "Local group deleted successfully", null));
+    return ResponseEntity.ok(new ApiResponse<>(200, "Local group deleted successfully",
+      null));
   }
 
   public ResponseEntity<ApiResponse<List<LocalGroupResponse>>> listAllLocalGroups(String requesterEmail) {

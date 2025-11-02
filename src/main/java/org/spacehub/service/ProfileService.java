@@ -10,6 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.util.Optional;
 
 @Service
 public class ProfileService implements IProfileService {
@@ -59,33 +60,24 @@ public class ProfileService implements IProfileService {
     User user = userRepository.findByEmail(email)
       .orElseThrow(() -> new RuntimeException("User not found"));
 
-    if (dto.getFirstName() != null) {
-      user.setFirstName(dto.getFirstName());
-    }
-    if (dto.getLastName() != null) {
-      user.setLastName(dto.getLastName());
-    }
-    if (dto.getBio() != null) {
-      user.setBio(dto.getBio());
-    }
-    if (dto.getLocation() != null) {
-      user.setLocation(dto.getLocation());
-    }
-    if (dto.getWebsite() != null) {
-      user.setWebsite(dto.getWebsite());
-    }
-    if (dto.getDateOfBirth() != null) {
-      user.setDateOfBirth(LocalDate.parse(dto.getDateOfBirth()));
-    }
-    if (dto.getIsPrivate() != null) {
-      user.setIsPrivate(dto.getIsPrivate());
-    }
-    if (dto.getUsername() != null) {
-      user.setUsername(dto.getUsername());
-    }
+    applyUserProfileUpdates(user, dto);
 
     return userRepository.save(user);
   }
+
+  private void applyUserProfileUpdates(User user, UserProfileDTO dto) {
+    if (dto == null) return;
+
+    Optional.ofNullable(dto.getFirstName()).ifPresent(user::setFirstName);
+    Optional.ofNullable(dto.getLastName()).ifPresent(user::setLastName);
+    Optional.ofNullable(dto.getBio()).ifPresent(user::setBio);
+    Optional.ofNullable(dto.getLocation()).ifPresent(user::setLocation);
+    Optional.ofNullable(dto.getWebsite()).ifPresent(user::setWebsite);
+    Optional.ofNullable(dto.getDateOfBirth()).ifPresent(date -> user.setDateOfBirth(LocalDate.parse(date)));
+    Optional.ofNullable(dto.getIsPrivate()).ifPresent(user::setIsPrivate);
+    Optional.ofNullable(dto.getUsername()).ifPresent(user::setUsername);
+  }
+
 
   public User uploadAvatarByEmail(String email, MultipartFile file) throws IOException {
     validateImage(file);

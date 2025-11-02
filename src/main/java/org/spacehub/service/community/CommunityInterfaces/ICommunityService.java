@@ -56,7 +56,7 @@ public interface ICommunityService {
 
   ResponseEntity<ApiResponse<List<Map<String, Object>>>> getRoomsByCommunity(UUID communityId);
 
-  ResponseEntity<?> deleteRoom(UUID roomId, String requesterEmail);
+  ResponseEntity<?> deleteRoom(UUID communityId, UUID roomId, String requesterEmail);
 
   ResponseEntity<?> searchCommunities(String q, String requesterEmail, int page, int size);
 

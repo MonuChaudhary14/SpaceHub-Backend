@@ -29,8 +29,8 @@ public class RateLimitService implements IRateLimitService {
 
   private BucketConfiguration createNewBucketConfig() {
     Bandwidth limit = Bandwidth.builder()
-      .capacity(20)
-      .refillIntervally(20, Duration.ofMinutes(1))
+      .capacity(100)
+      .refillIntervally(100, Duration.ofMinutes(1))
       .build();
 
     return BucketConfiguration.builder()
