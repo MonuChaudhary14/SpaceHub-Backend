@@ -31,8 +31,7 @@ public class CommunityInvite {
   @Column(unique = true, nullable = false)
   private String inviteCode;
 
-  private String email;
-  private int maxUses = 1;
+  private int maxUses = 10;
   private int uses = 0;
   private LocalDateTime expiresAt;
 
