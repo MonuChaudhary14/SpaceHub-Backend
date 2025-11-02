@@ -333,9 +333,8 @@ public class CommunityService implements ICommunityService {
   public ResponseEntity<?> leaveCommunity(LeaveCommunity leaveCommunity) {
 
     if (isEmpty(leaveCommunity.getCommunityName(), leaveCommunity.getUserEmail())) {
-      return ResponseEntity.badRequest().body(
-        new ApiResponse<>(400, "Check the fields", null)
-      );
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Check the fields",
+        null));
     }
 
     try {
@@ -343,32 +342,46 @@ public class CommunityService implements ICommunityService {
       User user = findUserByEmail(leaveCommunity.getUserEmail());
 
       if (community.getCreatedBy().getId().equals(user.getId())) {
-        return ResponseEntity.status(403).body(
-          new ApiResponse<>(403, "Community creator cannot leave their own community", null)
-        );
+        return ResponseEntity.status(403)
+          .body(new ApiResponse<>(403, "Community creator cannot leave their own community",
+            null));
       }
 
       Optional<CommunityUser> communityUserOptional = community.getCommunityUsers()
         .stream()
-        .filter(cu -> cu.getUser().getId().equals(user.getId()))
+        .filter(cu -> cu.getUser() != null && cu.getUser().getId().equals(user.getId()))
         .findFirst();
 
       if (communityUserOptional.isEmpty()) {
-        return ResponseEntity.badRequest().body(
-          new ApiResponse<>(400, "You are not a member of this community", null)
+        communityUserOptional = communityUserRepository.findByCommunityIdAndUserId(community.getId(), user.getId());
+      }
+
+      if (communityUserOptional.isEmpty()) {
+        return ResponseEntity.badRequest().body(new ApiResponse<>(400,
+          "You are not a member of this community", null));
+      }
+
+      CommunityUser toRemove = communityUserOptional.get();
+
+      communityUserRepository.delete(toRemove);
+
+      if (community.getCommunityUsers() != null) {
+        community.getCommunityUsers().removeIf(cu ->
+          (cu.getId() != null && cu.getId().equals(toRemove.getId())) ||
+            (cu.getUser() != null && cu.getUser().getId().equals(user.getId()))
         );
       }
 
-      communityUserRepository.delete(communityUserOptional.get());
+      communityRepository.save(community);
 
-      return ResponseEntity.ok(
-        new ApiResponse<>(200, "You have left the community successfully", null)
-      );
+      return ResponseEntity.ok(new ApiResponse<>(200, "You have left the community successfully",
+        null));
 
-    } catch (ResourceNotFoundException e) {
-      return ResponseEntity.badRequest().body(
-        new ApiResponse<>(400, e.getMessage(), null)
-      );
+    } catch (ResourceNotFoundException ex) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, ex.getMessage(), null));
+    } catch (Exception e) {
+      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: "
+        + e.getMessage(), null));
     }
   }
 
@@ -433,8 +446,6 @@ public class CommunityService implements ICommunityService {
       );
     }
   }
-
-
 
   private Community findCommunityByName(String name) {
     Community community = communityRepository.findByName(name);
