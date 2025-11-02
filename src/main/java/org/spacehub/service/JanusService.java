@@ -1,6 +1,5 @@
 package org.spacehub.service;
 
-import org.spacehub.service.Interface.IJanusService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -9,7 +8,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @Service
-public class JanusService implements IJanusService {
+public class JanusService {
 
   private final String janusUrl = "http://localhost:8088/janus";
 
@@ -100,12 +99,14 @@ public class JanusService implements IJanusService {
 
     JsonNode event = pollForPluginEvent(sessionId);
 
-    if (event != null) {
-      if (event.has("jsep") || (event.has("plugindata") &&
-              event.get("plugindata").has("data") &&
-              event.get("plugindata").get("data").has("jsep"))) {
-        return event;
-      }
+    if (event != null && event.has("jsep")) {
+      return event.get("jsep");
+    }
+
+    if (event != null && event.has("plugindata") &&
+            event.get("plugindata").has("data") &&
+            event.get("plugindata").get("data").has("jsep")) {
+      return event.get("plugindata").get("data").get("jsep");
     }
 
     throw new RuntimeException("Failed to receive valid SDP answer from Janus");
@@ -117,9 +118,9 @@ public class JanusService implements IJanusService {
             "transaction", UUID.randomUUID().toString(),
             "candidate", candidate
     );
+
     String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
-    ResponseEntity<JsonNode> resp = restTemplate.postForEntity(handleUrl, request, JsonNode.class);
-    System.out.println("Error for log -> sendIce -> " + resp.getStatusCode() + " body: " + resp.getBody());
+    restTemplate.postForEntity(handleUrl, request, JsonNode.class);
   }
 
   public void setMute(String sessionId, String handleId, boolean mute) {

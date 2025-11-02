@@ -2,7 +2,7 @@ package org.spacehub.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
-import org.spacehub.service.Interface.IJanusService;
+import org.spacehub.service.JanusService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,7 +15,7 @@ import java.util.Random;
 @RequiredArgsConstructor
 public class VoiceRoomController {
 
-  private final IJanusService janusService;
+  private final JanusService janusService;
 
   @PostMapping("/create")
   public ResponseEntity<?> createRoom(@RequestParam String displayName) {
@@ -26,11 +26,11 @@ public class VoiceRoomController {
     JsonNode joinEvent = janusService.joinAudioRoom(sessionId, handleId, roomId, displayName);
 
     return ResponseEntity.ok(Map.of(
-      "message", "Room created and joined successfully",
-      "sessionId", sessionId,
-      "handleId", handleId,
-      "roomId", roomId,
-      "joinEvent", Objects.toString(joinEvent, "")
+            "message", "Room created and joined successfully",
+            "sessionId", sessionId,
+            "handleId", handleId,
+            "roomId", roomId,
+            "joinEvent", Objects.toString(joinEvent, "")
     ));
   }
 
@@ -43,11 +43,11 @@ public class VoiceRoomController {
     JsonNode joinEvent = janusService.joinAudioRoom(sessionId, handleId, roomId, displayName);
 
     return ResponseEntity.ok(Map.of(
-      "message", "Joined room successfully",
-      "roomId", roomId,
-      "sessionId", sessionId,
-      "handleId", handleId,
-      "joinEvent", Objects.toString(joinEvent, "")
+            "message", "Joined room successfully",
+            "roomId", roomId,
+            "sessionId", sessionId,
+            "handleId", handleId,
+            "joinEvent", Objects.toString(joinEvent, "")
     ));
   }
 
@@ -57,7 +57,7 @@ public class VoiceRoomController {
     String handleId = body.get("handleId");
     String sdp = body.get("sdp");
 
-    JsonNode janusResponse = janusService.sendOffer(sessionId, handleId, sdp);
-    return ResponseEntity.ok(janusResponse);
+    JsonNode answer = janusService.sendOffer(sessionId, handleId, sdp);
+    return ResponseEntity.ok(answer);
   }
 }
