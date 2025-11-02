@@ -1,6 +1,8 @@
 package org.spacehub.controller;
 
 import org.spacehub.DTO.*;
+import org.spacehub.DTO.User.UserEmail;
+import org.spacehub.DTO.User.UserOutput;
 import org.spacehub.service.Interface.IFriendService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
