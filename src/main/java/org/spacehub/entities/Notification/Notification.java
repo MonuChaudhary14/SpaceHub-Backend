@@ -50,4 +50,9 @@ public class Notification {
 
     private boolean actionable = false;
 
+    @PrePersist
+    public void prePersist() {
+        if (this.createdAt == null) this.createdAt = LocalDateTime.now();
+    }
+
 }

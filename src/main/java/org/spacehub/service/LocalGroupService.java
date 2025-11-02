@@ -8,7 +8,7 @@ import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.LocalGroup.LocalGroup;
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.UserRepository;
-import org.spacehub.repository.LocalGroupRepository;
+import org.spacehub.repository.localgroup.LocalGroupRepository;
 import org.spacehub.service.Interface.ILocalGroupService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -30,7 +30,6 @@ public class LocalGroupService implements ILocalGroupService {
   private final LocalGroupRepository localGroupRepository;
   private final UserRepository userRepository;
   private final S3Service s3Service;
-  private final ChatRoomService chatRoomService;
 
   public static class ResourceNotFoundException extends RuntimeException {
     public ResourceNotFoundException(String message) {
@@ -38,11 +37,11 @@ public class LocalGroupService implements ILocalGroupService {
     }
   }
 
-  public LocalGroupService(LocalGroupRepository localGroupRepository, UserRepository userRepository, S3Service s3Service, ChatRoomService chatRoomService) {
+  public LocalGroupService(LocalGroupRepository localGroupRepository, UserRepository userRepository,
+                           S3Service s3Service) {
     this.localGroupRepository = localGroupRepository;
     this.userRepository = userRepository;
     this.s3Service = s3Service;
-    this.chatRoomService = chatRoomService;
   }
 
   public ResponseEntity<ApiResponse<LocalGroupResponse>> createLocalGroup(
@@ -103,7 +102,6 @@ public class LocalGroupService implements ILocalGroupService {
     }
   }
 
-
   public ResponseEntity<ApiResponse<String>> joinLocalGroup(JoinLocalGroupRequest req) {
     if (req.getGroupId() == null || req.getUserEmail() == null || req.getUserEmail().isBlank()) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400,
@@ -146,7 +144,8 @@ public class LocalGroupService implements ILocalGroupService {
     }
 
     localGroupRepository.delete(group);
-    return ResponseEntity.ok(new ApiResponse<>(200, "Local group deleted successfully", null));
+    return ResponseEntity.ok(new ApiResponse<>(200, "Local group deleted successfully",
+      null));
   }
 
   public ResponseEntity<ApiResponse<List<LocalGroupResponse>>> listAllLocalGroups(String requesterEmail) {
@@ -184,8 +183,7 @@ public class LocalGroupService implements ILocalGroupService {
     return ResponseEntity.ok(new ApiResponse<>(200, "Filtered local groups fetched", out));
   }
 
-
-  public ResponseEntity<ApiResponse<LocalGroupResponse>> getLocalGroup(Long id) {
+  public ResponseEntity<ApiResponse<LocalGroupResponse>> getLocalGroup(UUID id) {
     LocalGroup group = localGroupRepository.findById(id)
       .orElseThrow(() -> new ResourceNotFoundException("Local group not found"));
     return ResponseEntity.ok(new ApiResponse<>(200, "Local group fetched", toResponse(group)));
@@ -286,7 +284,7 @@ public class LocalGroupService implements ILocalGroupService {
     return ResponseEntity.ok(new ApiResponse<>(200, "Local group search results", body));
   }
 
-  public ResponseEntity<?> enterOrJoinLocalGroup(Long groupId, String requesterEmail) {
+  public ResponseEntity<?> enterOrJoinLocalGroup(UUID groupId, String requesterEmail) {
     if (requesterEmail == null || requesterEmail.isBlank()) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, "requesterEmail is required",
         null));
@@ -320,48 +318,7 @@ public class LocalGroupService implements ILocalGroupService {
     }
   }
 
-  public ResponseEntity<ApiResponse<Map<String, String>>> createInviteLink(Long groupId, String requesterEmail) {
-
-    LocalGroup group = localGroupRepository.findById(groupId).orElseThrow(() -> new ResourceNotFoundException("Local group not found"));
-
-    User requester = userRepository.findByEmail(requesterEmail).orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-    if (!Objects.equals(group.getCreatedBy().getId(), requester.getId())) {
-      return ResponseEntity.status(403).body(new ApiResponse<>(403, "Only the creator can generate invite links", null));
-    }
-
-    String inviteCode = UUID.randomUUID().toString().substring(0, 8);
-    group.setInviteCode(inviteCode);
-    localGroupRepository.save(group);
-
-    String inviteUrl = "https://spacehub.com/invite/" + inviteCode;
-
-    return ResponseEntity.ok(new ApiResponse<>(200, "Invite link generated successfully", Map.of("inviteLink", inviteUrl)));
-
-  }
-
-  public ResponseEntity<ApiResponse<String>> joinViaInviteCode(String inviteCode, String userEmail) {
-
-    if (inviteCode == null || userEmail == null || userEmail.isBlank()) {
-      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "inviteCode and userEmail required", null));
-    }
-
-    LocalGroup group = localGroupRepository.findAll().stream()
-            .filter(groupInvite -> inviteCode.equals(groupInvite.getInviteCode())).findFirst().orElseThrow(() -> new ResourceNotFoundException("Invalid invite code"));
-
-    User user = userRepository.findByEmail(userEmail).orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-    boolean presentMember = group.getMembers().stream().anyMatch(person -> person.getId().equals(user.getId()));
-    if (presentMember) {
-      return ResponseEntity.status(403).body(new ApiResponse<>(403, "User already in group", null));
-    }
-
-    group.getMembers().add(user);
-    localGroupRepository.save(group);
-    return ResponseEntity.ok(new ApiResponse<>(200, "Joined via invite successfully", null));
-  }
-
-  public ResponseEntity<ApiResponse<String>> leaveLocalGroup(Long groupId, String userEmail) {
+  public ResponseEntity<ApiResponse<String>> leaveLocalGroup(UUID groupId, String userEmail) {
 
     LocalGroup group = localGroupRepository.findById(groupId).orElseThrow(() -> new ResourceNotFoundException("Local group not found"));
 
@@ -380,7 +337,5 @@ public class LocalGroupService implements ILocalGroupService {
     localGroupRepository.save(group);
     return ResponseEntity.ok(new ApiResponse<>(200, "Left local group successfully", null));
   }
-
-
 
 }

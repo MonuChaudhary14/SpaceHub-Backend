@@ -41,7 +41,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import java.time.Duration;
 import java.util.LinkedHashMap;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -83,60 +82,17 @@ public class CommunityService implements ICommunityService {
   public ResponseEntity<ApiResponse<Map<String, Object>>> createCommunity(
     String name, String description, String createdByEmail, MultipartFile imageFile) {
 
-    if (name == null || name.isBlank() || description == null || description.isBlank() || createdByEmail == null ||
-      createdByEmail.isBlank()) {
-      return ResponseEntity.badRequest()
-        .body(new ApiResponse<>(400,
-          "All fields (name, description, createdByEmail) are required", null));
-    }
-
-    String normalizedName = name.trim();
-
-    if (communityRepository.existsByNameIgnoreCase(normalizedName)) {
-      return ResponseEntity.status(HttpStatus.CONFLICT)
-        .body(new ApiResponse<>(409, "Community with this name already exists", null));
-    }
-
-    if (imageFile == null || imageFile.isEmpty()) {
-      return ResponseEntity.badRequest()
-        .body(new ApiResponse<>(400, "Community image is required", null));
-    }
-
     try {
-      User creator = userRepository.findByEmail(createdByEmail).orElseThrow(() ->
-        new RuntimeException("User not found with email: " + createdByEmail));
+      validateCommunityInputs(name, description, createdByEmail, imageFile);
 
+      User creator = getCreator(createdByEmail);
       validateImage(imageFile);
 
-      String fileName = System.currentTimeMillis() + "_" + imageFile.getOriginalFilename();
-      String key = "communities/" + name.replaceAll("[^a-zA-Z0-9]", "_") + "/" + fileName;
+      String imageKey = uploadCommunityImage(name, imageFile);
+      String imageUrl = s3Service.generatePresignedDownloadUrl(imageKey, Duration.ofHours(2));
 
-      s3Service.uploadFile(key, imageFile.getInputStream(), imageFile.getSize());
-
-      String imageUrl = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(2));
-
-      Community community = new Community();
-      community.setName(name);
-      community.setDescription(description);
-      community.setCreatedBy(creator);
-      community.setImageUrl(key);
-      community.setCreatedAt(LocalDateTime.now());
-
-      Community savedCommunity = communityRepository.save(community);
-
-      CommunityUser adminUser = new CommunityUser();
-      adminUser.setCommunity(savedCommunity);
-      adminUser.setUser(creator);
-      adminUser.setRole(Role.ADMIN);
-      adminUser.setJoinDate(LocalDateTime.now());
-      adminUser.setBanned(false);
-      communityUserRepository.save(adminUser);
-
-      if (savedCommunity.getCommunityUsers() == null) {
-        savedCommunity.setCommunityUsers(new HashSet<>());
-      }
-      savedCommunity.getCommunityUsers().add(adminUser);
-      communityRepository.save(savedCommunity);
+      Community savedCommunity = saveCommunity(name, description, creator, imageKey);
+      addAdminUser(savedCommunity, creator);
 
       Map<String, Object> responseData = new HashMap<>();
       responseData.put("communityId", savedCommunity.getId());
@@ -145,16 +101,71 @@ public class CommunityService implements ICommunityService {
 
       return ResponseEntity.status(201)
         .body(new ApiResponse<>(201, "Community created successfully", responseData));
-    } catch (IOException e) {
-      return ResponseEntity.internalServerError().body(new ApiResponse<>(500,
-        "Error uploading image: " + e.getMessage(), null));
-    } catch (RuntimeException e) {
+    } catch (IllegalArgumentException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
+    } catch (IOException e) {
+      return ResponseEntity.internalServerError()
+        .body(new ApiResponse<>(500, "Error uploading image: " + e.getMessage(), null));
     } catch (Exception e) {
-      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: " +
-        e.getMessage(), null));
+      return ResponseEntity.internalServerError()
+        .body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
     }
   }
+
+  private void validateCommunityInputs(String name, String description, String email, MultipartFile imageFile) {
+    if (name == null || name.isBlank() || description == null || description.isBlank() ||
+      email == null || email.isBlank()) {
+      throw new IllegalArgumentException("All fields (name, description, createdByEmail) are required");
+    }
+
+    if (communityRepository.existsByNameIgnoreCase(name.trim())) {
+      throw new IllegalArgumentException("Community with this name already exists");
+    }
+
+    if (imageFile == null || imageFile.isEmpty()) {
+      throw new IllegalArgumentException("Community image is required");
+    }
+  }
+
+  private User getCreator(String email) {
+    return userRepository.findByEmail(email)
+      .orElseThrow(() -> new IllegalArgumentException("User not found with email: " + email));
+  }
+
+  private String uploadCommunityImage(String name, MultipartFile imageFile) throws IOException {
+    String fileName = System.currentTimeMillis() + "_" + imageFile.getOriginalFilename();
+    String key = "communities/" + name.replaceAll("[^a-zA-Z0-9]", "_") + "/" + fileName;
+    s3Service.uploadFile(key, imageFile.getInputStream(), imageFile.getSize());
+    return key;
+  }
+
+  private Community saveCommunity(String name, String description, User creator, String imageKey) {
+    Community community = new Community();
+    community.setName(name);
+    community.setDescription(description);
+    community.setCreatedBy(creator);
+    community.setImageUrl(imageKey);
+    community.setCreatedAt(LocalDateTime.now());
+    return communityRepository.save(community);
+  }
+
+  private void addAdminUser(Community community, User creator) {
+    CommunityUser admin = new CommunityUser();
+    admin.setCommunity(community);
+    admin.setUser(creator);
+    admin.setRole(Role.ADMIN);
+    admin.setJoinDate(LocalDateTime.now());
+    admin.setBanned(false);
+
+    communityUserRepository.save(admin);
+
+    if (community.getCommunityUsers() == null) {
+      community.setCommunityUsers(new HashSet<>());
+    }
+    community.getCommunityUsers().add(admin);
+    communityRepository.save(community);
+  }
+
 
   @CacheEvict(value = {"communities"}, key = "#deleteCommunity.name")
   public ResponseEntity<?> deleteCommunityByName(@RequestBody DeleteCommunityDTO deleteCommunity) {
@@ -481,55 +492,75 @@ public class CommunityService implements ICommunityService {
   }
 
   public ResponseEntity<ApiResponse<String>> changeMemberRole(CommunityChangeRoleRequest request) {
-    if (request.getCommunityId() == null || request.getTargetUserEmail() == null ||
-      request.getRequesterEmail() == null || request.getNewRole() == null) {
-      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Check the fields",
-        null));
-    }
-
-    Community community = communityRepository.findById(request.getCommunityId()).orElse(null);
-    if (community == null) return ResponseEntity.badRequest().body(new ApiResponse<>(400,
-      "Community not found", null));
-
-    Optional<User> optionalRequester = userRepository.findByEmail(request.getRequesterEmail());
-    Optional<User> optionalTarget = userRepository.findByEmail(request.getTargetUserEmail());
-
-    if (optionalRequester.isEmpty() || optionalTarget.isEmpty())
-      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "User not found", null));
-
-    User requester = optionalRequester.get();
-    User target = optionalTarget.get();
-
-    if (!community.getCreatedBy().getId().equals(requester.getId())) {
-      return ResponseEntity.status(403).body(new ApiResponse<>(403,
-        "Only the community creator can change roles", null));
-    }
-
-    Optional<CommunityUser> communityUserOptional = community.getCommunityUsers()
-      .stream()
-      .filter(communityUser -> communityUser.getUser().getId().equals(target.getId()))
-      .findFirst();
-
-    if (communityUserOptional.isEmpty()) {
-      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "User is not a member",
-        null));
-    }
-
-    CommunityUser communityUser = communityUserOptional.get();
-
-    Role newRole;
     try {
-      newRole = Role.valueOf(request.getNewRole().toUpperCase());
+      validateChangeRoleRequest(request);
+
+      Community community = findCommunity(request.getCommunityId());
+      User requester = findUser(request.getRequesterEmail(), "Requester not found");
+      User target = findUser(request.getTargetUserEmail(), "Target user not found");
+
+      verifyCreatorPermission(community, requester);
+
+      CommunityUser communityUser = findCommunityUser(community, target);
+      Role newRole = parseRole(request.getNewRole());
+
+      communityUser.setRole(newRole);
+      communityUserRepository.save(communityUser);
+
+      return ResponseEntity.ok(new ApiResponse<>(
+        200,
+        "Role of " + target.getEmail() + " changed to " + newRole,
+        null
+      ));
+
     } catch (IllegalArgumentException e) {
-      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Invalid role: " +
-        request.getNewRole(), null));
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
+    } catch (SecurityException e) {
+      return ResponseEntity.status(403).body(new ApiResponse<>(403, e.getMessage(), null));
+    } catch (Exception e) {
+      return ResponseEntity.internalServerError()
+        .body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
     }
+  }
 
-    communityUser.setRole(newRole);
-    communityUserRepository.save(communityUser);
+  private void validateChangeRoleRequest(CommunityChangeRoleRequest request) {
+    if (request.getCommunityId() == null ||
+      request.getTargetUserEmail() == null ||
+      request.getRequesterEmail() == null ||
+      request.getNewRole() == null) {
+      throw new IllegalArgumentException("Check the fields");
+    }
+  }
 
-    return ResponseEntity.ok(new ApiResponse<>(200, "Role of " + target.getEmail() +
-      " changed to " + newRole, null));
+  private Community findCommunity(UUID communityId) {
+    return communityRepository.findById(communityId)
+      .orElseThrow(() -> new IllegalArgumentException("Community not found"));
+  }
+
+  private User findUser(String email, String errorMessage) {
+    return userRepository.findByEmail(email)
+      .orElseThrow(() -> new IllegalArgumentException(errorMessage));
+  }
+
+  private void verifyCreatorPermission(Community community, User requester) {
+    if (!community.getCreatedBy().getId().equals(requester.getId())) {
+      throw new SecurityException("Only the community creator can change roles");
+    }
+  }
+
+  private CommunityUser findCommunityUser(Community community, User target) {
+    return community.getCommunityUsers().stream()
+      .filter(cu -> cu.getUser().getId().equals(target.getId()))
+      .findFirst()
+      .orElseThrow(() -> new IllegalArgumentException("User is not a member"));
+  }
+
+  private Role parseRole(String roleStr) {
+    try {
+      return Role.valueOf(roleStr.toUpperCase());
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException("Invalid role: " + roleStr);
+    }
   }
 
   public ResponseEntity<ApiResponse<Map<String, Object>>> getCommunityMembers(UUID communityId) {
@@ -692,83 +723,86 @@ public class CommunityService implements ICommunityService {
       Map.of("communities", out)));
   }
 
-  @Override
   public ResponseEntity<ApiResponse<Map<String, List<Map<String, Object>>>>> listMyCommunities(String requesterEmail) {
+    try {
+      if (isInvalidEmail(requesterEmail)) {
+        return ResponseEntity.badRequest()
+          .body(new ApiResponse<>(400, "Requester email is required"));
+      }
 
-    if (requesterEmail == null || requesterEmail.isBlank()) {
-      return ResponseEntity.badRequest()
-              .body(new ApiResponse<>(400, "Requester email is required"));
-    }
+      String normalizedEmail = requesterEmail.trim().toLowerCase();
+      Optional<User> userOpt = userRepository.findByEmail(normalizedEmail);
 
-    String reqEmailLower = requesterEmail.trim().toLowerCase();
+      if (userOpt.isEmpty()) {
+        return ResponseEntity.ok(
+          new ApiResponse<>(200, "User not found, no communities fetched",
+            Map.of("communities", List.of()))
+        );
+      }
 
-    Optional<User> optUser = userRepository.findByEmail(reqEmailLower);
-    if (optUser.isEmpty()) {
+      List<Map<String, Object>> userCommunities = buildCommunityListForUser(normalizedEmail);
       return ResponseEntity.ok(
-              new ApiResponse<>(200, "User not found, no communities fetched",
-                      Map.of("communities", List.of()))
+        new ApiResponse<>(200, "User's communities fetched", Map.of("communities", userCommunities))
+      );
+
+    } catch (Exception e) {
+      return ResponseEntity.internalServerError().body(
+        new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null)
       );
     }
+  }
 
+  private boolean isInvalidEmail(String email) {
+    return email == null || email.isBlank();
+  }
+
+  private List<Map<String, Object>> buildCommunityListForUser(String reqEmailLower) {
     List<Community> allCommunities = communityRepository.findAll();
-
     Map<UUID, Map<String, Object>> dedup = new LinkedHashMap<>();
 
     for (Community c : allCommunities) {
-
-      boolean matchesCreator = c.getCreatedBy() != null
-              && c.getCreatedBy().getEmail() != null
-              && c.getCreatedBy().getEmail().equalsIgnoreCase(reqEmailLower);
-
-      boolean matchesMember = false;
-      if (c.getCommunityUsers() != null) {
-        matchesMember = c.getCommunityUsers().stream()
-                .anyMatch(cu -> cu.getUser() != null
-                        && cu.getUser().getEmail() != null
-                        && cu.getUser().getEmail().equalsIgnoreCase(reqEmailLower));
-      }
-
-      if (matchesCreator || matchesMember) {
-        Map<String, Object> m = new HashMap<>();
-        m.put("communityId", c.getId());
-        m.put("name", c.getName());
-        m.put("description", c.getDescription());
-
-        String imageKey = c.getImageUrl();
-        if (imageKey != null && !imageKey.isBlank()) {
-          try {
-            String presigned = s3Service.generatePresignedDownloadUrl(imageKey, Duration.ofHours(1));
-            m.put("imageUrl", presigned);
-            m.put("imageKey", imageKey);
-          } catch (Exception e) {
-            m.put("imageUrl", null);
-            m.put("imageKey", imageKey);
-          }
-        } else {
-          m.put("imageUrl", null);
-        }
-
-        String bannerKey = c.getBannerUrl();
-        if (bannerKey != null && !bannerKey.isBlank()) {
-          try {
-            String presigned = s3Service.generatePresignedDownloadUrl(bannerKey, Duration.ofHours(1));
-            m.put("bannerUrl", presigned);
-          } catch (Exception e) {
-            m.put("bannerUrl", null);
-          }
-        } else {
-          m.put("bannerUrl", null);
-        }
-
-        dedup.put(c.getId(), m);
+      if (isUserInCommunity(c, reqEmailLower)) {
+        dedup.put(c.getId(), buildCommunityMap(c));
       }
     }
 
-    List<Map<String, Object>> out = new ArrayList<>(dedup.values());
-    return ResponseEntity.ok(
-            new ApiResponse<>(200, "User's communities fetched",
-                    Map.of("communities", out))
-    );
+    return new ArrayList<>(dedup.values());
+  }
+
+  private boolean isUserInCommunity(Community c, String reqEmailLower) {
+    boolean matchesCreator = c.getCreatedBy() != null &&
+      c.getCreatedBy().getEmail() != null &&
+      c.getCreatedBy().getEmail().equalsIgnoreCase(reqEmailLower);
+
+    boolean matchesMember = c.getCommunityUsers() != null &&
+      c.getCommunityUsers().stream()
+        .anyMatch(cu -> cu.getUser() != null &&
+          cu.getUser().getEmail() != null &&
+          cu.getUser().getEmail().equalsIgnoreCase(reqEmailLower));
+
+    return matchesCreator || matchesMember;
+  }
+
+  private Map<String, Object> buildCommunityMap(Community c) {
+    Map<String, Object> m = new HashMap<>();
+    m.put("communityId", c.getId());
+    m.put("name", c.getName());
+    m.put("description", c.getDescription());
+
+    m.put("imageUrl", generatePresignedUrlSafely(c.getImageUrl()));
+    m.put("imageKey", c.getImageUrl());
+    m.put("bannerUrl", generatePresignedUrlSafely(c.getBannerUrl()));
+
+    return m;
+  }
+
+  private String generatePresignedUrlSafely(String key) {
+    if (key == null || key.isBlank()) return null;
+    try {
+      return s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1));
+    } catch (Exception e) {
+      return null;
+    }
   }
 
   @Override
@@ -905,32 +939,35 @@ public class CommunityService implements ICommunityService {
   }
 
   @Override
-  public ResponseEntity<?> deleteRoom(UUID roomId, String requesterEmail) {
+  public ResponseEntity<?> deleteRoom(UUID communityId, UUID roomId, String requesterEmail) {
     try {
-      ChatRoom room = chatRoomRepository.findById(roomId).orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + roomId));
+      ChatRoom room = chatRoomRepository.findById(roomId)
+        .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + roomId));
 
       Community community = room.getCommunity();
-      if (community == null) {
-        return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Associated community not found", null));
+      if (community == null || !community.getId().equals(communityId)) {
+        return ResponseEntity.badRequest().body(new ApiResponse<>(400,
+          "Room does not belong to the specified community", null));
       }
 
-      User requester = userRepository.findByEmail(requesterEmail).orElseThrow(() -> new ResourceNotFoundException("Requester not found with email: " + requesterEmail));
+      User requester = userRepository.findByEmail(requesterEmail)
+        .orElseThrow(() -> new ResourceNotFoundException("Requester not found with email: " + requesterEmail));
 
       if (!isUserAdminInCommunity(community, requester)) {
-        return ResponseEntity.status(403).body(new ApiResponse<>(403, "You are not authorized to delete this room", null));
+        return ResponseEntity.status(403).body(new ApiResponse<>(403,
+          "You are not authorized to delete this room", null));
       }
 
       chatRoomRepository.delete(room);
-
       return ResponseEntity.ok(new ApiResponse<>(200, "Room deleted successfully", null));
-    }
-    catch (ResourceNotFoundException e) {
+    } catch (ResourceNotFoundException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
-    }
-    catch (Exception e) {
-      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
+    } catch (Exception e) {
+      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: "
+        + e.getMessage(), null));
     }
   }
+
 
   public ResponseEntity<?> searchCommunities(String q, String requesterEmail, int page, int size) {
     if (q == null || q.isBlank()) {
@@ -1086,136 +1123,155 @@ public class CommunityService implements ICommunityService {
 
   @Override
   public ResponseEntity<?> uploadCommunityBanner(
-          UUID communityId,
-          String requesterEmail,
-          MultipartFile bannerFile,
-          MultipartFile communityAvatarFile,
-          MultipartFile userAvatarFile,
-          String newName,
-          String newDescription
+    UUID communityId,
+    String requesterEmail,
+    MultipartFile bannerFile,
+    MultipartFile communityAvatarFile,
+    MultipartFile userAvatarFile,
+    String newName,
+    String newDescription
   ) {
     if (requesterEmail == null || requesterEmail.isBlank()) {
-      return ResponseEntity.badRequest().body(
-              new ApiResponse<>(400, "requesterEmail is required", null)
-      );
+      return badRequest("requesterEmail is required");
     }
 
     try {
-      Community community = communityRepository.findById(communityId).orElse(null);
-      if (community == null) {
-        return ResponseEntity.badRequest().body(
-                new ApiResponse<>(400, "Community not found", null)
-        );
-      }
-
-      User requester = userRepository.findByEmail(requesterEmail).orElse(null);
-      if (requester == null) {
-        return ResponseEntity.badRequest().body(
-                new ApiResponse<>(400, "User not found", null)
-        );
-      }
+      Community community = getCommunityOrThrow(communityId);
+      User requester = getUserOrThrow(requesterEmail);
 
       if (!isUserAdminInCommunity(community, requester)) {
-        return ResponseEntity.status(403).body(
-                new ApiResponse<>(403, "Only community admin can change banner/info", null)
-        );
+        return forbidden();
       }
 
       Map<String, Object> body = new HashMap<>();
+      processNameAndDescription(community, newName, newDescription, body);
 
-      if (newName != null && !newName.isBlank()) {
-        String normalized = newName.trim();
-        if (!normalized.equalsIgnoreCase(community.getName())) {
-          if (communityRepository.existsByNameIgnoreCase(normalized)) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-              .body(new ApiResponse<>(409, "Community name already in use", null));
-          }
-          community.setName(normalized);
-          body.put("name", normalized);
-        }
-      }
-
-      if (newDescription != null) {
-        community.setDescription(newDescription);
-        body.put("description", newDescription);
-      }
-
-      String safeCommunityName = community.getName().replaceAll("[^a-zA-Z0-9]", "_");
-
-      if (communityAvatarFile != null && !communityAvatarFile.isEmpty()) {
-        validateImage(communityAvatarFile);
-        String fileName = System.currentTimeMillis() + "_" + communityAvatarFile.getOriginalFilename();
-        String avatarKey = "communities/" + safeCommunityName + "/avatar/" + fileName;
-        s3Service.uploadFile(avatarKey, communityAvatarFile.getInputStream(), communityAvatarFile.getSize());
-        community.setImageUrl(avatarKey);
-        try {
-          String presigned = s3Service.generatePresignedDownloadUrl(avatarKey, Duration.ofHours(2));
-          body.put("communityAvatarKey", avatarKey);
-          body.put("communityAvatarUrl", presigned);
-        } catch (Exception e) {
-          body.put("communityAvatarKey", avatarKey);
-          body.put("communityAvatarUrl", null);
-        }
-      }
-
-      if (bannerFile != null && !bannerFile.isEmpty()) {
-        validateImage(bannerFile);
-        String fileName = System.currentTimeMillis() + "_" + bannerFile.getOriginalFilename();
-        String bannerKey = "communities/" + safeCommunityName + "/banner/" + fileName;
-        s3Service.uploadFile(bannerKey, bannerFile.getInputStream(), bannerFile.getSize());
-        community.setBannerUrl(bannerKey);
-        try {
-          String presigned = s3Service.generatePresignedDownloadUrl(bannerKey, Duration.ofHours(2));
-          body.put("bannerKey", bannerKey);
-          body.put("bannerUrl", presigned);
-        } catch (Exception e) {
-          body.put("bannerKey", bannerKey);
-          body.put("bannerUrl", null);
-        }
-      }
-
-      if (userAvatarFile != null && !userAvatarFile.isEmpty()) {
-        validateImage(userAvatarFile);
-        String fileName = System.currentTimeMillis() + "_" + userAvatarFile.getOriginalFilename();
-        String userKey = "users/" + requester.getId() + "/avatar/" + fileName;
-        s3Service.uploadFile(userKey, userAvatarFile.getInputStream(), userAvatarFile.getSize());
-
-        requester.setAvatarUrl(userKey);
-        userRepository.save(requester);
-
-        try {
-          String presigned = s3Service.generatePresignedDownloadUrl(userKey, Duration.ofHours(2));
-          body.put("userAvatarKey", userKey);
-          body.put("userAvatarUrl", presigned);
-        } catch (Exception e) {
-          body.put("userAvatarKey", userKey);
-          body.put("userAvatarUrl", null);
-        }
-      }
+      handleImageUploads(community, requester, bannerFile, communityAvatarFile, userAvatarFile, body);
 
       communityRepository.save(community);
-
       if (community.getCreatedBy() != null)
         body.put("createdBy", community.getCreatedBy().getEmail());
       body.put("createdAt", community.getCreatedAt());
 
-      return ResponseEntity.ok(new ApiResponse<>(200, "Banner applied successfully", body));
-    }
-    catch (IOException e) {
-      return ResponseEntity.internalServerError().body(
-              new ApiResponse<>(500, "Error uploading image: " + e.getMessage(), null)
-      );
-    }
-    catch (RuntimeException e) {
-      return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
-    }
-    catch (Exception e) {
-      return ResponseEntity.internalServerError().body(
-              new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null)
-      );
+      return ok(body);
+
+    } catch (RuntimeException re) {
+      return badRequest(re.getMessage());
+    } catch (IOException ioe) {
+      return serverError("Error uploading image: " + ioe.getMessage());
+    } catch (Exception e) {
+      return serverError("Unexpected error: " + e.getMessage());
     }
   }
 
+  private void handleImageUploads(
+    Community community,
+    User requester,
+    MultipartFile bannerFile,
+    MultipartFile communityAvatarFile,
+    MultipartFile userAvatarFile,
+    Map<String, Object> body
+  ) throws IOException {
+    String safeCommunityName = safeName(community.getName());
+
+    uploadCommunityAvatar(community, communityAvatarFile, safeCommunityName, body);
+    uploadCommunityBanner(community, bannerFile, safeCommunityName, body);
+    uploadUserAvatar(requester, userAvatarFile, body);
+  }
+
+  private void uploadCommunityAvatar(Community community, MultipartFile file, String safeName,
+                                     Map<String, Object> body) throws IOException {
+    if (file == null || file.isEmpty()) return;
+
+    String avatarKey = uploadAndReturnKey(file, "communities/" + safeName + "/avatar/");
+    community.setImageUrl(avatarKey);
+    body.put("communityAvatarKey", avatarKey);
+    body.put("communityAvatarUrl", tryGeneratePresigned(avatarKey));
+  }
+
+  private void uploadCommunityBanner(Community community, MultipartFile file, String safeName,
+                                     Map<String, Object> body) throws IOException {
+    if (file == null || file.isEmpty()) return;
+
+    String bannerKey = uploadAndReturnKey(file, "communities/" + safeName + "/banner/");
+    community.setBannerUrl(bannerKey);
+    body.put("bannerKey", bannerKey);
+    body.put("bannerUrl", tryGeneratePresigned(bannerKey));
+  }
+
+  private void uploadUserAvatar(User requester, MultipartFile file, Map<String, Object> body) throws IOException {
+    if (file == null || file.isEmpty()) return;
+
+    String userKey = uploadAndReturnKey(file, "users/" + requester.getId() + "/avatar/");
+    requester.setAvatarUrl(userKey);
+    userRepository.save(requester);
+    body.put("userAvatarKey", userKey);
+    body.put("userAvatarUrl", tryGeneratePresigned(userKey));
+  }
+
+  private ResponseEntity<ApiResponse<Object>> ok(Object data) {
+    return ResponseEntity.ok(new ApiResponse<>(200, "Banner applied successfully", data));
+  }
+
+  private ResponseEntity<ApiResponse<Object>> badRequest(String message) {
+    return ResponseEntity.badRequest().body(new ApiResponse<>(400, message, null));
+  }
+
+  private ResponseEntity<ApiResponse<Object>> forbidden() {
+    return ResponseEntity.status(403).body(new ApiResponse<>(403, "Only community admin can change banner/info", null));
+  }
+
+  private ResponseEntity<ApiResponse<Object>> serverError(String message) {
+    return ResponseEntity.internalServerError().body(new ApiResponse<>(500, message, null));
+  }
+
+  private Community getCommunityOrThrow(UUID communityId) {
+    return communityRepository.findById(communityId)
+      .orElseThrow(() -> new ResourceNotFoundException("Community not found"));
+  }
+
+  private User getUserOrThrow(String email) {
+    return userRepository.findByEmail(email)
+      .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+  }
+
+  private void processNameAndDescription(Community community, String newName, String newDescription, Map<String, Object> body) {
+    if (newName != null && !newName.isBlank()) {
+      String normalized = newName.trim();
+      if (!normalized.equalsIgnoreCase(community.getName())) {
+        if (communityRepository.existsByNameIgnoreCase(normalized)) {
+          throw new RuntimeException("Community name already in use");
+        }
+        community.setName(normalized);
+        body.put("name", normalized);
+      }
+    }
+    if (newDescription != null) {
+      community.setDescription(newDescription);
+      body.put("description", newDescription);
+    }
+  }
+
+  private String uploadAndReturnKey(MultipartFile file, String prefix) throws IOException {
+    validateImage(file);
+    String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
+    String key = prefix + fileName;
+    s3Service.uploadFile(key, file.getInputStream(), file.getSize());
+    return key;
+  }
+
+  private String tryGeneratePresigned(String key) {
+    try {
+      return s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(2));
+    } catch (Exception ignored) {
+      return null;
+    }
+  }
+
+  private String safeName(String name) {
+    if (name == null) return "community";
+    return name.replaceAll("[^a-zA-Z0-9]", "_");
+  }
 
   @Override
   public ResponseEntity<?> renameRoomInCommunity(UUID communityId, UUID roomId, RenameRoomRequest req) {
@@ -1270,7 +1326,6 @@ public class CommunityService implements ICommunityService {
       );
     }
   }
-
 
   @Override
   public ResponseEntity<?> getRolesForRequester(UUID communityId, String requesterEmail) {

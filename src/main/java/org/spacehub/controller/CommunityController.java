@@ -132,11 +132,14 @@ public class CommunityController {
     return communityService.getRoomsByCommunity(communityId);
   }
 
-  @DeleteMapping("/rooms/{roomId}")
-  public ResponseEntity<?> deleteRoom(@PathVariable("roomId") UUID roomId,
-                                      @RequestParam("requesterEmail") String requesterEmail) {
-    return communityService.deleteRoom(roomId, requesterEmail);
+  @DeleteMapping("/{communityId}/rooms/{roomId}")
+  public ResponseEntity<?> deleteRoom(
+    @PathVariable("communityId") UUID communityId,
+    @PathVariable("roomId") UUID roomId,
+    @RequestParam("requesterEmail") String requesterEmail) {
+    return communityService.deleteRoom(communityId, roomId, requesterEmail);
   }
+
 
   @GetMapping("/search")
   public ResponseEntity<?> searchCommunities(@RequestParam("q") String q,

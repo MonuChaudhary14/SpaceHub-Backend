@@ -4,9 +4,12 @@ import org.spacehub.DTO.Community.CommunityInviteAcceptDTO;
 import org.spacehub.DTO.Community.CommunityInviteRequestDTO;
 import org.spacehub.DTO.Community.CommunityInviteResponseDTO;
 import org.spacehub.entities.ApiResponse.ApiResponse;
-import org.spacehub.entities.Community.CommunityInvite;
-import org.spacehub.entities.Community.InviteStatus;
+import org.spacehub.entities.Community.*;
+import org.spacehub.entities.User.User;
+import org.spacehub.repository.UserRepository;
 import org.spacehub.repository.community.CommunityInviteRepository;
+import org.spacehub.repository.community.CommunityRepository;
+import org.spacehub.repository.community.CommunityUserRepository;
 import org.spacehub.service.community.CommunityInterfaces.ICommunityInviteService;
 import org.springframework.stereotype.Service;
 
@@ -20,9 +23,19 @@ import java.util.stream.Collectors;
 public class CommunityInviteService implements ICommunityInviteService {
 
   private final CommunityInviteRepository inviteRepository;
+  private final CommunityRepository communityRepository;
+  private final CommunityUserRepository communityUserRepository;
+  private final UserRepository userRepository;
 
-  public CommunityInviteService(CommunityInviteRepository inviteRepository) {
+  public CommunityInviteService(
+          CommunityInviteRepository inviteRepository,
+          CommunityRepository communityRepository,
+          CommunityUserRepository communityUserRepository,
+          UserRepository userRepository) {
     this.inviteRepository = inviteRepository;
+    this.communityRepository = communityRepository;
+    this.communityUserRepository = communityUserRepository;
+    this.userRepository = userRepository;
   }
 
   private String generateInviteCode() {
@@ -31,10 +44,14 @@ public class CommunityInviteService implements ICommunityInviteService {
 
   @Override
   public ApiResponse<CommunityInviteResponseDTO> createInvite(UUID communityId, CommunityInviteRequestDTO request) {
+    Optional<Community> optionalCommunity = communityRepository.findById(communityId);
+    if (optionalCommunity.isEmpty()) {
+      return new ApiResponse<>(404, "Community not found", null);
+    }
+
     CommunityInvite invite = CommunityInvite.builder()
             .communityId(communityId)
             .inviterEmail(request.getInviterEmail())
-            .email(request.getEmail())
             .maxUses(request.getMaxUses())
             .inviteCode(generateInviteCode())
             .expiresAt(LocalDateTime.now().plusHours(request.getExpiresInHours()))
@@ -43,12 +60,13 @@ public class CommunityInviteService implements ICommunityInviteService {
 
     inviteRepository.save(invite);
 
+    String inviteLink = String.format("https://codewithketan.me/invite/%s/%s", communityId, invite.getInviteCode());
+
     CommunityInviteResponseDTO response = CommunityInviteResponseDTO.builder()
             .inviteCode(invite.getInviteCode())
-            .inviteLink("http://localhost:8080/invite/" + invite.getInviteCode())
+            .inviteLink(inviteLink)
             .communityId(communityId)
             .inviterEmail(invite.getInviterEmail())
-            .email(invite.getEmail())
             .maxUses(invite.getMaxUses())
             .uses(invite.getUses())
             .expiresAt(invite.getExpiresAt())
@@ -59,39 +77,95 @@ public class CommunityInviteService implements ICommunityInviteService {
   }
 
   @Override
-  public ApiResponse<String> acceptInvite(CommunityInviteAcceptDTO request) {
-
+  public ApiResponse<?> acceptInvite(CommunityInviteAcceptDTO request) {
     String rawCode = request.getInviteCode();
+    UUID communityId = request.getCommunityId();
+    String acceptorEmail = request.getAcceptorEmail();
 
-    String inviteCode = rawCode.contains("/") ? rawCode.substring(rawCode.lastIndexOf("/") + 1) : rawCode;
-
-    Optional<CommunityInvite> optionalInvite = inviteRepository.findByInviteCode(inviteCode);
-
-    if (optionalInvite.isEmpty()) {
-      return new ApiResponse<>(400, "Invalid invite link", null);
+    if (acceptorEmail == null || acceptorEmail.isBlank()) {
+      return new ApiResponse<>(400, "Acceptor email is required", null);
     }
 
-    CommunityInvite invite = optionalInvite.get();
+    String inviteCode = extractInviteCode(rawCode);
+
+    CommunityInvite invite = validateInvite(inviteCode, communityId);
+    if (invite == null) {
+      return new ApiResponse<>(400, "Invalid or expired invite", null);
+    }
+
+    Optional<User> optionalUser = userRepository.findByEmail(acceptorEmail);
+    if (optionalUser.isEmpty()) {
+      return new ApiResponse<>(404, "User not found", null);
+    }
+
+    Optional<Community> optionalCommunity = communityRepository.findById(communityId);
+    if (optionalCommunity.isEmpty()) {
+      return new ApiResponse<>(404, "Community not found", null);
+    }
+
+    Community community = optionalCommunity.get();
+    User user = optionalUser.get();
+
+    if (isAlreadyMember(community, user)) {
+      return new ApiResponse<>(400, "User is already a member of this community", community);
+    }
+
+    addUserToCommunity(community, user);
+    incrementInviteUsage(invite);
+
+    return new ApiResponse<>(200, "User joined community successfully", community);
+  }
+
+  private String extractInviteCode(String rawCode) {
+    return rawCode.contains("/") ? rawCode.substring(rawCode.lastIndexOf("/") + 1) : rawCode;
+  }
+
+  private CommunityInvite validateInvite(String inviteCode, UUID communityId) {
+    Optional<CommunityInvite> inviteOpt = inviteRepository.findByInviteCode(inviteCode);
+    if (inviteOpt.isEmpty()) return null;
+
+    CommunityInvite invite = inviteOpt.get();
+
+    if (!invite.getCommunityId().equals(communityId)) return null;
 
     if (invite.getExpiresAt().isBefore(LocalDateTime.now())) {
       invite.setStatus(InviteStatus.EXPIRED);
       inviteRepository.save(invite);
-      return new ApiResponse<>(400, "Invite link has expired", null);
+      return null;
     }
 
     if (invite.getUses() >= invite.getMaxUses()) {
       invite.setStatus(InviteStatus.USED);
       inviteRepository.save(invite);
-      return new ApiResponse<>(400, "Invite already used", null);
+      return null;
     }
 
+    return invite;
+  }
+
+  private boolean isAlreadyMember(Community community, User user) {
+    return community.getMembers().stream()
+      .anyMatch(u -> u.getId().equals(user.getId()));
+  }
+
+  private void addUserToCommunity(Community community, User user) {
+    community.getMembers().add(user);
+    communityRepository.save(community);
+
+    CommunityUser communityUser = new CommunityUser();
+    communityUser.setCommunity(community);
+    communityUser.setUser(user);
+    communityUser.setRole(Role.MEMBER);
+    communityUser.setJoinDate(LocalDateTime.now());
+    communityUserRepository.save(communityUser);
+  }
+
+  private void incrementInviteUsage(CommunityInvite invite) {
     invite.setUses(invite.getUses() + 1);
     if (invite.getUses() >= invite.getMaxUses()) {
       invite.setStatus(InviteStatus.USED);
     }
     inviteRepository.save(invite);
-
-    return new ApiResponse<>(200, "User successfully joined the community", null);
   }
 
   @Override
@@ -100,10 +174,9 @@ public class CommunityInviteService implements ICommunityInviteService {
             .filter(invite -> invite.getCommunityId().equals(communityId))
             .map(invite -> CommunityInviteResponseDTO.builder()
                     .inviteCode(invite.getInviteCode())
-                    .inviteLink("https:/codewithketan.me/invite/" + invite.getInviteCode())
+                    .inviteLink("https://codewithketan.me/invite/" + communityId + "/" + invite.getInviteCode())
                     .communityId(invite.getCommunityId())
                     .inviterEmail(invite.getInviterEmail())
-                    .email(invite.getEmail())
                     .maxUses(invite.getMaxUses())
                     .uses(invite.getUses())
                     .expiresAt(invite.getExpiresAt())
@@ -112,18 +185,17 @@ public class CommunityInviteService implements ICommunityInviteService {
             .collect(Collectors.toList());
 
     return new ApiResponse<>(200, "Invites fetched successfully", invites);
-
   }
 
   @Override
   public ApiResponse<String> revokeInvite(String inviteCode) {
-    Optional<CommunityInvite> inviteOpt = inviteRepository.findByInviteCode(inviteCode);
+    Optional<CommunityInvite> optionalInvite = inviteRepository.findByInviteCode(inviteCode);
 
-    if (inviteOpt.isEmpty()) {
+    if (optionalInvite.isEmpty()) {
       return new ApiResponse<>(400, "Invite not found", null);
     }
 
-    inviteRepository.delete(inviteOpt.get());
+    inviteRepository.delete(optionalInvite.get());
     return new ApiResponse<>(200, "Invite revoked successfully", null);
   }
 

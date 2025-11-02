@@ -1,6 +1,7 @@
 package org.spacehub.repository;
 
 import org.spacehub.entities.Notification.Notification;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -8,11 +9,16 @@ import java.util.List;
 import java.util.UUID;
 
 @Repository
-public interface NotificationRepository extends JpaRepository<Notification, Long> {
+public interface NotificationRepository extends JpaRepository<Notification, UUID> {
 
     List<Notification> findByRecipientEmailAndScopeOrderByCreatedAtDesc(String email, String scope);
+
     List<Notification> findByRecipientEmailOrderByCreatedAtDesc(String email);
-    boolean existsById(UUID id);
-    boolean existsById(Long Id);
+
+    List<Notification> findByRecipientEmailAndReadFalseOrderByCreatedAtDesc(String email, Pageable pageable);
+
+    List<Notification> findByRecipientEmailAndReadTrueOrderByCreatedAtDesc(String email, Pageable pageable);
+
+    long countByRecipientEmailAndReadFalse(String email);
 
 }

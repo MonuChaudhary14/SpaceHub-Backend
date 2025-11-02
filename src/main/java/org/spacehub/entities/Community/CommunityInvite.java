@@ -31,22 +31,13 @@ public class CommunityInvite {
   @Column(unique = true, nullable = false)
   private String inviteCode;
 
-  private String email;
-
-  @Column(nullable = false)
-  private int maxUses = 1;
-
-  @Column(nullable = false)
+  private int maxUses = 10;
   private int uses = 0;
-
-  @Column(nullable = false)
   private LocalDateTime expiresAt;
 
   @Enumerated(EnumType.STRING)
-  @Column(nullable = false)
   private InviteStatus status = InviteStatus.ACTIVE;
 
-  @Column(nullable = false, updatable = false)
   private LocalDateTime createdAt = LocalDateTime.now();
 
 }
