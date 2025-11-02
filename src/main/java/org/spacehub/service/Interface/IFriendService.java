@@ -1,6 +1,6 @@
 package org.spacehub.service.Interface;
 
-import org.spacehub.DTO.UserOutput;
+import org.spacehub.DTO.User.UserOutput;
 import java.util.List;
 
 public interface IFriendService {

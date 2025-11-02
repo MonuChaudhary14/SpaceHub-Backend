@@ -1,4 +1,4 @@
-package org.spacehub.DTO;
+package org.spacehub.DTO.User;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

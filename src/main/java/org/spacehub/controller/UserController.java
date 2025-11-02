@@ -13,6 +13,9 @@ import org.spacehub.DTO.DTO_auth.ValidateForgotOtpRequest;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.Auth.RegistrationRequest;
 import org.spacehub.service.serviceAuth.authInterfaces.IUserAccountService;
+import org.spacehub.service.serviceAuth.authInterfaces.IUserService;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,9 +26,11 @@ import java.util.Map;
 public class UserController {
 
   private final IUserAccountService accountService;
+  private final IUserService userService;
 
-  public UserController(IUserAccountService accountService) {
+  public UserController(IUserAccountService accountService, IUserService userService) {
     this.accountService = accountService;
+    this.userService = userService;
   }
 
   @PostMapping("/login")
@@ -88,5 +93,14 @@ public class UserController {
     return ResponseEntity.ok("Signal received");
   }
 
+  @GetMapping("/search")
+  public ResponseEntity<?> searchForUsers(
+    @RequestParam("q") String query,
+    @RequestParam(value = "page", defaultValue = "0") int page,
+    @RequestParam(value = "size", defaultValue = "20") int size
+  ) {
+    Pageable pageable = PageRequest.of(page, size);
+    return userService.searchUsers(query, pageable);
+  }
 
 }

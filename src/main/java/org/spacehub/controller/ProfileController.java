@@ -1,7 +1,7 @@
 package org.spacehub.controller;
 
-import org.spacehub.DTO.UserProfileDTO;
-import org.spacehub.DTO.UserProfileResponse;
+import org.spacehub.DTO.User.UserProfileDTO;
+import org.spacehub.DTO.User.UserProfileResponse;
 import org.spacehub.entities.User.User;
 import org.spacehub.service.Interface.IProfileService;
 import org.springframework.http.ResponseEntity;

@@ -1,7 +1,7 @@
 package org.spacehub.service;
 
-import org.spacehub.DTO.UserProfileDTO;
-import org.spacehub.DTO.UserProfileResponse;
+import org.spacehub.DTO.User.UserProfileDTO;
+import org.spacehub.DTO.User.UserProfileResponse;
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.UserRepository;
 import org.spacehub.service.Interface.IProfileService;

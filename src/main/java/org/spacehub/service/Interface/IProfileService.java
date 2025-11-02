@@ -1,7 +1,7 @@
 package org.spacehub.service.Interface;
 
-import org.spacehub.DTO.UserProfileDTO;
-import org.spacehub.DTO.UserProfileResponse;
+import org.spacehub.DTO.User.UserProfileDTO;
+import org.spacehub.DTO.User.UserProfileResponse;
 import org.spacehub.entities.User.User;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;

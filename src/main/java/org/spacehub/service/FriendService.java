@@ -1,6 +1,6 @@
 package org.spacehub.service;
 
-import org.spacehub.DTO.UserOutput;
+import org.spacehub.DTO.User.UserOutput;
 import org.spacehub.entities.Friends.Friends;
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.FriendsRepository;
