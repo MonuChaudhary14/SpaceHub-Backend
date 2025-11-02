@@ -124,10 +124,14 @@ public class CommunityController {
     return communityService.getCommunityDetailsWithAdminFlag(communityId, requesterEmail);
   }
 
-  @PostMapping("/rooms/create")
-  public ResponseEntity<?> createRoomInCommunity(@RequestBody CreateRoomRequest request) {
+  @PostMapping("/{id}/rooms/create")
+  public ResponseEntity<?> createRoomInCommunity(
+    @PathVariable("id") Long communityId,
+    @RequestBody CreateRoomRequest request) {
+    request.setCommunityId(communityId);
     return communityService.createRoomInCommunity(request);
   }
+
 
   @GetMapping("/{id}/rooms/all")
   public ResponseEntity<?> getRoomsByCommunity(@PathVariable("id") Long communityId) {
@@ -184,6 +188,7 @@ public class CommunityController {
     @PathVariable Long communityId,
     @PathVariable Long roomId,
     @RequestBody RenameRoomRequest req) {
+    req.setRequesterEmail(req.getRequesterEmail());
     return communityService.renameRoomInCommunity(communityId, roomId, req);
   }
 
@@ -198,6 +203,19 @@ public class CommunityController {
     @RequestParam(value = "page", defaultValue = "0") int page,
     @RequestParam(value = "size", defaultValue = "20") int size) {
     return communityService.discoverCommunities(page, size);
+  }
+
+  @GetMapping("/my-pending-requests")
+  public ResponseEntity<?> getMyAllPendingRequests(
+    @RequestParam("requesterEmail") String requesterEmail) {
+    return communityService.getAllPendingRequestsForAdmin(requesterEmail);
+  }
+
+  @GetMapping("/{id}/pending-requests")
+  public ResponseEntity<?> getPendingRequests(
+    @PathVariable("id") Long communityId,
+    @RequestParam("requesterEmail") String requesterEmail) {
+    return communityService.getPendingRequests(communityId, requesterEmail);
   }
 
 }
