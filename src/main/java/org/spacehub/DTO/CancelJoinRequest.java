@@ -7,7 +7,7 @@ import java.util.UUID;
 @Data
 public class CancelJoinRequest {
 
-  private UUID communityId;
+  private String communityName;
   private String userEmail;
 
 }

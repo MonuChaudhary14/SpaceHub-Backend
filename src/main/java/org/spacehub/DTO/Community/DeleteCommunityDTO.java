@@ -7,7 +7,7 @@ import java.util.UUID;
 @Data
 public class DeleteCommunityDTO {
 
-  private UUID communityId;
+  private String name;
   private String userEmail;
 
 }
