@@ -9,6 +9,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public interface ILocalGroupService {
 
@@ -25,14 +26,9 @@ public interface ILocalGroupService {
 
   ResponseEntity<ApiResponse<List<LocalGroupResponse>>> listAllLocalGroups(String requesterEmail);
 
-  ResponseEntity<ApiResponse<LocalGroupResponse>> getLocalGroup(Long id);
+  ResponseEntity<ApiResponse<LocalGroupResponse>> getLocalGroup(UUID id);
 
-  ResponseEntity<ApiResponse<Map<String, Object>>> searchLocalGroups(
-    String q,
-    String requesterEmail,
-    int page,
-    int size
-  );
+  ResponseEntity<ApiResponse<Map<String, Object>>> searchLocalGroups(String q, String requesterEmail, int page, int size);
 
-  ResponseEntity<?> enterOrJoinLocalGroup(Long groupId, String requesterEmail);
+  ResponseEntity<?> enterOrJoinLocalGroup(UUID groupId, String requesterEmail);
 }

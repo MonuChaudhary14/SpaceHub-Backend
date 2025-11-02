@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("api/v1/local-group")
@@ -48,7 +49,7 @@ public class LocalGroupController {
   }
 
   @GetMapping("/{id}")
-  public ResponseEntity<ApiResponse<LocalGroupResponse>> getLocalGroup(@PathVariable("id") Long id) {
+  public ResponseEntity<ApiResponse<LocalGroupResponse>> getLocalGroup(@PathVariable("id") UUID id) {
     return localGroupService.getLocalGroup(id);
   }
 
@@ -63,7 +64,7 @@ public class LocalGroupController {
 
   @PostMapping("/{id}/enter")
   public ResponseEntity<?> enterLocalGroup(
-          @PathVariable("id") Long groupId,
+          @PathVariable("id") UUID groupId,
           @RequestParam("requesterEmail") String requesterEmail) {
     return localGroupService.enterOrJoinLocalGroup(groupId, requesterEmail);
   }
