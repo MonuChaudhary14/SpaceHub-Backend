@@ -333,7 +333,9 @@ public class CommunityService implements ICommunityService {
   public ResponseEntity<?> leaveCommunity(LeaveCommunity leaveCommunity) {
 
     if (isEmpty(leaveCommunity.getCommunityName(), leaveCommunity.getUserEmail())) {
-      return ResponseEntity.badRequest().body("Check the fields");
+      return ResponseEntity.badRequest().body(
+        new ApiResponse<>(400, "Check the fields", null)
+      );
     }
 
     try {
@@ -341,7 +343,9 @@ public class CommunityService implements ICommunityService {
       User user = findUserByEmail(leaveCommunity.getUserEmail());
 
       if (community.getCreatedBy().getId().equals(user.getId())) {
-        return ResponseEntity.status(403).body("Community creator cannot leave their own community");
+        return ResponseEntity.status(403).body(
+          new ApiResponse<>(403, "Community creator cannot leave their own community", null)
+        );
       }
 
       Optional<CommunityUser> communityUserOptional = community.getCommunityUsers()
@@ -350,14 +354,21 @@ public class CommunityService implements ICommunityService {
         .findFirst();
 
       if (communityUserOptional.isEmpty()) {
-        return ResponseEntity.badRequest().body("You are not a member of this community");
+        return ResponseEntity.badRequest().body(
+          new ApiResponse<>(400, "You are not a member of this community", null)
+        );
       }
 
       communityUserRepository.delete(communityUserOptional.get());
-      return ResponseEntity.ok().body("You have left the community successfully");
 
-    } catch (ResourceNotFoundException ex) {
-      return ResponseEntity.badRequest().body(ex.getMessage());
+      return ResponseEntity.ok(
+        new ApiResponse<>(200, "You have left the community successfully", null)
+      );
+
+    } catch (ResourceNotFoundException e) {
+      return ResponseEntity.badRequest().body(
+        new ApiResponse<>(400, e.getMessage(), null)
+      );
     }
   }
 
