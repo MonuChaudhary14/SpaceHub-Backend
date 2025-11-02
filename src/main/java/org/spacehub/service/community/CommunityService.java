@@ -375,44 +375,66 @@ public class CommunityService implements ICommunityService {
   @CacheEvict(value = "communities", key = "#rejectRequest.communityName")
   public ResponseEntity<?> rejectRequest(RejectRequest rejectRequest) {
 
-    if (rejectRequest.getCommunityName() != null && !rejectRequest.getCommunityName().isBlank() &&
-      rejectRequest.getUserEmail() != null && !rejectRequest.getUserEmail().isBlank() &&
-      !rejectRequest.getCreatorEmail().isBlank()) {
-      Community community = communityRepository.findByName(rejectRequest.getCommunityName());
-      if (community == null) return ResponseEntity.badRequest().body("Community not found");
+    if (rejectRequest.getCommunityName() == null || rejectRequest.getCommunityName().isBlank() ||
+      rejectRequest.getUserEmail() == null || rejectRequest.getUserEmail().isBlank() ||
+      rejectRequest.getCreatorEmail() == null || rejectRequest.getCreatorEmail().isBlank()) {
 
+      return ResponseEntity.badRequest().body(
+        new ApiResponse<>(400, "Check the fields", null)
+      );
+    }
+
+    try {
+      Community community = communityRepository.findByName(rejectRequest.getCommunityName());
+      if (community == null) {
+        return ResponseEntity.badRequest().body(
+          new ApiResponse<>(400, "Community not found", null)
+        );
+      }
 
       Optional<User> optionalCreator = userRepository.findByEmail(rejectRequest.getCreatorEmail());
-
       if (optionalCreator.isEmpty()) {
-        return ResponseEntity.badRequest().body("Creator not found");
+        return ResponseEntity.badRequest().body(
+          new ApiResponse<>(400, "Creator not found", null)
+        );
       }
 
       if (!community.getCreatedBy().getId().equals(optionalCreator.get().getId())) {
-        return ResponseEntity.status(403).body("You are not authorized to reject requests");
+        return ResponseEntity.status(403).body(
+          new ApiResponse<>(403, "You are not authorized to reject requests", null)
+        );
       }
 
       Optional<User> optionalUser = userRepository.findByEmail(rejectRequest.getUserEmail());
-
       if (optionalUser.isEmpty()) {
-        return ResponseEntity.badRequest().body("User not found");
+        return ResponseEntity.badRequest().body(
+          new ApiResponse<>(400, "User not found", null)
+        );
       }
 
       User user = optionalUser.get();
 
       if (!community.getPendingRequests().contains(user)) {
-        return ResponseEntity.badRequest().body("No pending request from this user");
+        return ResponseEntity.badRequest().body(
+          new ApiResponse<>(400, "No pending request from this user", null)
+        );
       }
 
       community.getPendingRequests().remove(user);
       communityRepository.save(community);
 
-      return ResponseEntity.ok().body("Join request rejected successfully");
-    } else {
-      return ResponseEntity.badRequest().body("Check the fields");
-    }
+      return ResponseEntity.ok(
+        new ApiResponse<>(200, "Join request rejected successfully", null)
+      );
 
+    } catch (Exception e) {
+      return ResponseEntity.internalServerError().body(
+        new ApiResponse<>(500, "An unexpected error occurred: " + e.getMessage(), null)
+      );
+    }
   }
+
+
 
   private Community findCommunityByName(String name) {
     Community community = communityRepository.findByName(name);
