@@ -30,7 +30,7 @@ public class DashBoardService implements IDashBoardService {
 
     try {
       User user = userRepository.findByEmail(email).orElseThrow(() ->
-        new RuntimeException("User not found with email: " + email));
+              new RuntimeException("User not found with email: " + email));
 
       user.setUsername(username);
       userRepository.save(user);
@@ -71,7 +71,7 @@ public class DashBoardService implements IDashBoardService {
     }
     catch (IOException e) {
       return new ApiResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Error uploading image: " +
-        e.getMessage(), null);
+              e.getMessage(), null);
     }
     catch (RuntimeException e) {
       return new ApiResponse<>(400, e.getMessage(), null);

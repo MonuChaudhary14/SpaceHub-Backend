@@ -7,11 +7,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.UUID;
 
 @Repository
-public interface CommunityUserRepository extends JpaRepository<CommunityUser, Long> {
+public interface CommunityUserRepository extends JpaRepository<CommunityUser, UUID> {
 
-  List<CommunityUser> findByCommunityId(Long communityId);
+  List<CommunityUser> findByCommunityId(UUID communityId);
   List<CommunityUser> findByUserAndRole(User user, Role role);
 
 }

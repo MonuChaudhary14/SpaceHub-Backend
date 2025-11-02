@@ -26,7 +26,7 @@ public class CommunityInvite {
   private UUID communityId;
 
   @Column(nullable = false)
-  private UUID inviterId;
+  private String inviterEmail;
 
   @Column(unique = true, nullable = false)
   private String inviteCode;

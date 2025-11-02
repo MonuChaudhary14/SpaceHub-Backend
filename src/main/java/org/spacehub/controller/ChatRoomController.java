@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("api/v1/rooms")
@@ -72,7 +73,7 @@ public class ChatRoomController {
   }
 
   @PostMapping("/community/rooms")
-  public ResponseEntity<ApiResponse<List<ChatRoom>>> getRoomsByCommunity(@RequestBody Long communityId) {
+  public ResponseEntity<ApiResponse<List<ChatRoom>>> getRoomsByCommunity(@RequestBody UUID communityId) {
     return ResponseEntity.ok(chatRoomService.getRoomsByCommunity(communityId));
   }
 

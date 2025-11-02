@@ -236,7 +236,7 @@ public class ChatRoomService implements IChatRoomService {
       + " has left room " + room.getRoomCode());
   }
 
-  public ApiResponse<List<ChatRoom>> getRoomsByCommunity(Long communityId) {
+  public ApiResponse<List<ChatRoom>> getRoomsByCommunity(UUID communityId) {
 
     Optional<Community> optionalCommunity = communityRepository.findById(communityId);
     if (optionalCommunity.isEmpty()) {
