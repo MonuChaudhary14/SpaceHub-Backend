@@ -59,7 +59,19 @@ public class SecurityConfiguration {
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
                     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                    .requestMatchers("/**").permitAll()
+                    .requestMatchers(
+                            "/ws-messages/**",
+                            "/api/v1/validateforgototp",
+                            "/api/v1/**",
+                            "/api/**",
+                            "/ws/**",
+                            "/swagger-ui/**",
+                            "/v3/api-docs/**",
+                            "/v3/api-docs.yaml",
+                            "/chat/**",
+                            "/files/**",
+                            "/wss/**"
+                    ).permitAll()
                     .anyRequest().authenticated()
             )
             .httpBasic(AbstractHttpConfigurer::disable)
