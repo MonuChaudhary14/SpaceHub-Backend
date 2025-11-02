@@ -91,8 +91,8 @@ public class VoiceRoomWebSocketController {
       return;
     }
 
-    String sessionId = userSessionMap.get(username );
-    String handleId = userHandleMap.get(username );
+    String sessionId = userSessionMap.get(username);
+    String handleId = userHandleMap.get(username);
     if (sessionId == null || handleId == null) {
       System.out.println("Logs for errror -> User Id:" + username);
       return;

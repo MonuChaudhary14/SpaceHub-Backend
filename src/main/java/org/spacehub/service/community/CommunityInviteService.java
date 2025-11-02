@@ -78,7 +78,6 @@ public class CommunityInviteService implements ICommunityInviteService {
 
   @Override
   public ApiResponse<?> acceptInvite(CommunityInviteAcceptDTO request) {
-
     String rawCode = request.getInviteCode();
     UUID communityId = request.getCommunityId();
     String acceptorEmail = request.getAcceptorEmail();
@@ -87,40 +86,11 @@ public class CommunityInviteService implements ICommunityInviteService {
       return new ApiResponse<>(400, "Acceptor email is required", null);
     }
 
-    String inviteCode = rawCode.contains("/") ? rawCode.substring(rawCode.lastIndexOf("/") + 1) : rawCode;
+    String inviteCode = extractInviteCode(rawCode);
 
-    Optional<CommunityInvite> inviteOpt = inviteRepository.findByInviteCode(inviteCode);
-    if (inviteOpt.isEmpty()) {
-      return new ApiResponse<>(400, "Invalid invite link", null);
-    }
-
-    CommunityInvite invite = inviteOpt.get();
-
-    if (!invite.getCommunityId().equals(communityId)) {
-      return new ApiResponse<>(400, "Invite does not belong to this community", null);
-    }
-
-    if (invite.getExpiresAt().isBefore(LocalDateTime.now())) {
-      invite.setStatus(InviteStatus.EXPIRED);
-      inviteRepository.save(invite);
-      return new ApiResponse<>(400, "Invite link has expired", null);
-    }
-
-    if (invite.getUses() >= invite.getMaxUses()) {
-      invite.setStatus(InviteStatus.USED);
-      inviteRepository.save(invite);
-      return new ApiResponse<>(400, "Invite already used", null);
-    }
-
-    invite.setUses(invite.getUses() + 1);
-    if (invite.getUses() >= invite.getMaxUses()) {
-      invite.setStatus(InviteStatus.USED);
-    }
-    inviteRepository.save(invite);
-
-    Optional<Community> optionalCommunity = communityRepository.findById(communityId);
-    if (optionalCommunity.isEmpty()) {
-      return new ApiResponse<>(404, "Community not found", null);
+    CommunityInvite invite = validateInvite(inviteCode, communityId);
+    if (invite == null) {
+      return new ApiResponse<>(400, "Invalid or expired invite", null);
     }
 
     Optional<User> optionalUser = userRepository.findByEmail(acceptorEmail);
@@ -128,15 +98,57 @@ public class CommunityInviteService implements ICommunityInviteService {
       return new ApiResponse<>(404, "User not found", null);
     }
 
+    Optional<Community> optionalCommunity = communityRepository.findById(communityId);
+    if (optionalCommunity.isEmpty()) {
+      return new ApiResponse<>(404, "Community not found", null);
+    }
+
     Community community = optionalCommunity.get();
     User user = optionalUser.get();
 
-    boolean alreadyMember = community.getMembers().stream()
-            .anyMatch(u -> u.getId().equals(user.getId()));
-    if (alreadyMember) {
+    if (isAlreadyMember(community, user)) {
       return new ApiResponse<>(400, "User is already a member of this community", community);
     }
 
+    addUserToCommunity(community, user);
+    incrementInviteUsage(invite);
+
+    return new ApiResponse<>(200, "User joined community successfully", community);
+  }
+
+  private String extractInviteCode(String rawCode) {
+    return rawCode.contains("/") ? rawCode.substring(rawCode.lastIndexOf("/") + 1) : rawCode;
+  }
+
+  private CommunityInvite validateInvite(String inviteCode, UUID communityId) {
+    Optional<CommunityInvite> inviteOpt = inviteRepository.findByInviteCode(inviteCode);
+    if (inviteOpt.isEmpty()) return null;
+
+    CommunityInvite invite = inviteOpt.get();
+
+    if (!invite.getCommunityId().equals(communityId)) return null;
+
+    if (invite.getExpiresAt().isBefore(LocalDateTime.now())) {
+      invite.setStatus(InviteStatus.EXPIRED);
+      inviteRepository.save(invite);
+      return null;
+    }
+
+    if (invite.getUses() >= invite.getMaxUses()) {
+      invite.setStatus(InviteStatus.USED);
+      inviteRepository.save(invite);
+      return null;
+    }
+
+    return invite;
+  }
+
+  private boolean isAlreadyMember(Community community, User user) {
+    return community.getMembers().stream()
+      .anyMatch(u -> u.getId().equals(user.getId()));
+  }
+
+  private void addUserToCommunity(Community community, User user) {
     community.getMembers().add(user);
     communityRepository.save(community);
 
@@ -146,8 +158,14 @@ public class CommunityInviteService implements ICommunityInviteService {
     communityUser.setRole(Role.MEMBER);
     communityUser.setJoinDate(LocalDateTime.now());
     communityUserRepository.save(communityUser);
+  }
 
-    return new ApiResponse<>(200, "User joined community successfully", community);
+  private void incrementInviteUsage(CommunityInvite invite) {
+    invite.setUses(invite.getUses() + 1);
+    if (invite.getUses() >= invite.getMaxUses()) {
+      invite.setStatus(InviteStatus.USED);
+    }
+    inviteRepository.save(invite);
   }
 
   @Override
