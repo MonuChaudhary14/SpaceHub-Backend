@@ -51,8 +51,6 @@ public interface ICommunityService {
     String requesterEmail
   );
 
-  ResponseEntity<?> getUserCommunities(String emailId);
-
   ResponseEntity<?> createRoomInCommunity(CreateRoomRequest request);
 
   ResponseEntity<ApiResponse<List<Map<String, Object>>>> getRoomsByCommunity(Long communityId);
@@ -82,5 +80,9 @@ public interface ICommunityService {
   ResponseEntity<ApiResponse<Map<String, Object>>> discoverCommunities(int page, int size);
 
   ResponseEntity<ApiResponse<Map<String, List<Map<String, Object>>>>> listMyCommunities(String requesterEmail);
+
+  ResponseEntity<ApiResponse<?>> getPendingRequests(Long communityId, String requesterEmail);
+
+  ResponseEntity<ApiResponse<?>> getAllPendingRequestsForAdmin(String requesterEmail);
 }
 

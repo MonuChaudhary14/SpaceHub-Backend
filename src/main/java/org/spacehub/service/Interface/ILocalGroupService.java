@@ -23,7 +23,7 @@ public interface ILocalGroupService {
 
   ResponseEntity<ApiResponse<String>> deleteLocalGroup(DeleteLocalGroupRequest req);
 
-  ResponseEntity<ApiResponse<List<LocalGroupResponse>>> listAllLocalGroups();
+  ResponseEntity<ApiResponse<List<LocalGroupResponse>>> listAllLocalGroups(String requesterEmail);
 
   ResponseEntity<ApiResponse<LocalGroupResponse>> getLocalGroup(Long id);
 

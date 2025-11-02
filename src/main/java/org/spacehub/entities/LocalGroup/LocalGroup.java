@@ -44,6 +44,7 @@ public class LocalGroup {
     joinColumns = @JoinColumn(name = "group_id"),
     inverseJoinColumns = @JoinColumn(name = "user_id")
   )
+
   @ToString.Exclude
   private Set<User> members = new HashSet<>();
 
