@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.spacehub.DTO.Community.CreateRoomRequest;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("api/v1/community")
@@ -33,9 +34,10 @@ public class CommunityController {
 
   @PostMapping("/create")
   public ResponseEntity<ApiResponse<Map<String, Object>>> createCommunity(
-    @RequestParam("name") String name, @RequestParam("description") String description,
-    @RequestParam("createdByEmail") String createdByEmail,
-    @RequestParam("imageFile") MultipartFile imageFile) {
+          @RequestParam("name") String name,
+          @RequestParam("description") String description,
+          @RequestParam("createdByEmail") String createdByEmail,
+          @RequestParam("imageFile") MultipartFile imageFile) {
     return communityService.createCommunity(name, description, createdByEmail, imageFile);
   }
 
@@ -108,113 +110,98 @@ public class CommunityController {
   }
 
   @GetMapping("/my-communities")
-  public ResponseEntity<?> getMyCommunities(
-    @RequestParam("requesterEmail") String requesterEmail) {
+  public ResponseEntity<?> getMyCommunities(@RequestParam("requesterEmail") String requesterEmail) {
     return communityService.listMyCommunities(requesterEmail);
   }
 
-  @GetMapping("/user/all/community")
-  public ResponseEntity<?> listAllUserCommunities(@RequestParam String emailId) {
-    return communityService.getUserCommunities(emailId);
-  }
-
   @GetMapping("/{id}")
-  public ResponseEntity<?> getCommunityDetails(@PathVariable("id") Long communityId,
+  public ResponseEntity<?> getCommunityDetails(@PathVariable("id") UUID communityId,
                                                @RequestParam("requesterEmail") String requesterEmail) {
     return communityService.getCommunityDetailsWithAdminFlag(communityId, requesterEmail);
   }
 
   @PostMapping("/{id}/rooms/create")
-  public ResponseEntity<?> createRoomInCommunity(
-    @PathVariable("id") Long communityId,
-    @RequestBody CreateRoomRequest request) {
+  public ResponseEntity<?> createRoomInCommunity(@PathVariable("id") UUID communityId,
+                                                 @RequestBody CreateRoomRequest request) {
     request.setCommunityId(communityId);
     return communityService.createRoomInCommunity(request);
   }
 
-
   @GetMapping("/{id}/rooms/all")
-  public ResponseEntity<?> getRoomsByCommunity(@PathVariable("id") Long communityId) {
+  public ResponseEntity<?> getRoomsByCommunity(@PathVariable("id") UUID communityId) {
     return communityService.getRoomsByCommunity(communityId);
   }
 
   @DeleteMapping("/rooms/{roomId}")
-  public ResponseEntity<?> deleteRoom(@PathVariable("roomId") Long roomId,
+  public ResponseEntity<?> deleteRoom(@PathVariable("roomId") UUID roomId,
                                       @RequestParam("requesterEmail") String requesterEmail) {
     return communityService.deleteRoom(roomId, requesterEmail);
   }
 
   @GetMapping("/search")
-  public ResponseEntity<?> searchCommunities(
-    @RequestParam("q") String q,
-    @RequestParam(value = "requesterEmail", required = false) String requesterEmail,
-    @RequestParam(value = "page", defaultValue = "0") int page,
-    @RequestParam(value = "size", defaultValue = "20") int size
-  ) {
+  public ResponseEntity<?> searchCommunities(@RequestParam("q") String q,
+                                             @RequestParam(value = "requesterEmail", required = false) String requesterEmail,
+                                             @RequestParam(value = "page", defaultValue = "0") int page,
+                                             @RequestParam(value = "size", defaultValue = "20") int size) {
     return communityService.searchCommunities(q, requesterEmail, page, size);
   }
 
   @PostMapping("/{id}/enter")
-  public ResponseEntity<?> enterCommunity(
-    @PathVariable("id") Long communityId,
-    @RequestParam("requesterEmail") String requesterEmail
-  ) {
+  public ResponseEntity<?> enterCommunity(@PathVariable("id") UUID communityId,
+                                          @RequestParam("requesterEmail") String requesterEmail) {
     return communityService.enterOrRequestCommunity(communityId, requesterEmail);
   }
 
   @PostMapping("/{id}/upload-avatar")
-  public ResponseEntity<?> uploadCommunityAvatar(
-    @PathVariable("id") Long communityId,
-    @RequestParam("requesterEmail") String requesterEmail,
-    @RequestParam("imageFile") MultipartFile imageFile) {
+  public ResponseEntity<?> uploadCommunityAvatar(@PathVariable("id") UUID communityId,
+                                                 @RequestParam("requesterEmail") String requesterEmail,
+                                                 @RequestParam("imageFile") MultipartFile imageFile) {
     return communityService.uploadCommunityAvatar(communityId, requesterEmail, imageFile);
   }
 
   @PostMapping("/{id}/upload-banner")
   public ResponseEntity<?> uploadCommunityBanner(
-    @PathVariable("id") Long communityId,
-    @RequestParam("requesterEmail") String requesterEmail,
-    @RequestParam(value = "imageFile", required = false) MultipartFile bannerFile,
-    @RequestParam(value = "avatarFile", required = false) MultipartFile communityAvatarFile,
-    @RequestParam(value = "userAvatarFile", required = false) MultipartFile userAvatarFile,
-    @RequestParam(value = "name", required = false) String name,
-    @RequestParam(value = "description", required = false) String description
+          @PathVariable("id") UUID communityId,
+          @RequestParam("requesterEmail") String requesterEmail,
+          @RequestParam(value = "imageFile", required = false) MultipartFile bannerFile,
+          @RequestParam(value = "avatarFile", required = false) MultipartFile communityAvatarFile,
+          @RequestParam(value = "userAvatarFile", required = false) MultipartFile userAvatarFile,
+          @RequestParam(value = "name", required = false) String name,
+          @RequestParam(value = "description", required = false) String description
   ) {
-    return communityService.uploadCommunityBanner(communityId, requesterEmail, bannerFile, communityAvatarFile, userAvatarFile, name, description);
+    return communityService.uploadCommunityBanner(
+            communityId, requesterEmail, bannerFile, communityAvatarFile, userAvatarFile, name, description
+    );
   }
 
   @PutMapping("/{communityId}/rooms/{roomId}/rename")
-  public ResponseEntity<?> renameRoom(
-    @PathVariable Long communityId,
-    @PathVariable Long roomId,
-    @RequestBody RenameRoomRequest req) {
+  public ResponseEntity<?> renameRoom(@PathVariable UUID communityId,
+                                      @PathVariable UUID roomId,
+                                      @RequestBody RenameRoomRequest req) {
     req.setRequesterEmail(req.getRequesterEmail());
     return communityService.renameRoomInCommunity(communityId, roomId, req);
   }
 
   @GetMapping("/{id}/roles")
-  public ResponseEntity<?> getRoles(@PathVariable("id") Long communityId,
+  public ResponseEntity<?> getRoles(@PathVariable("id") UUID communityId,
                                     @RequestParam("requesterEmail") String requesterEmail) {
     return communityService.getRolesForRequester(communityId, requesterEmail);
   }
 
   @GetMapping("/discover")
-  public ResponseEntity<?> discoverCommunities(
-    @RequestParam(value = "page", defaultValue = "0") int page,
-    @RequestParam(value = "size", defaultValue = "20") int size) {
+  public ResponseEntity<?> discoverCommunities(@RequestParam(value = "page", defaultValue = "0") int page,
+                                               @RequestParam(value = "size", defaultValue = "20") int size) {
     return communityService.discoverCommunities(page, size);
   }
 
   @GetMapping("/my-pending-requests")
-  public ResponseEntity<?> getMyAllPendingRequests(
-    @RequestParam("requesterEmail") String requesterEmail) {
+  public ResponseEntity<?> getMyAllPendingRequests(@RequestParam("requesterEmail") String requesterEmail) {
     return communityService.getAllPendingRequestsForAdmin(requesterEmail);
   }
 
   @GetMapping("/{id}/pending-requests")
-  public ResponseEntity<?> getPendingRequests(
-    @PathVariable("id") Long communityId,
-    @RequestParam("requesterEmail") String requesterEmail) {
+  public ResponseEntity<?> getPendingRequests(@PathVariable("id") UUID communityId,
+                                              @RequestParam("requesterEmail") String requesterEmail) {
     return communityService.getPendingRequests(communityId, requesterEmail);
   }
 

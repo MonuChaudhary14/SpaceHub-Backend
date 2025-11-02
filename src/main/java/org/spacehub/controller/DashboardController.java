@@ -23,8 +23,7 @@ public class DashboardController {
   public ResponseEntity<ApiResponse<String>> setUsername(@Valid @RequestBody UsernameRequest request) {
     ApiResponse<String> resp = dashboardService.saveUsernameByEmail(
             request.getEmail(),
-            request.getUsername(),
-            request.getDob()
+            request.getUsername()
     );
     return ResponseEntity.status(resp.getStatus()).body(resp);
   }

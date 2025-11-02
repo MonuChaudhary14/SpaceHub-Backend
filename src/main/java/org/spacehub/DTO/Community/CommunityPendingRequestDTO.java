@@ -1,9 +1,10 @@
 package org.spacehub.DTO.Community;
 
 import java.util.List;
+import java.util.UUID;
 
 public record CommunityPendingRequestDTO(
-  Long communityId,
+  UUID communityId,
   String communityName,
   List<PendingRequestUserDTO> requests
 ) {

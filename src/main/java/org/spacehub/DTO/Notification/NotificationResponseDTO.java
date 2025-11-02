@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @NoArgsConstructor
@@ -13,7 +14,7 @@ import java.time.LocalDateTime;
 @Builder
 public class NotificationResponseDTO {
 
-    private Long id;
+    private UUID id;
     private String title;
     private String message;
     private String type;
@@ -24,7 +25,7 @@ public class NotificationResponseDTO {
     private boolean read;
     private LocalDateTime createdAt;
 
-    private Long communityId;
+    private UUID communityId;
     private String communityName;
 
     private Long referenceId;

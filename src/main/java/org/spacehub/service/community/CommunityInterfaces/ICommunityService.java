@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public interface ICommunityService {
 
@@ -32,13 +33,13 @@ public interface ICommunityService {
 
   ResponseEntity<?> rejectRequest(RejectRequest rejectRequest);
 
-  ResponseEntity<ApiResponse<Map<String, Object>>> getCommunityWithRooms(Long communityId);
+  ResponseEntity<ApiResponse<Map<String, Object>>> getCommunityWithRooms(UUID communityId);
 
   ResponseEntity<ApiResponse<String>> removeMemberFromCommunity(CommunityMemberRequest request);
 
   ResponseEntity<ApiResponse<String>> changeMemberRole(CommunityChangeRoleRequest request);
 
-  ResponseEntity<ApiResponse<Map<String, Object>>> getCommunityMembers(Long communityId);
+  ResponseEntity<ApiResponse<Map<String, Object>>> getCommunityMembers(UUID communityId);
 
   ResponseEntity<ApiResponse<String>> blockOrUnblockMember(CommunityBlockRequest request);
 
@@ -47,41 +48,41 @@ public interface ICommunityService {
   ResponseEntity<ApiResponse<Map<String, List<Map<String, Object>>>>> listAllCommunities();
 
   ResponseEntity<ApiResponse<Map<String, Object>>> getCommunityDetailsWithAdminFlag(
-    Long communityId,
-    String requesterEmail
+          UUID communityId,
+          String requesterEmail
   );
 
   ResponseEntity<?> createRoomInCommunity(CreateRoomRequest request);
 
-  ResponseEntity<ApiResponse<List<Map<String, Object>>>> getRoomsByCommunity(Long communityId);
+  ResponseEntity<ApiResponse<List<Map<String, Object>>>> getRoomsByCommunity(UUID communityId);
 
-  ResponseEntity<?> deleteRoom(Long roomId, String requesterEmail);
+  ResponseEntity<?> deleteRoom(UUID roomId, String requesterEmail);
 
   ResponseEntity<?> searchCommunities(String q, String requesterEmail, int page, int size);
 
-  ResponseEntity<?> enterOrRequestCommunity(Long communityId, String requesterEmail);
+  ResponseEntity<?> enterOrRequestCommunity(UUID communityId, String requesterEmail);
 
-  ResponseEntity<?> uploadCommunityAvatar(Long communityId, String requesterEmail, MultipartFile imageFile);
+  ResponseEntity<?> uploadCommunityAvatar(UUID communityId, String requesterEmail, MultipartFile imageFile);
 
   ResponseEntity<?> uploadCommunityBanner(
-    Long communityId,
-    String requesterEmail,
-    MultipartFile bannerFile,
-    MultipartFile communityAvatarFile,
-    MultipartFile userAvatarFile,
-    String newName,
-    String newDescription
+          UUID communityId,
+          String requesterEmail,
+          MultipartFile bannerFile,
+          MultipartFile communityAvatarFile,
+          MultipartFile userAvatarFile,
+          String newName,
+          String newDescription
   );
 
-  ResponseEntity<?> renameRoomInCommunity(Long communityId, Long roomId, RenameRoomRequest req);
+  ResponseEntity<?> renameRoomInCommunity(UUID communityId, UUID roomId, RenameRoomRequest req);
 
-  ResponseEntity<?> getRolesForRequester(Long communityId, String requesterEmail);
+  ResponseEntity<?> getRolesForRequester(UUID communityId, String requesterEmail);
 
   ResponseEntity<ApiResponse<Map<String, Object>>> discoverCommunities(int page, int size);
 
   ResponseEntity<ApiResponse<Map<String, List<Map<String, Object>>>>> listMyCommunities(String requesterEmail);
 
-  ResponseEntity<ApiResponse<?>> getPendingRequests(Long communityId, String requesterEmail);
+  ResponseEntity<ApiResponse<?>> getPendingRequests(UUID communityId, String requesterEmail);
 
   ResponseEntity<ApiResponse<?>> getAllPendingRequestsForAdmin(String requesterEmail);
 }

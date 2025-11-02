@@ -11,7 +11,9 @@ import org.spacehub.repository.UserRepository;
 import org.spacehub.repository.community.CommunityRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,7 +31,8 @@ public class NotificationService {
 
         Community community = null;
         if (request.getCommunityId() != null) {
-            community = communityRepository.findById(request.getCommunityId()).orElseThrow(() -> new RuntimeException("Community not found with ID: " + request.getCommunityId()));
+            community = communityRepository.findById(request.getCommunityId())
+                    .orElseThrow(() -> new RuntimeException("Community not found with ID: " + request.getCommunityId()));
         }
 
         Notification notification = Notification.builder()
@@ -77,11 +80,9 @@ public class NotificationService {
                 .collect(Collectors.toList());
 
         List<Notification> read = allNotifications.stream()
-                .filter(Notification::isRead)
-                .collect(Collectors.toList());
+                .filter(Notification::isRead).toList();
 
-        List<Notification> combined = unread.stream()
-                .collect(Collectors.toList());
+        List<Notification> combined = new ArrayList<>(unread);
 
 
         combined.addAll(read);
@@ -107,12 +108,20 @@ public class NotificationService {
     }
 
     public void markAsRead(Long id) {
-        Notification notification = notificationRepository.findById(id).orElseThrow(() -> new RuntimeException("Notification not found with ID: " + id));
-        notification.setRead(true);
-        notificationRepository.save(notification);
+        if (id == null) throw new IllegalArgumentException("Notification ID cannot be null");
+
+        Notification notification = notificationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Notification not found with ID: " + id));
+
+        if (!notification.isRead()) {
+            notification.setRead(true);
+            notificationRepository.save(notification);
+        }
     }
 
     public void deleteNotification(Long id) {
+        if (id == null) throw new IllegalArgumentException("Notification ID cannot be null");
+
         if (!notificationRepository.existsById(id)) {
             throw new RuntimeException("Notification not found with ID: " + id);
         }

@@ -10,7 +10,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.time.LocalDate;
 
 @Service
 public class DashBoardService implements IDashBoardService {
@@ -23,7 +22,7 @@ public class DashBoardService implements IDashBoardService {
     this.s3Service = s3Service;
   }
 
-  public ApiResponse<String> saveUsernameByEmail(String email, String username, String dob) {
+  public ApiResponse<String> saveUsernameByEmail(String email, String username) {
 
     if (email == null || email.isBlank() || username == null || username.isBlank()) {
       return new ApiResponse<>(400, "Email and username are required", null);
@@ -31,13 +30,9 @@ public class DashBoardService implements IDashBoardService {
 
     try {
       User user = userRepository.findByEmail(email).orElseThrow(() ->
-        new RuntimeException("User not found with email: " + email));
+              new RuntimeException("User not found with email: " + email));
 
       user.setUsername(username);
-      if(dob != null && !dob.isEmpty()) {
-        LocalDate dateOfBirth = LocalDate.parse(dob);
-        user.setDateOfBirth(dateOfBirth);
-      }
       userRepository.save(user);
 
       return new ApiResponse<>(200, "Username updated successfully", username);
@@ -76,7 +71,7 @@ public class DashBoardService implements IDashBoardService {
     }
     catch (IOException e) {
       return new ApiResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Error uploading image: " +
-        e.getMessage(), null);
+              e.getMessage(), null);
     }
     catch (RuntimeException e) {
       return new ApiResponse<>(400, e.getMessage(), null);

@@ -12,6 +12,7 @@ public class CommunityInviteResponseDTO {
   private String inviteCode;
   private String inviteLink;
   private UUID communityId;
+  private String inviterEmail;
   private String email;
   private int maxUses;
   private int uses;

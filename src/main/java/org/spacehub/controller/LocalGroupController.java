@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("api/v1/local-group")
@@ -24,10 +23,10 @@ public class LocalGroupController {
 
   @PostMapping("/create")
   public ResponseEntity<ApiResponse<LocalGroupResponse>> createLocalGroup(
-    @RequestParam("name") String name,
-    @RequestParam("description") String description,
-    @RequestParam("creatorEmail") String creatorEmail,
-    @RequestParam("imageFile") MultipartFile imageFile) {
+          @RequestParam("name") String name,
+          @RequestParam("description") String description,
+          @RequestParam("creatorEmail") String creatorEmail,
+          @RequestParam("imageFile") MultipartFile imageFile) {
     return localGroupService.createLocalGroup(name, description, creatorEmail, imageFile);
   }
 
@@ -44,7 +43,7 @@ public class LocalGroupController {
 
   @GetMapping("/all")
   public ResponseEntity<ApiResponse<List<LocalGroupResponse>>> listAllLocalGroups(
-    @RequestParam(value = "requesterEmail", required = false) String requesterEmail) {
+          @RequestParam(value = "requesterEmail", required = false) String requesterEmail) {
     return localGroupService.listAllLocalGroups(requesterEmail);
   }
 
@@ -55,33 +54,17 @@ public class LocalGroupController {
 
   @GetMapping("/search")
   public ResponseEntity<?> searchLocalGroups(
-    @RequestParam("q") String q,
-    @RequestParam(value = "requesterEmail", required = false) String requesterEmail,
-    @RequestParam(value = "page", defaultValue = "0") int page,
-    @RequestParam(value = "size", defaultValue = "20") int size) {
+          @RequestParam("q") String q,
+          @RequestParam(value = "requesterEmail", required = false) String requesterEmail,
+          @RequestParam(value = "page", defaultValue = "0") int page,
+          @RequestParam(value = "size", defaultValue = "20") int size) {
     return localGroupService.searchLocalGroups(q, requesterEmail, page, size);
   }
 
   @PostMapping("/{id}/enter")
   public ResponseEntity<?> enterLocalGroup(
-    @PathVariable("id") Long groupId,
-    @RequestParam("requesterEmail") String requesterEmail) {
+          @PathVariable("id") Long groupId,
+          @RequestParam("requesterEmail") String requesterEmail) {
     return localGroupService.enterOrJoinLocalGroup(groupId, requesterEmail);
   }
-
-  @PostMapping("/{id}/leave")
-  public ResponseEntity<ApiResponse<String>> leaveGroup(@PathVariable("id") Long groupId, @RequestParam("userEmail") String userEmail) {
-    return localGroupService.leaveLocalGroup(groupId, userEmail);
-  }
-
-  @PostMapping("/{id}/invite")
-  public ResponseEntity<ApiResponse<Map<String, String>>> createInviteLink(@PathVariable("id") Long groupId, @RequestParam("requesterEmail") String requesterEmail) {
-    return localGroupService.createInviteLink(groupId, requesterEmail);
-  }
-
-  @PostMapping("/join/invite")
-  public ResponseEntity<ApiResponse<String>> joinViaInvite(@RequestParam("inviteCode") String inviteCode, @RequestParam("userEmail") String userEmail) {
-    return localGroupService.joinViaInviteCode(inviteCode, userEmail);
-  }
-
 }

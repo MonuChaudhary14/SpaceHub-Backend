@@ -79,7 +79,7 @@ public class LocalGroupService implements ILocalGroupService {
       group.setUpdatedAt(LocalDateTime.now());
       group.getMembers().add(creator);
 
-      String roomCode = UUID.randomUUID().toString().substring(0, 8);
+      UUID roomCode = UUID.randomUUID();
       ChatRoom chatRoom = ChatRoom.builder().name(name + " Chat Room")
               .roomCode(roomCode).community(null).build();
 
@@ -207,7 +207,7 @@ public class LocalGroupService implements ILocalGroupService {
       r.setTotalMembers(0);
     }
     if (g.getChatRoom() != null) {
-      r.setChatRoomCode(g.getChatRoom().getRoomCode());
+      r.setChatRoomCode(String.valueOf(g.getChatRoom().getRoomCode()));
     }
     List<String> memberEmails = g.getMembers().stream().map(User::getEmail).collect(Collectors.toList());
     r.setMemberEmails(memberEmails);

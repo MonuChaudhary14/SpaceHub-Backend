@@ -3,6 +3,8 @@ package org.spacehub.entities.Notification;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.UUID;
+
 import org.spacehub.entities.User.User;
 import org.spacehub.entities.Community.Community;
 
@@ -16,8 +18,8 @@ import org.spacehub.entities.Community.Community;
 public class Notification {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     private String title;
 

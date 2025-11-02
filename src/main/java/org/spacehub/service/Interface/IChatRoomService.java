@@ -32,6 +32,6 @@ public interface IChatRoomService {
 
   ApiResponse<String> leaveRoom(LeaveRoomRequest requestDTO);
 
-  ApiResponse<List<ChatRoom>> getRoomsByCommunity(Long communityId);
+  ApiResponse<List<ChatRoom>> getRoomsByCommunity(UUID communityId);
 }
 
