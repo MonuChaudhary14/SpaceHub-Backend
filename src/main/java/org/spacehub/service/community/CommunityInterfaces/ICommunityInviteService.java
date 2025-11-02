@@ -12,7 +12,7 @@ public interface ICommunityInviteService {
 
   ApiResponse<CommunityInviteResponseDTO> createInvite(UUID communityId, CommunityInviteRequestDTO request);
 
-  ApiResponse<String> acceptInvite(CommunityInviteAcceptDTO request);
+  ApiResponse<?> acceptInvite(CommunityInviteAcceptDTO request);
 
   ApiResponse<List<CommunityInviteResponseDTO>> getCommunityInvites(UUID communityId);
 

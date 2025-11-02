@@ -17,7 +17,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class NotificationController {
 
-    @Autowired
     private final NotificationService notificationService;
 
     @PostMapping
