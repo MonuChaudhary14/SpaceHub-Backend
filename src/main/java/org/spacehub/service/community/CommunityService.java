@@ -273,7 +273,6 @@ public class CommunityService implements ICommunityService {
       );
     }
 
-    // Remove from pending requests
     community.getPendingRequests().remove(user);
     communityRepository.save(community);
 
