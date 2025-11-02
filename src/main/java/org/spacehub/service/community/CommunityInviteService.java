@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class CommunityInviteService implements ICommunityInviteService {
@@ -28,10 +29,11 @@ public class CommunityInviteService implements ICommunityInviteService {
     return UUID.randomUUID().toString().substring(0, 8);
   }
 
+  @Override
   public ApiResponse<CommunityInviteResponseDTO> createInvite(UUID communityId, CommunityInviteRequestDTO request) {
     CommunityInvite invite = CommunityInvite.builder()
             .communityId(communityId)
-            .inviterId(request.getInviterId())
+            .inviterEmail(request.getInviterEmail())
             .email(request.getEmail())
             .maxUses(request.getMaxUses())
             .inviteCode(generateInviteCode())
@@ -43,8 +45,9 @@ public class CommunityInviteService implements ICommunityInviteService {
 
     CommunityInviteResponseDTO response = CommunityInviteResponseDTO.builder()
             .inviteCode(invite.getInviteCode())
-            .inviteLink("https:///invite/" + invite.getInviteCode())
+            .inviteLink("http://localhost:8080/invite/" + invite.getInviteCode())
             .communityId(communityId)
+            .inviterEmail(invite.getInviterEmail())
             .email(invite.getEmail())
             .maxUses(invite.getMaxUses())
             .uses(invite.getUses())
@@ -55,9 +58,14 @@ public class CommunityInviteService implements ICommunityInviteService {
     return new ApiResponse<>(200, "Invite created successfully", response);
   }
 
+  @Override
   public ApiResponse<String> acceptInvite(CommunityInviteAcceptDTO request) {
 
-    Optional<CommunityInvite> optionalInvite = inviteRepository.findByInviteCode(request.getInviteCode());
+    String rawCode = request.getInviteCode();
+
+    String inviteCode = rawCode.contains("/") ? rawCode.substring(rawCode.lastIndexOf("/") + 1) : rawCode;
+
+    Optional<CommunityInvite> optionalInvite = inviteRepository.findByInviteCode(inviteCode);
 
     if (optionalInvite.isEmpty()) {
       return new ApiResponse<>(400, "Invalid invite link", null);
@@ -86,29 +94,29 @@ public class CommunityInviteService implements ICommunityInviteService {
     return new ApiResponse<>(200, "User successfully joined the community", null);
   }
 
+  @Override
   public ApiResponse<List<CommunityInviteResponseDTO>> getCommunityInvites(UUID communityId) {
-
-    List<CommunityInviteResponseDTO> invites = inviteRepository.findAll()
-            .stream()
+    List<CommunityInviteResponseDTO> invites = inviteRepository.findAll().stream()
             .filter(invite -> invite.getCommunityId().equals(communityId))
             .map(invite -> CommunityInviteResponseDTO.builder()
                     .inviteCode(invite.getInviteCode())
-                    .inviteLink("https:///invite/" + invite.getInviteCode())
+                    .inviteLink("https:/codewithketan.me/invite/" + invite.getInviteCode())
                     .communityId(invite.getCommunityId())
+                    .inviterEmail(invite.getInviterEmail())
                     .email(invite.getEmail())
                     .maxUses(invite.getMaxUses())
                     .uses(invite.getUses())
                     .expiresAt(invite.getExpiresAt())
                     .status(invite.getStatus().name())
                     .build())
-            .toList();
+            .collect(Collectors.toList());
 
     return new ApiResponse<>(200, "Invites fetched successfully", invites);
 
   }
 
+  @Override
   public ApiResponse<String> revokeInvite(String inviteCode) {
-
     Optional<CommunityInvite> inviteOpt = inviteRepository.findByInviteCode(inviteCode);
 
     if (inviteOpt.isEmpty()) {

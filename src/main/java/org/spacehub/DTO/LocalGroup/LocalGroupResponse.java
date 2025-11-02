@@ -3,10 +3,11 @@ package org.spacehub.DTO.LocalGroup;
 import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Data
 public class LocalGroupResponse {
-  private Long id;
+  private UUID id;
   private String name;
   private String description;
   private String createdByEmail;
@@ -15,4 +16,6 @@ public class LocalGroupResponse {
   private int totalMembers;
   private List<String> memberEmails;
   private String imageUrl;
+  private String chatRoomCode;
+
 }

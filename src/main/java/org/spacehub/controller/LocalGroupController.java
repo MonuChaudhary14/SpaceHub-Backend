@@ -23,10 +23,10 @@ public class LocalGroupController {
 
   @PostMapping("/create")
   public ResponseEntity<ApiResponse<LocalGroupResponse>> createLocalGroup(
-    @RequestParam("name") String name,
-    @RequestParam("description") String description,
-    @RequestParam("creatorEmail") String creatorEmail,
-    @RequestParam("imageFile") MultipartFile imageFile) {
+          @RequestParam("name") String name,
+          @RequestParam("description") String description,
+          @RequestParam("creatorEmail") String creatorEmail,
+          @RequestParam("imageFile") MultipartFile imageFile) {
     return localGroupService.createLocalGroup(name, description, creatorEmail, imageFile);
   }
 
@@ -43,7 +43,7 @@ public class LocalGroupController {
 
   @GetMapping("/all")
   public ResponseEntity<ApiResponse<List<LocalGroupResponse>>> listAllLocalGroups(
-    @RequestParam(value = "requesterEmail", required = false) String requesterEmail) {
+          @RequestParam(value = "requesterEmail", required = false) String requesterEmail) {
     return localGroupService.listAllLocalGroups(requesterEmail);
   }
 
@@ -54,17 +54,17 @@ public class LocalGroupController {
 
   @GetMapping("/search")
   public ResponseEntity<?> searchLocalGroups(
-    @RequestParam("q") String q,
-    @RequestParam(value = "requesterEmail", required = false) String requesterEmail,
-    @RequestParam(value = "page", defaultValue = "0") int page,
-    @RequestParam(value = "size", defaultValue = "20") int size) {
+          @RequestParam("q") String q,
+          @RequestParam(value = "requesterEmail", required = false) String requesterEmail,
+          @RequestParam(value = "page", defaultValue = "0") int page,
+          @RequestParam(value = "size", defaultValue = "20") int size) {
     return localGroupService.searchLocalGroups(q, requesterEmail, page, size);
   }
 
   @PostMapping("/{id}/enter")
   public ResponseEntity<?> enterLocalGroup(
-    @PathVariable("id") Long groupId,
-    @RequestParam("requesterEmail") String requesterEmail) {
+          @PathVariable("id") Long groupId,
+          @RequestParam("requesterEmail") String requesterEmail) {
     return localGroupService.enterOrJoinLocalGroup(groupId, requesterEmail);
   }
 }

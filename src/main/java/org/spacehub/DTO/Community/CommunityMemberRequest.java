@@ -2,9 +2,11 @@ package org.spacehub.DTO.Community;
 
 import lombok.Data;
 
+import java.util.UUID;
+
 @Data
 public class CommunityMemberRequest {
-  private Long communityId;
+  private UUID communityId;
   private String userEmail;
   private String requesterEmail;
 }

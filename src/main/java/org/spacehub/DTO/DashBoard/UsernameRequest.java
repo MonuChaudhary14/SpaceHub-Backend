@@ -13,4 +13,6 @@ public class UsernameRequest {
 
   @NotBlank(message = "Username is required")
   private String username;
+
+  private String dob;
 }

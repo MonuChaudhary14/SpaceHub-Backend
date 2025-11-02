@@ -10,7 +10,7 @@ import java.util.UUID;
 @Builder
 public class CommunityInviteRequestDTO {
 
-  private UUID inviterId;
+  private String inviterEmail;
   private String email;
   private int maxUses = 1;
   private int expiresInHours = 72;
