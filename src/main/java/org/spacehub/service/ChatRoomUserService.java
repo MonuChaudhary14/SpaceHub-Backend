@@ -3,7 +3,7 @@ package org.spacehub.service;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.ChatRoom.ChatRoomUser;
 import org.spacehub.entities.Community.Role;
-import org.spacehub.repository.ChatRoomUserRepository;
+import org.spacehub.repository.ChatRoom.ChatRoomUserRepository;
 import org.spacehub.service.Interface.IChatRoomUserService;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
