@@ -240,36 +240,46 @@ public class CommunityService implements ICommunityService {
   }
 
   @CacheEvict(value = "communities", key = "#cancelJoinRequest.communityName")
-  public ResponseEntity<?> cancelRequestCommunity(@RequestBody CancelJoinRequest cancelJoinRequest) {
+  public ResponseEntity<ApiResponse<?>> cancelRequestCommunity(@RequestBody CancelJoinRequest cancelJoinRequest) {
 
-    if (cancelJoinRequest.getCommunityName() != null && !cancelJoinRequest.getCommunityName().isEmpty() &&
-      cancelJoinRequest.getUserEmail() != null && !cancelJoinRequest.getUserEmail().isEmpty()) {
-      Community community = communityRepository.findByName(cancelJoinRequest.getCommunityName());
+    String communityName = cancelJoinRequest.getCommunityName();
+    String userEmail = cancelJoinRequest.getUserEmail();
 
-      if (community == null) {
-        return ResponseEntity.badRequest().body("Community not found");
-      }
-
-      Optional<User> optionalUser = userRepository.findByEmail(cancelJoinRequest.getUserEmail());
-
-      if (optionalUser.isEmpty()) {
-        return ResponseEntity.badRequest().body("User not found");
-      }
-
-      User user = optionalUser.get();
-
-      if (!community.getPendingRequests().contains(user)) {
-        return ResponseEntity.status(403).body("No request found for this community");
-      }
-
-      community.getPendingRequests().remove(user);
-      communityRepository.save(community);
-
-      return ResponseEntity.ok().body("Cancelled the request to join the community");
-    } else {
-      return ResponseEntity.badRequest().body("Check the fields");
+    if (communityName == null || communityName.isBlank() || userEmail == null || userEmail.isBlank()) {
+      return ResponseEntity.badRequest().body(
+        new ApiResponse<>(400, "Both communityName and userEmail are required", null)
+      );
     }
 
+    Community community = communityRepository.findByName(communityName);
+    if (community == null) {
+      return ResponseEntity.badRequest().body(
+        new ApiResponse<>(400, "Community not found", null)
+      );
+    }
+
+    Optional<User> optionalUser = userRepository.findByEmail(userEmail);
+    if (optionalUser.isEmpty()) {
+      return ResponseEntity.badRequest().body(
+        new ApiResponse<>(400, "User not found", null)
+      );
+    }
+
+    User user = optionalUser.get();
+
+    if (!community.getPendingRequests().contains(user)) {
+      return ResponseEntity.status(403).body(
+        new ApiResponse<>(403, "No join request found for this user in the community", null)
+      );
+    }
+
+    // Remove from pending requests
+    community.getPendingRequests().remove(user);
+    communityRepository.save(community);
+
+    return ResponseEntity.ok(
+      new ApiResponse<>(200, "Cancelled the join request successfully", null)
+    );
   }
 
   @CacheEvict(value = "communities", key = "#acceptRequest.communityName")
