@@ -6,6 +6,7 @@ import org.spacehub.service.JanusService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
@@ -19,19 +20,30 @@ public class VoiceRoomController {
 
     @PostMapping("/create")
     public ResponseEntity<?> createRoom(@RequestParam String displayName) {
-        String sessionId = janusService.createSession();
-        String handleId = janusService.attachAudioBridgePlugin(sessionId);
-        int roomId = 1000 + new Random().nextInt(9000);
-        janusService.createAudioRoom(sessionId, handleId, roomId);
-        JsonNode joinEvent = janusService.joinAudioRoom(sessionId, handleId, roomId, displayName);
+        try {
+            String sessionId = janusService.createSession();
+            String handleId = janusService.attachAudioBridgePlugin(sessionId);
+            int roomId = 1000 + new Random().nextInt(9000);
 
-        return ResponseEntity.ok(Map.of(
-                "message", "Room created and joined successfully",
-                "sessionId", sessionId,
-                "handleId", handleId,
-                "roomId", roomId,
-                "joinEvent", Objects.toString(joinEvent, "")
-        ));
+            JsonNode createEvent = janusService.createAudioRoom(sessionId, handleId, roomId);
+            JsonNode joinEvent = janusService.joinAudioRoom(sessionId, handleId, roomId, displayName);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Room created and joined successfully");
+            response.put("sessionId", sessionId);
+            response.put("handleId", handleId);
+            response.put("roomId", roomId);
+            response.put("createEvent", createEvent);
+            response.put("joinEvent", joinEvent);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "message", "Failed to create or join room",
+                    "error", e.getMessage()
+            ));
+        }
     }
 
     @PostMapping("/join")
