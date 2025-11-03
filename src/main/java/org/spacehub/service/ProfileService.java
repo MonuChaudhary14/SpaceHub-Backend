@@ -143,104 +143,146 @@ public class ProfileService implements IProfileService {
     String newPassword
   ) throws Exception {
 
-    if (email == null || email.isBlank()) {
-      throw new IllegalArgumentException("email (current) is required");
-    }
+    validateEmail(email);
 
-    String currentEmail = email.trim().toLowerCase();
+    User user = findUserByEmail(email);
 
-    User user = userRepository.findByEmail(currentEmail)
-      .orElseThrow(() -> new RuntimeException("User not found"));
-
-    if (newUsername != null && !newUsername.isBlank()) {
-      String normalizedUsername = newUsername.trim();
-      if (!normalizedUsername.equals(user.getUsername())) {
-        if (userRepository.existsByUsername(normalizedUsername)) {
-          throw new IllegalArgumentException("Username already in use");
-        }
-        user.setUsername(normalizedUsername);
-      }
-    }
-
-    if (newEmail != null && !newEmail.isBlank()) {
-      String normalizedNewEmail = newEmail.trim().toLowerCase();
-      if (!normalizedNewEmail.equals(user.getEmail())) {
-        if (userRepository.existsByEmail(normalizedNewEmail)) {
-          throw new IllegalArgumentException("Email already in use");
-        }
-        user.setEmail(normalizedNewEmail);
-      }
-    }
-
-    if (newPassword != null && !newPassword.isBlank()) {
-      if (currentPassword == null || currentPassword.isBlank()) {
-        throw new IllegalArgumentException("Current password is required to change password");
-      }
-      BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-      if (!encoder.matches(currentPassword, user.getPassword())) {
-        throw new IllegalArgumentException("Current password is incorrect");
-      }
-      user.setPassword(encoder.encode(newPassword));
-      user.setPasswordVersion(Optional.ofNullable(user.getPasswordVersion()).orElse(0) + 1);
-    }
-
-    if (avatarFile != null && !avatarFile.isEmpty()) {
-      validateImage(avatarFile);
-      String fileName = System.currentTimeMillis() + "_" + avatarFile.getOriginalFilename();
-      String userIdentifier;
-      if (user.getId() != null) {
-        userIdentifier = user.getId().toString();
-      } else {
-        userIdentifier = user.getEmail().replaceAll("[^a-zA-Z0-9]", "_");
-      }
-      String key = String.format("avatars/%s/%s", userIdentifier, fileName);
-      s3Service.uploadFile(key, avatarFile.getInputStream(), avatarFile.getSize());
-      user.setAvatarUrl(key);
-    }
+    updateUsername(user, newUsername);
+    updateEmail(user, newEmail);
+    updatePassword(user, currentPassword, newPassword);
+    updateAvatar(user, avatarFile);
 
     return userRepository.save(user);
   }
 
-  public void deleteAccount(String email, String currentPassword) {
+  private void validateEmail(String email) {
     if (email == null || email.isBlank()) {
-      throw new IllegalArgumentException("email is required");
+      throw new IllegalArgumentException("email (current) is required");
     }
+  }
 
+  private User findUserByEmail(String email) {
     String normalized = email.trim().toLowerCase();
-    User user = userRepository.findByEmail(normalized)
-      .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    return userRepository.findByEmail(normalized)
+      .orElseThrow(() -> new RuntimeException("User not found"));
+  }
 
-    if (currentPassword != null && !currentPassword.isBlank()) {
-      BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-      if (!encoder.matches(currentPassword, user.getPassword())) {
-        throw new SecurityException("Current password is incorrect");
+  private void updateUsername(User user, String newUsername) {
+    if (newUsername == null || newUsername.isBlank()) return;
+
+    String normalized = newUsername.trim();
+    if (!normalized.equals(user.getUsername())) {
+      if (userRepository.existsByUsername(normalized)) {
+        throw new IllegalArgumentException("Username already in use");
       }
-    } else {
-      throw new IllegalArgumentException("Current password is required to delete account");
+      user.setUsername(normalized);
     }
-    communityRepository.findAll().forEach(c -> {
-      if (c.getPendingRequests() != null) {
-        boolean removed = c.getPendingRequests().removeIf(u -> u != null && u.getId() != null && u.getId().equals(user.getId()));
-        if (removed) communityRepository.save(c);
-      }
-      if (c.getCommunityUsers() != null) {
-        boolean removed = c.getCommunityUsers().removeIf(cu -> cu.getUser() != null && cu.getUser().getId().equals(user.getId()));
-        if (removed) communityRepository.save(c);
-      }
-    });
+  }
 
-    localGroupRepository.findAll().forEach(g -> {
-      if (g.getMembers() != null) {
-        boolean removed = g.getMembers().removeIf(m -> m != null && m.getId() != null && m.getId().equals(user.getId()));
-        if (removed) localGroupRepository.save(g);
+  private void updateEmail(User user, String newEmail) {
+    if (newEmail == null || newEmail.isBlank()) return;
+
+    String normalized = newEmail.trim().toLowerCase();
+    if (!normalized.equals(user.getEmail())) {
+      if (userRepository.existsByEmail(normalized)) {
+        throw new IllegalArgumentException("Email already in use");
       }
-    });
+      user.setEmail(normalized);
+    }
+  }
+
+  private void updatePassword(User user, String currentPassword, String newPassword) {
+    if (newPassword == null || newPassword.isBlank()) return;
+
+    if (currentPassword == null || currentPassword.isBlank()) {
+      throw new IllegalArgumentException("Current password is required to change password");
+    }
+
+    BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+    if (!encoder.matches(currentPassword, user.getPassword())) {
+      throw new IllegalArgumentException("Current password is incorrect");
+    }
+
+    user.setPassword(encoder.encode(newPassword));
+    user.setPasswordVersion(Optional.ofNullable(user.getPasswordVersion()).orElse(0) + 1);
+  }
+
+  private void updateAvatar(User user, MultipartFile avatarFile) throws IOException {
+    if (avatarFile == null || avatarFile.isEmpty()) return;
+
+    validateImage(avatarFile);
+    String fileName = System.currentTimeMillis() + "_" + avatarFile.getOriginalFilename();
+
+    String userIdentifier = user.getId() != null
+      ? user.getId().toString()
+      : user.getEmail().replaceAll("[^a-zA-Z0-9]", "_");
+
+    String key = String.format("avatars/%s/%s", userIdentifier, fileName);
+    s3Service.uploadFile(key, avatarFile.getInputStream(), avatarFile.getSize());
+    user.setAvatarUrl(key);
+  }
+
+
+  public void deleteAccount(String email, String currentPassword) {
+    validateInputs(email, currentPassword);
+
+    User user = getUserByEmail(email);
+    verifyPassword(user, currentPassword);
+
+    removeUserFromCommunities(user);
+    removeUserFromGroups(user);
 
     communityUserRepository.deleteByUserId(user.getId());
+
     safeDelete(user.getAvatarUrl());
     safeDelete(user.getCoverPhotoUrl());
 
     userRepository.delete(user);
+  }
+
+  private void validateInputs(String email, String currentPassword) {
+    if (email == null || email.isBlank()) {
+      throw new IllegalArgumentException("Email is required");
+    }
+    if (currentPassword == null || currentPassword.isBlank()) {
+      throw new IllegalArgumentException("Current password is required to delete account");
+    }
+  }
+
+  private User getUserByEmail(String email) {
+    return userRepository.findByEmail(email.trim().toLowerCase())
+      .orElseThrow(() -> new IllegalArgumentException("User not found"));
+  }
+
+  private void verifyPassword(User user, String currentPassword) {
+    BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+    if (!encoder.matches(currentPassword, user.getPassword())) {
+      throw new SecurityException("Current password is incorrect");
+    }
+  }
+
+  private void removeUserFromCommunities(User user) {
+    communityRepository.findAll().forEach(c -> {
+      boolean changed = c.getPendingRequests() != null &&
+        c.getPendingRequests().removeIf(u -> u != null && u.getId() != null && u.getId().equals(user.getId()));
+
+      if (c.getCommunityUsers() != null &&
+        c.getCommunityUsers().removeIf(cu -> cu.getUser() != null &&
+          cu.getUser().getId().equals(user.getId()))) {
+        changed = true;
+      }
+
+      if (changed) communityRepository.save(c);
+    });
+  }
+
+  private void removeUserFromGroups(User user) {
+    localGroupRepository.findAll().forEach(g -> {
+      if (g.getMembers() != null &&
+        g.getMembers().removeIf(m -> m != null && m.getId() != null && m.getId().equals(user.getId()))) {
+        localGroupRepository.save(g);
+      }
+    });
   }
 
   private void safeDelete(String fileUrl) {
