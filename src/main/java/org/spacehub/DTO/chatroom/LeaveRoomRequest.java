@@ -11,7 +11,7 @@ public class LeaveRoomRequest {
   @NotBlank(message = "Room code is required")
   private UUID roomCode;
 
-  @NotBlank(message = "User ID is required")
-  private UUID userId;
+  @NotBlank(message = "Email is required")
+  private String email;
 
 }

@@ -45,13 +45,13 @@ public class ChatRoomController {
 
   @PostMapping("/deleteRoom")
   public ResponseEntity<ApiResponse<String>> deleteRoom(@RequestBody RoomRequestDTO requestDTO) {
-    ApiResponse<String> response = chatRoomService.deleteRoomResponse(requestDTO.getRoomCode(), requestDTO.getUserId());
+    ApiResponse<String> response = chatRoomService.deleteRoomResponse(requestDTO.getRoomCode(), requestDTO.getEmail());
     return ResponseEntity.status(response.getStatus()).body(response);
   }
 
   @PostMapping("/join")
   public ResponseEntity<ApiResponse<String>> joinRoom(@RequestBody RoomRequestDTO requestDTO) {
-    ApiResponse<String> response = chatRoomService.joinRoomResponse(requestDTO.getRoomCode(), requestDTO.getUserId());
+    ApiResponse<String> response = chatRoomService.joinRoomResponse(requestDTO.getRoomCode(), requestDTO.getEmail());
     return ResponseEntity.status(response.getStatus()).body(response);
   }
 

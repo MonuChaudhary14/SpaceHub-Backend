@@ -19,10 +19,10 @@ public class RoleChangeAction {
   private UUID roomCode;
 
   @NotNull
-  private UUID requesterId;
+  private String requesterEmail;
 
   @NotNull
-  private UUID targetUserId;
+  private String targetEmail;
 
   @NotNull
   private Role newRole;

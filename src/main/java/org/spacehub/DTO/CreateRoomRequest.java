@@ -8,6 +8,6 @@ import lombok.Data;
 public class CreateRoomRequest {
 
   private String name;
-  private String userId;
+  private String email;
 
 }

@@ -46,7 +46,7 @@ public class ScheduledMessageService {
       ChatMessage chatMessage = ChatMessage.builder()
               .room(room)
               .roomCode(String.valueOf(room.getRoomCode()))
-              .senderId(message.getSenderEmail())
+              .senderEmail(message.getSenderEmail())
               .message(message.getMessage())
               .timestamp(System.currentTimeMillis())
               .build();

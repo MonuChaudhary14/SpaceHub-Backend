@@ -47,9 +47,9 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     Map<String, String> params = parseQuery(query);
 
     String roomCode = params.get("roomCode");
-    String userId = params.get("userId");
+    String email = params.get("email");
 
-    if (!validateConnection(session, roomCode, userId)) {
+    if (!validateConnection(session, roomCode, email)) {
       return;
     }
 
@@ -60,12 +60,12 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     }
 
     ChatRoom room = optionalRoom.get();
-    if (!isUserMemberOfRoom(room, userId)) {
+    if (!isUserMemberOfRoom(room, email)) {
       session.close();
       return;
     }
 
-    addSessionToRoom(session, roomCode, userId);
+    addSessionToRoom(session, roomCode, email);
     sendExistingMessages(session, room);
   }
 
@@ -75,7 +75,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     Set<WebSocketSession> sessions = rooms.getOrDefault(roomCode, ConcurrentHashMap.newKeySet());
 
     Map<String, Object> payload = Map.of(
-      "senderId", message.getSenderId(),
+      "senderEmail", message.getSenderEmail(),
       "message", message.getMessage(),
       "timestamp", message.getTimestamp()
     );
@@ -123,28 +123,28 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     return params;
   }
 
-  private boolean validateConnection(WebSocketSession session, String roomCode, String userId) throws Exception {
-    if (roomCode == null || userId == null) {
+  private boolean validateConnection(WebSocketSession session, String roomCode, String email) throws Exception {
+    if (roomCode == null || email == null) {
       session.close();
       return false;
     }
     return true;
   }
 
-  private boolean isUserMemberOfRoom(ChatRoom room, String userId) {
+  private boolean isUserMemberOfRoom(ChatRoom room, String email) {
     List<ChatRoomUser> members = chatRoomUserService.getMembers(room);
     for (ChatRoomUser member : members) {
-      if (member.getUserId().equals(userId)) {
+      if (member.getEmail().equals(email)) {
         return true;
       }
     }
     return false;
   }
 
-  private void addSessionToRoom(WebSocketSession session, String roomCode, String userId) {
+  private void addSessionToRoom(WebSocketSession session, String roomCode, String email) {
     rooms.computeIfAbsent(roomCode, k -> ConcurrentHashMap.newKeySet()).add(session);
     sessionRoom.put(session, roomCode);
-    userSessions.put(session, userId);
+    userSessions.put(session, email);
   }
 
   private void sendExistingMessages(WebSocketSession session, ChatRoom room) {
@@ -152,7 +152,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     for (ChatMessage message : messages) {
       Map<String, Object> payload = new HashMap<>();
-      payload.put("senderId", message.getSenderId());
+      payload.put("senderId", message.getSenderEmail());
       payload.put("message", message.getMessage());
       payload.put("timestamp", message.getTimestamp());
       try {
@@ -166,7 +166,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
   public void afterConnectionClosed(@NonNull WebSocketSession session, @NonNull CloseStatus status) {
     String roomCode = sessionRoom.remove(session);
-    String userId = userSessions.remove(session);
+    String email = userSessions.remove(session);
 
     if (roomCode != null) {
       Set<WebSocketSession> sessions = rooms.get(roomCode);
@@ -178,16 +178,16 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
       }
     }
 
-    logger.info("User {} disconnected from room {} (session: {})", userId, roomCode, session.getId());
+    logger.info("User {} disconnected from room {} (session: {})", email, roomCode, session.getId());
   }
 
   protected void handleTextMessage(@NonNull WebSocketSession session, @NonNull TextMessage textMessage) throws Exception {
     String payload = textMessage.getPayload();
     String roomCode = sessionRoom.get(session);
-    String senderId = userSessions.get(session);
+    String senderEmail = userSessions.get(session);
 
-    if (roomCode == null || senderId == null) {
-      logger.warn("Received message but roomCode or senderId missing for session {}", session.getId());
+    if (roomCode == null || senderEmail == null) {
+      logger.warn("Received message but roomCode or senderEmail missing for session {}", session.getId());
       return;
     }
 
@@ -209,7 +209,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     ChatRoom room = optionalRoom.get();
 
     ChatMessage chatMsg = ChatMessage.builder()
-      .senderId(senderId)
+      .senderEmail(senderEmail)
       .message(messageText)
       .timestamp(System.currentTimeMillis())
       .room(room)

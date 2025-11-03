@@ -16,36 +16,40 @@ import java.util.Optional;
 @Service
 public class ChatRoomUserService implements IChatRoomUserService {
 
-  private final ChatRoomUserRepository repository;
+  private final ChatRoomUserRepository chatRoomUserRepository;
 
-  public ChatRoomUserService(ChatRoomUserRepository repository) {
-    this.repository = repository;
+  public ChatRoomUserService(ChatRoomUserRepository chatRoomUserRepository) {
+    this.chatRoomUserRepository = chatRoomUserRepository;
   }
 
   @CacheEvict(value = "roomMembers", key = "#room.id")
-  public void addUserToRoom(ChatRoom room, String userId, Role role) {
-    ChatRoomUser user = ChatRoomUser.builder().userId(userId).room(room).role(role).build();
-    repository.save(user);
+  public void addUserToRoom(ChatRoom room, String email, Role role) {
+    if (getUserInRoom(room, email).isEmpty()) {
+      ChatRoomUser roomUser = new ChatRoomUser();
+      roomUser.setRoom(room);
+      roomUser.setEmail(email);
+      roomUser.setRole(role);
+      chatRoomUserRepository.save(roomUser);
+    }
   }
 
   @CacheEvict(value = "roomMembers", key = "#room.id")
-  public void removeUserFromRoom(ChatRoom room, String userId) {
-    repository.deleteByRoomAndUserId(room, userId);
+  public void removeUserFromRoom(ChatRoom room, String email) {
+    chatRoomUserRepository.deleteByRoomAndEmail(room, email);
   }
 
   @Cacheable(value = "roomMembers", key = "#room.id")
   public List<ChatRoomUser> getMembers(ChatRoom room) {
-    return repository.findByRoom(room);
+    return chatRoomUserRepository.findByRoom(room);
   }
 
-  @Cacheable(value = "roomUser", key = "#room.id + '_' + #userId")
-  public Optional<ChatRoomUser> getUserInRoom(ChatRoom room, String userId) {
-    return repository.findByRoomAndUserId(room, userId);
+  @Cacheable(value = "roomUser", key = "#room.id + '_' + #email")
+  public Optional<ChatRoomUser> getUserInRoom(ChatRoom room, String email) {
+    return chatRoomUserRepository.findByRoomAndEmail(room, email);
   }
 
-  @CachePut(value = "roomUser", key = "#user.room.id + '_' + #user.userId")
   @CacheEvict(value = "roomMembers", key = "#user.room.id")
   public void saveUser(ChatRoomUser user) {
-    repository.save(user);
+    chatRoomUserRepository.save(user);
   }
 }

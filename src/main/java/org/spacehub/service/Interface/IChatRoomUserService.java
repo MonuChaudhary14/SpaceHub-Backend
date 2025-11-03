@@ -9,13 +9,13 @@ import java.util.Optional;
 
 public interface IChatRoomUserService {
 
-  void addUserToRoom(ChatRoom room, String userId, Role role);
+  void addUserToRoom(ChatRoom room, String email, Role role);
 
-  void removeUserFromRoom(ChatRoom room, String userId);
+  void removeUserFromRoom(ChatRoom room, String email);
 
   List<ChatRoomUser> getMembers(ChatRoom room);
 
-  Optional<ChatRoomUser> getUserInRoom(ChatRoom room, String userId);
+  Optional<ChatRoomUser> getUserInRoom(ChatRoom room, String email);
 
   void saveUser(ChatRoomUser user);
 }

@@ -35,11 +35,11 @@ public class ChatPollService implements IChatPollService {
     this.chatRoomService = chatRoomService;
   }
 
-  public ChatPoll createPoll(String roomCode, String userId, Map<String, Object> body) {
+  public ChatPoll createPoll(String roomCode, String email , Map<String, Object> body) {
 
     ChatRoom room = chatRoomService.findByRoomCode(UUID.fromString(roomCode)).orElseThrow(() -> new RuntimeException("Room not found"));
 
-    boolean checkAccess = chatRoomUserService.getMembers(room).stream().anyMatch(member -> member.getUserId().equals(userId) &&
+    boolean checkAccess = chatRoomUserService.getMembers(room).stream().anyMatch(member -> member.getEmail().equals(email) &&
                     (member.getRole() == Role.ADMIN || member.getRole() == Role.WORKSPACE_OWNER));
 
     if (!checkAccess) throw new RuntimeException("Permission denied");
@@ -72,20 +72,20 @@ public class ChatPollService implements IChatPollService {
     return pollRepository.findByRoomOrderByTimestampAsc(room);
   }
 
-  public void vote(String roomCode, String userId, Map<String, Object> body) {
+  public void vote(String roomCode, String email, Map<String, Object> body) {
 
     Long pollId = Long.valueOf(body.get("pollId").toString());
     int optionIndex = Integer.parseInt(body.get("optionIndex").toString());
 
     ChatPoll poll = pollRepository.findById(pollId).orElseThrow(() -> new RuntimeException("Poll not found"));
 
-    boolean isMember = chatRoomUserService.getMembers(poll.getRoom()).stream().anyMatch(member -> member.getUserId().equals(userId));
+    boolean isMember = chatRoomUserService.getMembers(poll.getRoom()).stream().anyMatch(member -> member.getEmail().equals(email));
 
     if (!isMember) {
       throw new RuntimeException("User is not a member of the room");
     }
 
-    Optional<ChatVote> existingVote = voteRepository.findByPollAndUserId(poll, userId);
+    Optional<ChatVote> existingVote = voteRepository.findByPollAndEmail(poll, email);
     ChatVote vote;
 
     if (existingVote.isPresent()) {
@@ -93,7 +93,7 @@ public class ChatPollService implements IChatPollService {
       vote.setOptionIndex(optionIndex);
     }
     else {
-      vote = ChatVote.builder().poll(poll).userId(userId).optionIndex(optionIndex).build();
+      vote = ChatVote.builder().poll(poll).email(email).optionIndex(optionIndex).build();
     }
     voteRepository.save(vote);
   }

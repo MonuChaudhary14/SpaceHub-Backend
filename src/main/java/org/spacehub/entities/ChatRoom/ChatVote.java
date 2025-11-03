@@ -14,7 +14,7 @@ public class ChatVote {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  private String userId;
+  private String email;
 
   @ManyToOne
   @JoinColumn(name = "poll_id")

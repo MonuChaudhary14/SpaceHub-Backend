@@ -13,8 +13,8 @@ public interface ChatRoomUserRepository extends JpaRepository<ChatRoomUser, Long
 
   List<ChatRoomUser> findByRoom(ChatRoom room);
 
-  Optional<ChatRoomUser> findByRoomAndUserId(ChatRoom room, String userId);
+  Optional<ChatRoomUser> findByRoomAndEmail(ChatRoom room, String email);
 
-  void deleteByRoomAndUserId(ChatRoom room, String userId);
+  void deleteByRoomAndEmail(ChatRoom room, String email);
 
 }

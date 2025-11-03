@@ -10,6 +10,6 @@ import java.util.Optional;
 public interface ChatVoteRepository extends JpaRepository<ChatVote, Long> {
 
   List<ChatVote> findByPoll(ChatPoll poll);
-  Optional<ChatVote> findByPollAndUserId(ChatPoll poll, String userId);
+  Optional<ChatVote> findByPollAndEmail(ChatPoll poll, String email);
 
 }
