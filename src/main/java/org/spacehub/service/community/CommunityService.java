@@ -347,58 +347,57 @@ public class CommunityService implements ICommunityService {
 
   @CacheEvict(value = "communities", key = "#leaveCommunity.communityName")
   public ResponseEntity<?> leaveCommunity(LeaveCommunity leaveCommunity) {
-
-    if (isEmpty(leaveCommunity.getCommunityName(), leaveCommunity.getUserEmail())) {
-      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Check the fields",
-        null));
+    if (isInvalidLeaveRequest(leaveCommunity)) {
+      return badRequest("Check the fields");
     }
 
     try {
       Community community = findCommunityByName(leaveCommunity.getCommunityName());
       User user = findUserByEmail(leaveCommunity.getUserEmail());
 
-      if (community.getCreatedBy().getId().equals(user.getId())) {
-        return ResponseEntity.status(403)
-          .body(new ApiResponse<>(403, "Community creator cannot leave their own community",
-            null));
+      if (isCreatorOfCommunity(community, user)) {
+        return forbidden();
       }
 
-      Optional<CommunityUser> communityUserOptional = community.getCommunityUsers()
-        .stream()
-        .filter(cu -> cu.getUser() != null && cu.getUser().getId().equals(user.getId()))
-        .findFirst();
+      Optional<CommunityUser> communityUserOptional = Optional.ofNullable(findCommunityUser(community, user));
 
       if (communityUserOptional.isEmpty()) {
-        communityUserOptional = communityUserRepository.findByCommunityIdAndUserId(community.getId(), user.getId());
+        return badRequest("You are not a member of this community");
       }
 
-      if (communityUserOptional.isEmpty()) {
-        return ResponseEntity.badRequest().body(new ApiResponse<>(400,
-          "You are not a member of this community", null));
-      }
-
-      CommunityUser toRemove = communityUserOptional.get();
-
-      communityUserRepository.delete(toRemove);
-
-      if (community.getCommunityUsers() != null) {
-        community.getCommunityUsers().removeIf(cu ->
-          (cu.getId() != null && cu.getId().equals(toRemove.getId())) ||
-            (cu.getUser() != null && cu.getUser().getId().equals(user.getId()))
-        );
-      }
-
+      removeCommunityUser(community, communityUserOptional.get(), user);
       communityRepository.save(community);
 
-      return ResponseEntity.ok(new ApiResponse<>(200, "You have left the community successfully",
-        null));
+      return ok();
 
     } catch (ResourceNotFoundException ex) {
-      return ResponseEntity.badRequest().body(new ApiResponse<>(400, ex.getMessage(), null));
+      return badRequest(ex.getMessage());
     } catch (Exception e) {
-      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: "
-        + e.getMessage(), null));
+      return serverError("Unexpected error: " + e.getMessage());
     }
+  }
+
+  private boolean isInvalidLeaveRequest(LeaveCommunity leaveCommunity) {
+    return isEmpty(leaveCommunity.getCommunityName(), leaveCommunity.getUserEmail());
+  }
+
+  private boolean isCreatorOfCommunity(Community community, User user) {
+    return community.getCreatedBy().getId().equals(user.getId());
+  }
+
+  private void removeCommunityUser(Community community, CommunityUser toRemove, User user) {
+    communityUserRepository.delete(toRemove);
+    if (community.getCommunityUsers() != null) {
+      community.getCommunityUsers().removeIf(cu ->
+        (cu.getId() != null && cu.getId().equals(toRemove.getId())) ||
+          (cu.getUser() != null && cu.getUser().getId().equals(user.getId()))
+      );
+    }
+  }
+
+  private ResponseEntity<ApiResponse<?>> ok() {
+    return ResponseEntity.ok(new ApiResponse<>(200, "You have left the community successfully",
+      null));
   }
 
   @CacheEvict(value = "communities", key = "#rejectRequest.communityName")
