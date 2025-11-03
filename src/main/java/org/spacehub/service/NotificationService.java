@@ -1,6 +1,7 @@
 package org.spacehub.service;
 
 import lombok.RequiredArgsConstructor;
+import org.spacehub.entities.Notification.NotificationType;
 import org.spacehub.service.Interface.INotificationService;
 import org.spacehub.DTO.Notification.NotificationRequestDTO;
 import org.spacehub.DTO.Notification.NotificationResponseDTO;
@@ -20,6 +21,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static org.spacehub.entities.Notification.NotificationType.*;
+
 @Service
 @RequiredArgsConstructor
 public class NotificationService implements INotificationService {
@@ -38,13 +41,41 @@ public class NotificationService implements INotificationService {
 
         Community community = null;
         if (request.getCommunityId() != null) {
-            community = communityRepository.findById(request.getCommunityId())
-                    .orElseThrow(() -> new RuntimeException("Community not found with ID: " + request.getCommunityId()));
+            community = communityRepository.findById(request.getCommunityId()).orElseThrow(() -> new RuntimeException("Community not found with ID: " + request.getCommunityId()));
+        }
+
+        String title = request.getTitle();
+        String message = request.getMessage();
+
+        switch (request.getType()) {
+
+            case FRIEND_ACCEPTED:
+                title = sender.getUsername() + " accepted your friend request";
+                message = "You are now friends with " + sender.getUsername();
+                break;
+
+            case COMMUNITY_INVITE:
+                title = "Community Invite: " + (community != null ? community.getName() : "");
+                message = sender.getUsername() + " invited you to join the community.";
+                break;
+
+            case LOCAL_GROUP_INVITE:
+                title = "Local Group Invitation";
+                message = sender.getUsername() + " invited you to join a local group.";
+                break;
+
+            case SYSTEM_UPDATE:
+                title = "System Update";
+                message = "New feature or announcement: " + request.getMessage();
+                break;
+
+            default:
+                break;
         }
 
         Notification notification = Notification.builder()
-                .title(request.getTitle())
-                .message(request.getMessage())
+                .title(title)
+                .message(message)
                 .type(request.getType())
                 .recipient(recipient)
                 .sender(sender)
@@ -55,12 +86,12 @@ public class NotificationService implements INotificationService {
                 .createdAt(java.time.LocalDateTime.now())
                 .read(false)
                 .build();
+
         notificationRepository.save(notification);
-
         NotificationResponseDTO dto = mapToDTO(notification);
-
         messagingTemplate.convertAndSend("/topic/notifications/" + request.getEmail(), dto);
     }
+
 
     @Override
     public List<NotificationResponseDTO> getUserNotifications(String email, String scope, int page, int size) {
@@ -134,5 +165,57 @@ public class NotificationService implements INotificationService {
                 .senderEmail(n.getSender() != null ? n.getSender().getEmail() : null)
                 .build();
     }
+
+    public void sendFriendRequestNotification(User sender, User recipient) {
+        NotificationRequestDTO request = NotificationRequestDTO.builder()
+                .senderEmail(sender.getEmail())
+                .email(recipient.getEmail())
+                .type(NotificationType.FRIEND_REQUEST)
+                .scope("friend")
+                .actionable(true)
+                .build();
+        createNotification(request);
+    }
+
+    public void sendCommunityInviteNotification(User sender, User recipient, UUID communityId) {
+        NotificationRequestDTO request = NotificationRequestDTO.builder()
+                .senderEmail(sender.getEmail())
+                .email(recipient.getEmail())
+                .type(NotificationType.COMMUNITY_INVITE)
+                .communityId(communityId)
+                .scope("community")
+                .actionable(true)
+                .build();
+        createNotification(request);
+    }
+
+    public void sendLocalGroupInviteNotification(User sender, User recipient, UUID groupId) {
+        NotificationRequestDTO request = NotificationRequestDTO.builder()
+                .senderEmail(sender.getEmail())
+                .email(recipient.getEmail())
+                .type(NotificationType.LOCAL_GROUP_INVITE)
+                .referenceId(groupId)
+                .scope("local-group")
+                .actionable(true)
+                .build();
+        createNotification(request);
+    }
+
+    public void sendSystemUpdateNotification(String title, String message, List<User> users) {
+        users.forEach(user -> {
+            NotificationRequestDTO request = NotificationRequestDTO.builder()
+                    .senderEmail("system@spacehub.com")
+                    .email(user.getEmail())
+                    .type(NotificationType.SYSTEM_UPDATE)
+                    .title(title)
+                    .message(message)
+                    .scope("system")
+                    .actionable(false)
+                    .build();
+            createNotification(request);
+        });
+    }
+
+
 
 }

@@ -26,7 +26,7 @@ public class Notification {
     @Column(length = 1000)
     private String message;
 
-    private String type;
+    private NotificationType type;
 
     private boolean read = false;
 
@@ -44,7 +44,7 @@ public class Notification {
     @JoinColumn(name = "community_id")
     private Community community;
 
-    private Long referenceId;
+    private UUID referenceId;
 
     private String scope;
 
