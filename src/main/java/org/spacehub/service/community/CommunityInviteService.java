@@ -3,13 +3,16 @@ package org.spacehub.service.community;
 import org.spacehub.DTO.Community.CommunityInviteAcceptDTO;
 import org.spacehub.DTO.Community.CommunityInviteRequestDTO;
 import org.spacehub.DTO.Community.CommunityInviteResponseDTO;
+import org.spacehub.DTO.Notification.NotificationRequestDTO;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.Community.*;
+import org.spacehub.entities.Notification.NotificationType;
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.UserRepository;
 import org.spacehub.repository.community.CommunityInviteRepository;
 import org.spacehub.repository.community.CommunityRepository;
 import org.spacehub.repository.community.CommunityUserRepository;
+import org.spacehub.service.NotificationService;
 import org.spacehub.service.community.CommunityInterfaces.ICommunityInviteService;
 import org.springframework.stereotype.Service;
 
@@ -26,16 +29,19 @@ public class CommunityInviteService implements ICommunityInviteService {
   private final CommunityRepository communityRepository;
   private final CommunityUserRepository communityUserRepository;
   private final UserRepository userRepository;
+  private final NotificationService notificationService;
 
   public CommunityInviteService(
           CommunityInviteRepository inviteRepository,
           CommunityRepository communityRepository,
           CommunityUserRepository communityUserRepository,
-          UserRepository userRepository) {
+          UserRepository userRepository,
+          NotificationService notificationService) {
     this.inviteRepository = inviteRepository;
     this.communityRepository = communityRepository;
     this.communityUserRepository = communityUserRepository;
     this.userRepository = userRepository;
+    this.notificationService = notificationService;
   }
 
   private String generateInviteCode() {
@@ -112,6 +118,19 @@ public class CommunityInviteService implements ICommunityInviteService {
 
     addUserToCommunity(community, user);
     incrementInviteUsage(invite);
+
+    NotificationRequestDTO notification = NotificationRequestDTO.builder()
+            .senderEmail(user.getEmail())
+            .email(invite.getInviterEmail())
+            .type(NotificationType.COMMUNITY_JOINED)
+            .title("New Member Joined")
+            .message(user.getFirstName() + " joined your community.")
+            .scope("community")
+            .actionable(false)
+            .referenceId(communityId)
+            .communityId(communityId)
+            .build();
+    notificationService.createNotification(notification);
 
     return new ApiResponse<>(200, "User joined community successfully", community);
   }
@@ -195,7 +214,22 @@ public class CommunityInviteService implements ICommunityInviteService {
       return new ApiResponse<>(400, "Invite not found", null);
     }
 
-    inviteRepository.delete(optionalInvite.get());
+    CommunityInvite invite = optionalInvite.get();
+    inviteRepository.delete(invite);
+
+    NotificationRequestDTO notification = NotificationRequestDTO.builder()
+            .senderEmail("system@spacehub.com")
+            .email(invite.getInviterEmail())
+            .type(NotificationType.COMMUNITY_INVITE_REVOKED)
+            .title("Invite Revoked")
+            .message("Your community invite (" + invite.getInviteCode() + ") has been revoked.")
+            .scope("community")
+            .actionable(false)
+            .referenceId(invite.getCommunityId())
+            .communityId(invite.getCommunityId())
+            .build();
+    notificationService.createNotification(notification);
+
     return new ApiResponse<>(200, "Invite revoked successfully", null);
   }
 

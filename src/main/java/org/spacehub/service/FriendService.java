@@ -1,7 +1,9 @@
 package org.spacehub.service;
 
+import org.spacehub.DTO.Notification.NotificationRequestDTO;
 import org.spacehub.DTO.User.UserOutput;
 import org.spacehub.entities.Friends.Friends;
+import org.spacehub.entities.Notification.NotificationType;
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.FriendsRepository;
 import org.spacehub.repository.UserRepository;
@@ -12,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -19,10 +22,13 @@ public class FriendService implements IFriendService {
 
   private final FriendsRepository friendsRepository;
   private final UserRepository userRepository;
+  private final NotificationService notificationService;
 
-  public FriendService(FriendsRepository friendsRepository, UserRepository userRepository) {
+  public FriendService(FriendsRepository friendsRepository, UserRepository userRepository,
+                       NotificationService notificationService) {
     this.friendsRepository = friendsRepository;
     this.userRepository = userRepository;
+    this.notificationService = notificationService;
   }
 
   @CacheEvict(value = {"outgoingRequests"}, allEntries = true)
@@ -52,6 +58,8 @@ public class FriendService implements IFriendService {
 
     friendsRepository.save(request);
 
+    notificationService.sendFriendRequestNotification(user, friend);
+
     return "Friend request sent successfully";
   }
 
@@ -68,10 +76,36 @@ public class FriendService implements IFriendService {
     if (accept) {
       request.setStatus("accepted");
       friendsRepository.save(request);
+
+      NotificationRequestDTO notification = NotificationRequestDTO.builder()
+              .senderEmail(user.getEmail())
+              .email(requester.getEmail())
+              .type(NotificationType.FRIEND_ACCEPTED)
+              .title("Friend Request Accepted")
+              .message(user.getFirstName() + " accepted your friend request.")
+              .scope("friend")
+              .actionable(false)
+              .referenceId(UUID.randomUUID())
+              .build();
+      notificationService.createNotification(notification);
+
       return "Friend request accepted";
     }
     else {
       friendsRepository.delete(request);
+
+      NotificationRequestDTO notification = NotificationRequestDTO.builder()
+              .senderEmail(user.getEmail())
+              .email(requester.getEmail())
+              .type(NotificationType.FRIEND_REJECTED)
+              .title("Friend Request Rejected")
+              .message(user.getFirstName() + " rejected your friend request.")
+              .scope("friend")
+              .actionable(false)
+              .referenceId(UUID.randomUUID())
+              .build();
+      notificationService.createNotification(notification);
+
       return "Friend request rejected";
     }
   }
