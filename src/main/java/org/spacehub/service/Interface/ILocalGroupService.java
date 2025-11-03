@@ -2,6 +2,7 @@ package org.spacehub.service.Interface;
 
 import org.spacehub.DTO.LocalGroup.DeleteLocalGroupRequest;
 import org.spacehub.DTO.LocalGroup.JoinLocalGroupRequest;
+import org.spacehub.DTO.LocalGroup.LocalGroupMemberDTO;
 import org.spacehub.DTO.LocalGroup.LocalGroupResponse;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.springframework.http.ResponseEntity;
@@ -28,7 +29,11 @@ public interface ILocalGroupService {
 
   ResponseEntity<ApiResponse<LocalGroupResponse>> getLocalGroup(UUID id);
 
-  ResponseEntity<ApiResponse<Map<String, Object>>> searchLocalGroups(String q, String requesterEmail, int page, int size);
+  ResponseEntity<ApiResponse<Map<String, Object>>> searchLocalGroups(String q, String requesterEmail, int page,
+                                                                     int size);
 
   ResponseEntity<?> enterOrJoinLocalGroup(UUID groupId, String requesterEmail);
+
+  ResponseEntity<ApiResponse<List<LocalGroupMemberDTO>>> getLocalGroupMembers(UUID groupId);
+
 }

@@ -776,7 +776,8 @@ public class CommunityService implements ICommunityService {
       Map.of("communities", out)));
   }
 
-  public ResponseEntity<ApiResponse<Map<String, List<Map<String, Object>>>>> listMyCommunities(String requesterEmail) {
+  public ResponseEntity<ApiResponse<Map<String, List<Map<String, Object>>>>> listMyCommunities(
+    String requesterEmail) {
     try {
       if (isInvalidEmail(requesterEmail)) {
         return ResponseEntity.badRequest()

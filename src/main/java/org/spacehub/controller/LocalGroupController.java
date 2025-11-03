@@ -2,6 +2,7 @@ package org.spacehub.controller;
 
 import org.spacehub.DTO.LocalGroup.DeleteLocalGroupRequest;
 import org.spacehub.DTO.LocalGroup.JoinLocalGroupRequest;
+import org.spacehub.DTO.LocalGroup.LocalGroupMemberDTO;
 import org.spacehub.DTO.LocalGroup.LocalGroupResponse;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.service.Interface.ILocalGroupService;
@@ -30,7 +31,6 @@ public class LocalGroupController {
           @RequestParam("imageFile") MultipartFile imageFile) {
     return localGroupService.createLocalGroup(name, description, creatorEmail, imageFile);
   }
-
 
   @PostMapping("/join")
   public ResponseEntity<ApiResponse<String>> joinLocalGroup(@RequestBody JoinLocalGroupRequest request) {
@@ -68,4 +68,11 @@ public class LocalGroupController {
           @RequestParam("requesterEmail") String requesterEmail) {
     return localGroupService.enterOrJoinLocalGroup(groupId, requesterEmail);
   }
+
+  @GetMapping("/{id}/members")
+  public ResponseEntity<ApiResponse<List<LocalGroupMemberDTO>>> getLocalGroupMembers(
+    @PathVariable("id") UUID id) {
+    return localGroupService.getLocalGroupMembers(id);
+  }
+
 }

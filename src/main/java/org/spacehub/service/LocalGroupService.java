@@ -2,6 +2,7 @@ package org.spacehub.service;
 
 import org.spacehub.DTO.LocalGroup.DeleteLocalGroupRequest;
 import org.spacehub.DTO.LocalGroup.JoinLocalGroupRequest;
+import org.spacehub.DTO.LocalGroup.LocalGroupMemberDTO;
 import org.spacehub.DTO.LocalGroup.LocalGroupResponse;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.ChatRoom.ChatRoom;
@@ -318,24 +319,44 @@ public class LocalGroupService implements ILocalGroupService {
     }
   }
 
-  public ResponseEntity<ApiResponse<String>> leaveLocalGroup(UUID groupId, String userEmail) {
-
-    LocalGroup group = localGroupRepository.findById(groupId).orElseThrow(() -> new ResourceNotFoundException("Local group not found"));
-
-    User user = userRepository.findByEmail(userEmail).orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-    if (group.getCreatedBy().getId().equals(user.getId())) {
-      return ResponseEntity.status(403).body(new ApiResponse<>(403, "Creator cannot leave their own group", null));
+  public ResponseEntity<ApiResponse<List<LocalGroupMemberDTO>>> getLocalGroupMembers(UUID groupId) {
+    if (groupId == null) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "groupId is required",
+        null));
     }
 
-    boolean removed = group.getMembers().removeIf(person -> person.getId().equals(user.getId()));
-
-    if (!removed) {
-      return ResponseEntity.status(404).body(new ApiResponse<>(404, "User not part of this group", null));
+    Optional<LocalGroup> opt = localGroupRepository.findById(groupId);
+    if (opt.isEmpty()) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Local group not found",
+        null));
     }
 
-    localGroupRepository.save(group);
-    return ResponseEntity.ok(new ApiResponse<>(200, "Left local group successfully", null));
+    LocalGroup group = opt.get();
+    Set<User> members = group.getMembers();
+    if (members == null) {
+      members = Collections.emptySet();
+    }
+
+    List<LocalGroupMemberDTO> result = members.stream().map(user -> {
+      LocalGroupMemberDTO dto = new LocalGroupMemberDTO();
+      dto.setId(UUID.fromString(String.valueOf(user.getId())));
+      dto.setUsername(user.getUsername());
+      dto.setEmail(user.getEmail());
+      dto.setAvatarKey(user.getAvatarUrl());
+      if (user.getAvatarUrl() != null && !user.getAvatarUrl().isBlank()) {
+        try {
+          dto.setAvatarPreviewUrl(s3Service.generatePresignedDownloadUrl(user.getAvatarUrl(),
+            Duration.ofMinutes(60)));
+        } catch (Exception ignored) {
+          dto.setAvatarPreviewUrl(null);
+        }
+      } else {
+        dto.setAvatarPreviewUrl(null);
+      }
+      return dto;
+    }).collect(Collectors.toList());
+
+    return ResponseEntity.ok(new ApiResponse<>(200, "Local group members fetched", result));
   }
 
 }
