@@ -1,9 +1,14 @@
 package org.spacehub.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.spacehub.DTO.User.UserProfileDTO;
 import org.spacehub.DTO.User.UserProfileResponse;
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.UserRepository;
+import org.spacehub.repository.community.CommunityRepository;
+import org.spacehub.repository.community.CommunityUserRepository;
+import org.spacehub.repository.localgroup.LocalGroupRepository;
 import org.spacehub.service.Interface.IProfileService;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -20,10 +25,18 @@ public class ProfileService implements IProfileService {
 
   private final UserRepository userRepository;
   private final S3Service s3Service;
+  private final CommunityRepository communityRepository;
+  private final CommunityUserRepository communityUserRepository;
+  private final LocalGroupRepository localGroupRepository;
+  private static final Logger logger = LoggerFactory.getLogger(ProfileService.class);
 
-  public ProfileService(UserRepository userRepository, S3Service s3Service) {
+  public ProfileService(UserRepository userRepository, S3Service s3Service, CommunityRepository communityRepository,
+                        CommunityUserRepository communityUserRepository, LocalGroupRepository localGroupRepository) {
     this.userRepository = userRepository;
     this.s3Service = s3Service;
+    this.communityRepository = communityRepository;
+    this.communityUserRepository = communityUserRepository;
+    this.localGroupRepository = localGroupRepository;
   }
 
   public UserProfileResponse getProfileByEmail(String email) {
@@ -186,6 +199,58 @@ public class ProfileService implements IProfileService {
     }
 
     return userRepository.save(user);
+  }
+
+  public void deleteAccount(String email, String currentPassword) {
+    if (email == null || email.isBlank()) {
+      throw new IllegalArgumentException("email is required");
+    }
+
+    String normalized = email.trim().toLowerCase();
+    User user = userRepository.findByEmail(normalized)
+      .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+    if (currentPassword != null && !currentPassword.isBlank()) {
+      BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+      if (!encoder.matches(currentPassword, user.getPassword())) {
+        throw new SecurityException("Current password is incorrect");
+      }
+    } else {
+      throw new IllegalArgumentException("Current password is required to delete account");
+    }
+    communityRepository.findAll().forEach(c -> {
+      if (c.getPendingRequests() != null) {
+        boolean removed = c.getPendingRequests().removeIf(u -> u != null && u.getId() != null && u.getId().equals(user.getId()));
+        if (removed) communityRepository.save(c);
+      }
+      if (c.getCommunityUsers() != null) {
+        boolean removed = c.getCommunityUsers().removeIf(cu -> cu.getUser() != null && cu.getUser().getId().equals(user.getId()));
+        if (removed) communityRepository.save(c);
+      }
+    });
+
+    localGroupRepository.findAll().forEach(g -> {
+      if (g.getMembers() != null) {
+        boolean removed = g.getMembers().removeIf(m -> m != null && m.getId() != null && m.getId().equals(user.getId()));
+        if (removed) localGroupRepository.save(g);
+      }
+    });
+
+    communityUserRepository.deleteByUserId(user.getId());
+    safeDelete(user.getAvatarUrl());
+    safeDelete(user.getCoverPhotoUrl());
+
+    userRepository.delete(user);
+  }
+
+  private void safeDelete(String fileUrl) {
+    if (fileUrl == null) return;
+    try {
+      s3Service.deleteFile(fileUrl);
+      logger.info("Deleted file from S3: {}", fileUrl);
+    } catch (Exception e) {
+      logger.error("Failed to delete file from S3: {}", fileUrl, e);
+    }
   }
 
 }

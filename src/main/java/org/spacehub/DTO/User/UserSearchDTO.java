@@ -1,7 +1,9 @@
 package org.spacehub.DTO.User;
 
+import java.util.UUID;
+
 public record UserSearchDTO(
-  Long userId,
+  UUID userId,
   String username,
   String email,
   String avatarUrl

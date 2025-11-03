@@ -13,6 +13,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.UUID;
 
 @Data
 @EqualsAndHashCode
@@ -21,17 +22,9 @@ import java.util.Collections;
 @Table(name = "users")
 public class User implements UserDetails {
 
-  @SequenceGenerator(
-    name = "user_sequence",
-    sequenceName = "user_sequence",
-    allocationSize = 1
-  )
   @Id
-  @GeneratedValue(
-    strategy = GenerationType.SEQUENCE,
-    generator = "user_sequence"
-  )
-  private Long id;
+  @GeneratedValue(strategy = GenerationType.AUTO)
+  private UUID id;
 
   private String firstName;
   private String lastName;

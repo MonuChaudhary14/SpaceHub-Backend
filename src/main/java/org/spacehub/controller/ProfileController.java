@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/v1/profile")
 public class ProfileController {
@@ -63,6 +65,24 @@ public class ProfileController {
     );
     return ResponseEntity.ok(resp);
   }
+
+  @DeleteMapping("/delete")
+  public ResponseEntity<?> deleteAccount(
+    @RequestParam("email") String email,
+    @RequestParam(value = "currentPassword", required = false) String currentPassword
+  ) {
+    try {
+      profileService.deleteAccount(email, currentPassword);
+      return ResponseEntity.ok(Map.of("status", 200, "message", "Account deleted successfully"));
+    } catch (IllegalArgumentException e) {
+      return ResponseEntity.badRequest().body(Map.of("status", 400, "message", e.getMessage()));
+    } catch (SecurityException e) {
+      return ResponseEntity.status(403).body(Map.of("status", 403, "message", e.getMessage()));
+    } catch (Exception e) {
+      return ResponseEntity.internalServerError().body(Map.of("status", 500, "message", e.getMessage()));
+    }
+  }
+
 
 
 }

@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import org.spacehub.entities.Community.Role;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -14,7 +15,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class CommunityMemberDTO {
 
-  private Long memberId;
+  private UUID memberId;
   private String username;
   private String email;
   private Role role;

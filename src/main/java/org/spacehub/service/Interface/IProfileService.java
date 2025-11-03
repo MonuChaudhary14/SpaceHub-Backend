@@ -24,4 +24,7 @@ public interface IProfileService {
     String currentPassword,
     String newPassword
   ) throws Exception;
+
+  void deleteAccount(String email, String currentPassword) throws Exception;
+
 }

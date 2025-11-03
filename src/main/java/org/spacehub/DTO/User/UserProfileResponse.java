@@ -3,10 +3,11 @@ package org.spacehub.DTO.User;
 import lombok.Data;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 public class UserProfileResponse {
-  private Long id;
+  private UUID id;
   private String firstName;
   private String lastName;
   private String username;

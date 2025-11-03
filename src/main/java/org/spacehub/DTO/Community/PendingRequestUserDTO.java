@@ -1,7 +1,9 @@
 package org.spacehub.DTO.Community;
 
+import java.util.UUID;
+
 public record PendingRequestUserDTO(
-  Long userId,
+  UUID userId,
   String username,
   String email
 ) {

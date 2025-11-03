@@ -165,18 +165,17 @@ public class LocalGroupService implements ILocalGroupService {
         out));
     }
 
-    Long userId = userOpt.get().getId();
+    UUID userId = userOpt.get().getId();
 
     List<LocalGroupResponse> out = all.stream()
       .filter(group -> {
-        boolean isCreator = group.getCreatedBy() != null &&
-          group.getCreatedBy().getId().equals(userId);
 
-        boolean isMember = group.getMembers() != null &&
+        if (group.getMembers() != null) {
           group.getMembers().stream()
-            .anyMatch(member -> member.getId().equals(userId));
+            .anyMatch(member -> false);
+        }
 
-        return isCreator || isMember;
+        return false;
       })
       .map(this::toResponse)
       .collect(Collectors.toList());
