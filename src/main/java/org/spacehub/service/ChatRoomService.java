@@ -141,6 +141,7 @@ public class ChatRoomService implements IChatRoomService {
       return new ApiResponse<>(400, "You cannot remove yourself. Please use the 'leave room' API.", null);
     }
 
+    assert ctx != null;
     if (ctx.requesterRole == Role.WORKSPACE_OWNER) {
       if (ctx.targetRole == Role.WORKSPACE_OWNER) {
         return new ApiResponse<>(403, "A Workspace Owner cannot remove another Workspace Owner.", null);
@@ -179,6 +180,7 @@ public class ChatRoomService implements IChatRoomService {
       return new ApiResponse<>(400, "You cannot change your own role", null);
     }
 
+    assert ctx != null;
     if (ctx.requesterRole == Role.ADMIN) {
       ctx.target.setRole(requestDTO.getNewRole());
       chatRoomUserService.saveUser(ctx.target);

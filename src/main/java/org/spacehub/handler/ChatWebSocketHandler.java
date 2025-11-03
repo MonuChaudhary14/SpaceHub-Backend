@@ -181,7 +181,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     logger.info("User {} disconnected from room {} (session: {})", email, roomCode, session.getId());
   }
 
-  protected void handleTextMessage(@NonNull WebSocketSession session, @NonNull TextMessage textMessage) throws Exception {
+  protected void handleTextMessage(@NonNull WebSocketSession session, @NonNull TextMessage textMessage) {
     String payload = textMessage.getPayload();
     String roomCode = sessionRoom.get(session);
     String senderEmail = userSessions.get(session);

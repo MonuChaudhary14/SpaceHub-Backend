@@ -283,31 +283,34 @@ public class CommunityService implements ICommunityService {
 
   @CacheEvict(value = "communities", key = "#acceptRequest.communityName")
   public ResponseEntity<ApiResponse<?>> acceptRequest(AcceptRequest acceptRequest) {
-
     if (isEmpty(acceptRequest.getUserEmail(), acceptRequest.getCommunityName(), acceptRequest.getCreatorEmail())) {
-      return ResponseEntity.badRequest().body(
-        new ApiResponse<>(400, "Check the fields")
-      );
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Check the fields"));
     }
 
     try {
-      Community community = findCommunityByName(acceptRequest.getCommunityName());
-      User creator = findUserByEmail(acceptRequest.getCreatorEmail());
-      User user = findUserByEmail(acceptRequest.getUserEmail());
+      String creatorEmail = acceptRequest.getCreatorEmail().trim().toLowerCase();
+      String userEmail = acceptRequest.getUserEmail().trim().toLowerCase();
+      String communityName = acceptRequest.getCommunityName().trim();
+
+      Community community = findCommunityByName(communityName);
+      User creator = findUserByEmail(creatorEmail);
+      User user = findUserByEmail(userEmail);
 
       if (!community.getCreatedBy().getId().equals(creator.getId())) {
-        return ResponseEntity.status(403).body(
-          new ApiResponse<>(403, "You are not authorized to accept requests")
-        );
+        return ResponseEntity.status(403).body(new ApiResponse<>(403,
+          "You are not authorized to accept requests"));
       }
 
-      if (!community.getPendingRequests().contains(user)) {
-        return ResponseEntity.badRequest().body(
-          new ApiResponse<>(400, "No pending request from this user")
-        );
+      boolean pending = community.getPendingRequests().stream()
+        .anyMatch(u -> u != null && u.getId() != null && u.getId().equals(user.getId()));
+
+      if (!pending) {
+        return ResponseEntity.badRequest().body(new ApiResponse<>(400,
+          "No pending request from this user"));
       }
 
-      community.getPendingRequests().remove(user);
+      community.getPendingRequests().removeIf(u -> u != null && u.getId() != null &&
+        u.getId().equals(user.getId()));
       communityRepository.save(community);
 
       CommunityUser newMember = new CommunityUser();
@@ -318,18 +321,22 @@ public class CommunityService implements ICommunityService {
       newMember.setBanned(false);
       communityUserRepository.save(newMember);
 
-      ApiResponse<Object> response = new ApiResponse<>(
-        200,
-        "User has been added to the community successfully",
-        null
-      );
-      return ResponseEntity.ok(response);
+      if (community.getCommunityUsers() == null) {
+        community.setCommunityUsers(new HashSet<>());
+      }
+      community.getCommunityUsers().add(newMember);
+      communityRepository.save(community);
+
+      return ResponseEntity.ok(new ApiResponse<>(200,
+        "User has been added to the community successfully", null));
     } catch (ResourceNotFoundException ex) {
-      return ResponseEntity.badRequest().body(
-        new ApiResponse<>(400, ex.getMessage())
-      );
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, ex.getMessage()));
+    } catch (Exception e) {
+      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: "
+        + e.getMessage(), null));
     }
   }
+
 
   private boolean isEmpty(String... values) {
     for (String val : values) {
