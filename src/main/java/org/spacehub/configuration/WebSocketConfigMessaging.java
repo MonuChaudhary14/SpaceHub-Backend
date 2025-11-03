@@ -34,7 +34,15 @@ public class WebSocketConfigMessaging implements WebSocketMessageBrokerConfigure
   @Override
   public void registerStompEndpoints(StompEndpointRegistry registry) {
     registry.addEndpoint("/ws-messages")
-      .setAllowedOriginPatterns("*")
+      .setAllowedOriginPatterns(
+        "*",
+        "https://codewithketan.me",
+        "https://www.spacehubx.me",
+        "https://space-hub-frontend.vercel.app",
+        "http://localhost:5500",
+        "http://127.0.0.1:5500",
+        "http://localhost:8080"
+      )
       .setHandshakeHandler(new DefaultHandshakeHandler() {
         @Override
         protected Principal determineUser(
