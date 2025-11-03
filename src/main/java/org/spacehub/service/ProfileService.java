@@ -11,7 +11,10 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.Optional;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 
+@Transactional
 @Service
 public class ProfileService implements IProfileService {
 
@@ -116,6 +119,73 @@ public class ProfileService implements IProfileService {
     if (contentType == null || !contentType.startsWith("image/")) {
       throw new RuntimeException("Only image files are allowed");
     }
+  }
+
+  public User updateAccount(
+    String email,
+    MultipartFile avatarFile,
+    String newUsername,
+    String newEmail,
+    String currentPassword,
+    String newPassword
+  ) throws Exception {
+
+    if (email == null || email.isBlank()) {
+      throw new IllegalArgumentException("email (current) is required");
+    }
+
+    String currentEmail = email.trim().toLowerCase();
+
+    User user = userRepository.findByEmail(currentEmail)
+      .orElseThrow(() -> new RuntimeException("User not found"));
+
+    if (newUsername != null && !newUsername.isBlank()) {
+      String normalizedUsername = newUsername.trim();
+      if (!normalizedUsername.equals(user.getUsername())) {
+        if (userRepository.existsByUsername(normalizedUsername)) {
+          throw new IllegalArgumentException("Username already in use");
+        }
+        user.setUsername(normalizedUsername);
+      }
+    }
+
+    if (newEmail != null && !newEmail.isBlank()) {
+      String normalizedNewEmail = newEmail.trim().toLowerCase();
+      if (!normalizedNewEmail.equals(user.getEmail())) {
+        if (userRepository.existsByEmail(normalizedNewEmail)) {
+          throw new IllegalArgumentException("Email already in use");
+        }
+        user.setEmail(normalizedNewEmail);
+      }
+    }
+
+    if (newPassword != null && !newPassword.isBlank()) {
+      if (currentPassword == null || currentPassword.isBlank()) {
+        throw new IllegalArgumentException("Current password is required to change password");
+      }
+      BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+      if (!encoder.matches(currentPassword, user.getPassword())) {
+        throw new IllegalArgumentException("Current password is incorrect");
+      }
+      user.setPassword(encoder.encode(newPassword));
+      user.setPasswordVersion(Optional.ofNullable(user.getPasswordVersion()).orElse(0) + 1);
+    }
+
+    if (avatarFile != null && !avatarFile.isEmpty()) {
+      validateImage(avatarFile);
+      String fileName = System.currentTimeMillis() + "_" + avatarFile.getOriginalFilename();
+      String userIdentifier;
+      if (user.getId() != null) {
+        userIdentifier = user.getId().toString();
+      } else {
+        userIdentifier = user.getEmail().replaceAll("[^a-zA-Z0-9]", "_");
+      }
+      String key = String.format("avatars/%s/%s", userIdentifier, fileName);
+      s3Service.uploadFile(key, avatarFile.getInputStream(), avatarFile.getSize());
+      user.setAvatarUrl(key);
+    }
+
+    return userRepository.save(user);
   }
 
 }

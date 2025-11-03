@@ -16,4 +16,12 @@ public interface IProfileService {
 
   User uploadCoverPhotoByEmail(String email, MultipartFile file) throws IOException;
 
+  User updateAccount(
+    String email,
+    MultipartFile avatarFile,
+    String newUsername,
+    String newEmail,
+    String currentPassword,
+    String newPassword
+  ) throws Exception;
 }

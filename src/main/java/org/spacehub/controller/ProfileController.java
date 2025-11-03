@@ -48,4 +48,21 @@ public class ProfileController {
     return ResponseEntity.ok(user);
   }
 
+  @PostMapping("/update-all")
+  public ResponseEntity<UserProfileResponse> updateAccount(
+    @RequestParam("email") String email,
+    @RequestParam(value = "file", required = false) MultipartFile file,
+    @RequestParam(value = "username", required = false) String username,
+    @RequestParam(value = "newEmail", required = false) String newEmail,
+    @RequestParam(value = "currentPassword", required = false) String currentPassword,
+    @RequestParam(value = "newPassword", required = false) String newPassword
+  ) throws Exception {
+    User updated = profileService.updateAccount(email, file, username, newEmail, currentPassword, newPassword);
+    UserProfileResponse resp = profileService.getProfileByEmail(
+      updated.getEmail() == null ? email : updated.getEmail()
+    );
+    return ResponseEntity.ok(resp);
+  }
+
+
 }
