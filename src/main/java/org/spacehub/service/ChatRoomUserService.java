@@ -6,7 +6,6 @@ import org.spacehub.entities.Community.Role;
 import org.spacehub.repository.ChatRoom.ChatRoomUserRepository;
 import org.spacehub.service.Interface.IChatRoomUserService;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
