@@ -181,4 +181,46 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     logger.info("User {} disconnected from room {} (session: {})", userId, roomCode, session.getId());
   }
 
+  protected void handleTextMessage(@NonNull WebSocketSession session, @NonNull TextMessage textMessage) throws Exception {
+    String payload = textMessage.getPayload();
+    String roomCode = sessionRoom.get(session);
+    String senderId = userSessions.get(session);
+
+    if (roomCode == null || senderId == null) {
+      logger.warn("Received message but roomCode or senderId missing for session {}", session.getId());
+      return;
+    }
+
+    String messageText;
+    try {
+      var node = objectMapper.readTree(payload);
+      if (node.has("message")) messageText = node.get("message").asText();
+      else messageText = node.asText();
+    } catch (Exception e) {
+      logger.warn("Invalid message payload: {}", payload);
+      return;
+    }
+
+    Optional<ChatRoom> optionalRoom = chatRoomService.findByRoomCode(UUID.fromString(roomCode));
+    if (optionalRoom.isEmpty()) {
+      logger.warn("Room not found for code {}", roomCode);
+      return;
+    }
+    ChatRoom room = optionalRoom.get();
+
+    ChatMessage chatMsg = ChatMessage.builder()
+      .senderId(senderId)
+      .message(messageText)
+      .timestamp(System.currentTimeMillis())
+      .room(room)
+      .roomCode(roomCode)
+      .build();
+
+    try {
+      chatMessageQueue.enqueue(chatMsg);
+    } catch (Exception e) {
+      logger.error("Failed to enqueue chat message", e);
+    }
+  }
+
 }
