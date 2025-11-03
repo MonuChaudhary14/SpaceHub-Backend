@@ -36,6 +36,7 @@ public class WebSocketConfigMessaging implements WebSocketMessageBrokerConfigure
     registry.addEndpoint("/ws-messages")
       .setAllowedOriginPatterns(
         "*",
+        "null",
         "https://codewithketan.me",
         "https://www.spacehubx.me",
         "https://space-hub-frontend.vercel.app",
