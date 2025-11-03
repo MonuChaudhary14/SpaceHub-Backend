@@ -20,5 +20,10 @@ public class CommunityMemberDTO {
   private Role role;
   private LocalDateTime joinDate;
   private boolean isBanned;
+  private String avatarKey;
+  private String avatarPreviewUrl;
+  private String bio;
+  private String location;
+  private String website;
 
 }

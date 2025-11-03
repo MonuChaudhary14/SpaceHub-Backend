@@ -166,7 +166,6 @@ public class CommunityService implements ICommunityService {
     communityRepository.save(community);
   }
 
-
   @CacheEvict(value = {"communities"}, key = "#deleteCommunity.name")
   public ResponseEntity<?> deleteCommunityByName(@RequestBody DeleteCommunityDTO deleteCommunity) {
 
@@ -337,7 +336,6 @@ public class CommunityService implements ICommunityService {
     }
   }
 
-
   private boolean isEmpty(String... values) {
     for (String val : values) {
       if (val == null || val.isBlank()) return true;
@@ -451,7 +449,6 @@ public class CommunityService implements ICommunityService {
   private ResponseEntity<ApiResponse<?>> internalError(String msg) {
     return ResponseEntity.internalServerError().body(new ApiResponse<>(500, msg, null));
   }
-
 
   private Community findCommunityByName(String name) {
     Community community = communityRepository.findByName(name);
@@ -624,18 +621,24 @@ public class CommunityService implements ICommunityService {
     List<CommunityUser> communityUsers = communityUserRepository.findByCommunityId(communityId);
 
     List<CommunityMemberDTO> members = communityUsers.stream()
-            .map(communityUser -> {
-              User user = communityUser.getUser();
-              return CommunityMemberDTO.builder()
-                      .memberId(user.getId())
-                      .username(user.getUsername())
-                      .email(user.getEmail())
-                      .role(communityUser.getRole())
-                      .joinDate(communityUser.getJoinDate())
-                      .isBanned(communityUser.isBanned())
-                      .build();
-            })
-            .collect(Collectors.toList());
+      .map(communityUser -> {
+        User user = communityUser.getUser();
+        return CommunityMemberDTO.builder()
+          .memberId(user.getId())
+          .username(user.getUsername())
+          .email(user.getEmail())
+          .role(communityUser.getRole())
+          .joinDate(communityUser.getJoinDate())
+          .isBanned(communityUser.isBanned())
+          .avatarKey(user.getAvatarUrl())
+          .avatarPreviewUrl(generatePresignedUrlSafely(user.getAvatarUrl()))
+          .bio(user.getBio())
+          .location(user.getLocation())
+          .website(user.getWebsite())
+          .build();
+      })
+      .collect(Collectors.toList());
+
 
     Map<String, Object> response = new HashMap<>();
     response.put("communityId", community.getId());
@@ -1018,7 +1021,6 @@ public class CommunityService implements ICommunityService {
     }
   }
 
-
   public ResponseEntity<?> searchCommunities(String q, String requesterEmail, int page, int size) {
     if (q == null || q.isBlank()) {
       return listAllCommunities();
@@ -1120,7 +1122,8 @@ public class CommunityService implements ICommunityService {
   }
 
   @Override
-  public ResponseEntity<?> uploadCommunityAvatar(UUID communityId, String requesterEmail, MultipartFile imageFile) {
+  public ResponseEntity<?> uploadCommunityAvatar(UUID communityId, String requesterEmail,
+                                                 MultipartFile imageFile) {
     if (requesterEmail == null || requesterEmail.isBlank()) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, "requesterEmail is required", null));
     }
@@ -1169,7 +1172,6 @@ public class CommunityService implements ICommunityService {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
     }
   }
-
 
   @Override
   public ResponseEntity<?> uploadCommunityBanner(
@@ -1285,7 +1287,8 @@ public class CommunityService implements ICommunityService {
       .orElseThrow(() -> new ResourceNotFoundException("User not found"));
   }
 
-  private void processNameAndDescription(Community community, String newName, String newDescription, Map<String, Object> body) {
+  private void processNameAndDescription(Community community, String newName, String newDescription,
+                                         Map<String, Object> body) {
     if (newName != null && !newName.isBlank()) {
       String normalized = newName.trim();
       if (!normalized.equalsIgnoreCase(community.getName())) {
