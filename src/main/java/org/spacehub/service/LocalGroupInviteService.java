@@ -23,11 +23,16 @@ public class LocalGroupInviteService implements ILocalGroupInviteService {
     private final LocalGroupInviteRepository inviteRepository;
     private final LocalGroupRepository groupRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
-    public LocalGroupInviteService(LocalGroupInviteRepository inviteRepository, LocalGroupRepository groupRepository, UserRepository userRepository){
+    public LocalGroupInviteService(LocalGroupInviteRepository inviteRepository,
+                                   LocalGroupRepository groupRepository,
+                                   UserRepository userRepository,
+                                   NotificationService notificationService) {
         this.inviteRepository = inviteRepository;
         this.groupRepository = groupRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
     private String generateInviteCode() {
@@ -127,6 +132,11 @@ public class LocalGroupInviteService implements ILocalGroupInviteService {
         }
 
         groupRepository.save(group);
+
+        Optional<User> inviterOpt = userRepository.findByEmail(invite.getInviterEmail());
+        if (inviterOpt.isPresent()) {
+            notificationService.sendLocalGroupJoinNotification(user, inviterOpt.get(), groupId);
+        }
 
         return new ApiResponse<>(200, "User joined local group successfully", group);
     }

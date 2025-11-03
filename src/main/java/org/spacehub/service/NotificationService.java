@@ -21,8 +21,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import static org.spacehub.entities.Notification.NotificationType.*;
-
 @Service
 @RequiredArgsConstructor
 public class NotificationService implements INotificationService {
@@ -201,6 +199,19 @@ public class NotificationService implements INotificationService {
         createNotification(request);
     }
 
+    public void sendLocalGroupJoinNotification(User newMember, User inviter, UUID groupId) {
+        NotificationRequestDTO request = NotificationRequestDTO.builder()
+                .senderEmail(newMember.getEmail())
+                .email(inviter.getEmail())
+                .type(NotificationType.LOCAL_GROUP_JOIN)
+                .scope("local-group")
+                .actionable(false)
+                .referenceId(groupId)
+                .build();
+
+        createNotification(request);
+    }
+
     public void sendSystemUpdateNotification(String title, String message, List<User> users) {
         users.forEach(user -> {
             NotificationRequestDTO request = NotificationRequestDTO.builder()
@@ -215,7 +226,6 @@ public class NotificationService implements INotificationService {
             createNotification(request);
         });
     }
-
 
 
 }
