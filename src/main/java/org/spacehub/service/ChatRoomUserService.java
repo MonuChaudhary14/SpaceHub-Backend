@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class ChatRoomUserService implements IChatRoomUserService {
@@ -51,4 +52,10 @@ public class ChatRoomUserService implements IChatRoomUserService {
   public void saveUser(ChatRoomUser user) {
     chatRoomUserRepository.save(user);
   }
+
+  public List<ChatRoomUser> getMembersByRoomCode(UUID roomCode) {
+    return chatRoomUserRepository.findByRoom_RoomCode(roomCode);
+  }
+
+
 }

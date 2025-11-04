@@ -1,9 +1,11 @@
 package org.spacehub.handler;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.spacehub.entities.ChatRoom.ChatMessage;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.ChatRoom.ChatRoomUser;
+import org.spacehub.entities.Community.Role;
 import org.spacehub.service.chatRoom.ChatMessageQueue;
 import org.spacehub.service.ChatRoomService;
 import org.spacehub.service.ChatRoomUserService;
@@ -13,6 +15,10 @@ import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
+
+import java.io.IOException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
@@ -40,33 +46,79 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
   @Override
   public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-    String query = null;
-    if (session.getUri() != null) {
-      query = session.getUri().getQuery();
+    try {
+      String rawQuery = session.getUri() != null ? session.getUri().getQuery() : null;
+      Map<String, String> params = parseQuery(rawQuery);
+
+      String roomCodeStr = params.get("roomCode");
+      String email = params.get("email");
+
+      if (roomCodeStr == null || email == null) {
+        logger.warn("Connection attempt missing roomCode or email. query={}", rawQuery);
+        session.close(CloseStatus.BAD_DATA.withReason("roomCode and email required"));
+        return;
+      }
+
+      UUID roomUuid;
+      try {
+        roomUuid = UUID.fromString(roomCodeStr);
+      } catch (IllegalArgumentException ex) {
+        logger.warn("Invalid roomCode format: {}", roomCodeStr);
+        session.close(CloseStatus.BAD_DATA.withReason("Invalid roomCode"));
+        return;
+      }
+
+      Optional<ChatRoom> optionalRoom = chatRoomService.findByRoomCode(roomUuid);
+      if (optionalRoom.isEmpty()) {
+        logger.warn("Room not found for code {}", roomUuid);
+        session.close(new CloseStatus(4041, "Room not found"));
+        return;
+      }
+
+      ChatRoom room = optionalRoom.get();
+
+      List<ChatRoomUser> members = Collections.emptyList();
+      try {
+        members = chatRoomUserService.getMembersByRoomCode(roomUuid);
+      }
+      catch (Exception e) {
+        logger.error("Error fetching members for room {}: {}", roomUuid, e.getMessage());
+      }
+
+      boolean isMember = members.stream().anyMatch(m -> m.getEmail() != null && m.getEmail().equalsIgnoreCase(email));
+
+      if (!isMember) {
+        try {
+          chatRoomUserService.addUserToRoom(room, email, Role.MEMBER);
+          logger.info("Auto-added user {} to room {}", email, roomUuid);
+        }
+        catch (Exception e) {
+          logger.error("Failed to add user {} to room {}: {}", email, roomUuid, e.getMessage());
+          session.close(CloseStatus.SERVER_ERROR.withReason("Failed to add member"));
+          return;
+        }
+      }
+
+      addSessionToRoom(session, roomUuid.toString(), email);
+
+      try {
+        sendExistingMessages(session, room);
+      }
+      catch (Exception e) {
+        logger.warn("Failed to send history to {} for room {}: {}", email, roomUuid, e.getMessage());
+      }
+
+      broadcastSystemMessage(roomUuid.toString(), email + " joined the room");
+
+      logger.info("WebSocket connected: user={} room={}", email, roomUuid);
     }
-    Map<String, String> params = parseQuery(query);
-
-    String roomCode = params.get("roomCode");
-    String email = params.get("email");
-
-    if (!validateConnection(session, roomCode, email)) {
-      return;
+    catch (Exception top) {
+      logger.error("Error in afterConnectionEstablished", top);
+      try {
+        session.close(CloseStatus.SERVER_ERROR.withReason("Internal server error while operating."));
+      }
+      catch (IOException ignored) {}
     }
-
-    Optional<ChatRoom> optionalRoom = chatRoomService.findByRoomCode(UUID.fromString(roomCode));
-    if (optionalRoom.isEmpty()) {
-      session.close();
-      return;
-    }
-
-    ChatRoom room = optionalRoom.get();
-    if (!isUserMemberOfRoom(room, email)) {
-      session.close();
-      return;
-    }
-
-    addSessionToRoom(session, roomCode, email);
-    sendExistingMessages(session, room);
   }
 
 
@@ -75,9 +127,9 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     Set<WebSocketSession> sessions = rooms.getOrDefault(roomCode, ConcurrentHashMap.newKeySet());
 
     Map<String, Object> payload = Map.of(
-      "senderEmail", message.getSenderEmail(),
-      "message", message.getMessage(),
-      "timestamp", message.getTimestamp()
+            "senderEmail", message.getSenderEmail(),
+            "message", message.getMessage(),
+            "timestamp", message.getTimestamp()
     );
 
     String json;
@@ -85,7 +137,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
       json = objectMapper.writeValueAsString(payload);
     }
     catch (Exception e) {
-      logger.error("Error sending message", e);
+      logger.error("Error serializing message payload", e);
       return;
     }
 
@@ -95,8 +147,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
       if (session.isOpen()) {
         try {
           session.sendMessage(new TextMessage(json));
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
           logger.error("Error sending message", e);
         }
       }
@@ -113,19 +164,21 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
       for (String pair : pairs) {
         String[] keyValue = pair.split("=", 2);
         if (keyValue.length == 2) {
-          params.put(keyValue[0], keyValue[1]);
+          String key = URLDecoder.decode(keyValue[0], StandardCharsets.UTF_8);
+          String value = URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8);
+          params.put(key, value);
         }
       }
-    } catch (Exception e) {
-      logger.error("Error sending message", e);
     }
-
+    catch (Exception e) {
+      logger.error("Error parsing query params", e);
+    }
     return params;
   }
 
   private boolean validateConnection(WebSocketSession session, String roomCode, String email) throws Exception {
     if (roomCode == null || email == null) {
-      session.close();
+      session.close(CloseStatus.BAD_DATA);
       return false;
     }
     return true;
@@ -133,12 +186,23 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
   private boolean isUserMemberOfRoom(ChatRoom room, String email) {
     List<ChatRoomUser> members = chatRoomUserService.getMembers(room);
+    if (members == null) return false;
     for (ChatRoomUser member : members) {
-      if (member.getEmail().equals(email)) {
+      if (member.getEmail() != null && member.getEmail().equalsIgnoreCase(email)) {
         return true;
       }
     }
     return false;
+  }
+
+  private void broadcastSystemMessage(String roomCode, String text) {
+    ChatMessage msg = ChatMessage.builder()
+            .senderEmail("system")
+            .message(text)
+            .timestamp(System.currentTimeMillis())
+            .roomCode(roomCode)
+            .build();
+    broadcastMessageToRoom(msg);
   }
 
   private void addSessionToRoom(WebSocketSession session, String roomCode, String email) {
@@ -152,14 +216,14 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     for (ChatMessage message : messages) {
       Map<String, Object> payload = new HashMap<>();
-      payload.put("senderId", message.getSenderEmail());
+      payload.put("senderEmail", message.getSenderEmail());
       payload.put("message", message.getMessage());
       payload.put("timestamp", message.getTimestamp());
       try {
         String json = objectMapper.writeValueAsString(payload);
         session.sendMessage(new TextMessage(json));
       } catch (Exception e) {
-        logger.error("Error sending message", e);
+        logger.error("Error sending message history", e);
       }
     }
   }
@@ -176,11 +240,13 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
           rooms.remove(roomCode);
         }
       }
+      broadcastSystemMessage(roomCode, email + " left the room");
     }
 
     logger.info("User {} disconnected from room {} (session: {})", email, roomCode, session.getId());
   }
 
+  @Override
   protected void handleTextMessage(@NonNull WebSocketSession session, @NonNull TextMessage textMessage) {
     String payload = textMessage.getPayload();
     String roomCode = sessionRoom.get(session);
@@ -193,34 +259,45 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     String messageText;
     try {
-      var node = objectMapper.readTree(payload);
-      if (node.has("message")) messageText = node.get("message").asText();
-      else messageText = node.asText();
+      JsonNode node = objectMapper.readTree(payload);
+      messageText = node.has("message") ? node.get("message").asText() : node.asText();
     } catch (Exception e) {
-      logger.warn("Invalid message payload: {}", payload);
+      messageText = payload;
+    }
+
+    UUID roomUuid;
+    try {
+      roomUuid = UUID.fromString(roomCode);
+    }
+    catch (Exception e) {
+      logger.warn("Invalid roomCode in session map: {}", roomCode);
       return;
     }
 
-    Optional<ChatRoom> optionalRoom = chatRoomService.findByRoomCode(UUID.fromString(roomCode));
+    Optional<ChatRoom> optionalRoom = chatRoomService.findByRoomCode(roomUuid);
     if (optionalRoom.isEmpty()) {
       logger.warn("Room not found for code {}", roomCode);
       return;
     }
+
     ChatRoom room = optionalRoom.get();
 
     ChatMessage chatMsg = ChatMessage.builder()
-      .senderEmail(senderEmail)
-      .message(messageText)
-      .timestamp(System.currentTimeMillis())
-      .room(room)
-      .roomCode(roomCode)
-      .build();
+            .senderEmail(senderEmail)
+            .message(messageText)
+            .timestamp(System.currentTimeMillis())
+            .room(room)
+            .roomCode(roomCode)
+            .build();
 
     try {
       chatMessageQueue.enqueue(chatMsg);
-    } catch (Exception e) {
-      logger.error("Failed to enqueue chat message", e);
+      broadcastMessageToRoom(chatMsg);
+    }
+    catch (Exception e) {
+      logger.error("Failed to enqueue or broadcast message", e);
     }
   }
+
 
 }

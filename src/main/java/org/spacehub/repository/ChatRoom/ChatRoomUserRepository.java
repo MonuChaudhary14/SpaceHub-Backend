@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 public interface ChatRoomUserRepository extends JpaRepository<ChatRoomUser, Long> {
@@ -16,5 +17,7 @@ public interface ChatRoomUserRepository extends JpaRepository<ChatRoomUser, Long
   Optional<ChatRoomUser> findByRoomAndEmail(ChatRoom room, String email);
 
   void deleteByRoomAndEmail(ChatRoom room, String email);
+
+  List<ChatRoomUser> findByRoom_RoomCode(UUID roomCode);
 
 }
