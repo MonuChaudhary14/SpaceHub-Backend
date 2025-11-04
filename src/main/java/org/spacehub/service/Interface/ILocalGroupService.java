@@ -36,4 +36,11 @@ public interface ILocalGroupService {
 
   ResponseEntity<ApiResponse<List<LocalGroupMemberDTO>>> getLocalGroupMembers(UUID groupId);
 
+  ResponseEntity<ApiResponse<LocalGroupResponse>> updateLocalGroupSettings(
+    UUID groupId,
+    String requesterEmail,
+    MultipartFile imageFile,
+    String newName
+  );
+
 }

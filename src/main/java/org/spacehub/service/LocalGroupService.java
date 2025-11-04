@@ -165,8 +165,6 @@ public class LocalGroupService implements ILocalGroupService {
         out));
     }
 
-    UUID userId = userOpt.get().getId();
-
     List<LocalGroupResponse> out = all.stream()
       .filter(group -> {
 
@@ -356,6 +354,87 @@ public class LocalGroupService implements ILocalGroupService {
     }).collect(Collectors.toList());
 
     return ResponseEntity.ok(new ApiResponse<>(200, "Local group members fetched", result));
+  }
+
+  @Override
+  public ResponseEntity<ApiResponse<LocalGroupResponse>> updateLocalGroupSettings(
+    UUID groupId,
+    String requesterEmail,
+    MultipartFile imageFile,
+    String newName) {
+
+    if (groupId == null || requesterEmail == null || requesterEmail.isBlank()) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400,
+        "groupId and requesterEmail are required", null));
+    }
+
+    try {
+      LocalGroup group = localGroupRepository.findById(groupId)
+        .orElseThrow(() -> new ResourceNotFoundException("Local group not found"));
+      User requester = userRepository.findByEmail(requesterEmail)
+        .orElseThrow(() -> new ResourceNotFoundException("Requester not found"));
+
+      if (!Objects.equals(group.getCreatedBy().getId(), requester.getId())) {
+        return ResponseEntity.status(403).body(new ApiResponse<>(403,
+          "Only the group creator can update settings", null));
+      }
+
+      boolean changed = false;
+
+      if (newName != null && !newName.isBlank()) {
+        String normalized = newName.trim();
+        if (!normalized.equals(group.getName())) {
+          group.setName(normalized);
+          if (group.getChatRoom() != null) {
+            group.getChatRoom().setName(normalized + " Room");
+          }
+          changed = true;
+        }
+      }
+
+      if (imageFile != null && !imageFile.isEmpty()) {
+        validateImage(imageFile);
+
+        String safeName = group.getName();
+        if (safeName == null || safeName.isBlank()) {
+          safeName = groupId.toString();
+        }
+        safeName = safeName.replaceAll("\\W", "_");
+        String fileName = System.currentTimeMillis() + "_" + imageFile.getOriginalFilename();
+        String key = "local-groups/" + safeName + "/" + fileName;
+
+        s3Service.uploadFile(key, imageFile.getInputStream(), imageFile.getSize());
+        group.setImageUrl(key);
+        changed = true;
+      }
+
+      if (changed) {
+        group.setUpdatedAt(LocalDateTime.now());
+        LocalGroup saved = localGroupRepository.save(group);
+
+        LocalGroupResponse resp = toResponse(saved);
+        String key = saved.getImageUrl();
+        if (key != null && !key.isBlank()) {
+          try {
+            resp.setImageUrl(s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1)));
+          } catch (Exception ignored) { }
+        }
+
+        return ResponseEntity.ok(new ApiResponse<>(200, "Local group settings updated", resp));
+      } else {
+        return ResponseEntity.ok(new ApiResponse<>(200, "No changes applied", toResponse(group)));
+      }
+
+    } catch (IOException ioe) {
+      return ResponseEntity.internalServerError().body(new ApiResponse<>(500,
+        "Error uploading image: "
+        + ioe.getMessage(), null));
+    } catch (ResourceNotFoundException rnfe) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, rnfe.getMessage(), null));
+    } catch (Exception e) {
+      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: "
+        + e.getMessage(), null));
+    }
   }
 
 }

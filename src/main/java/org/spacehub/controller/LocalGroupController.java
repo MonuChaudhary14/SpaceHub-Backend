@@ -75,4 +75,14 @@ public class LocalGroupController {
     return localGroupService.getLocalGroupMembers(id);
   }
 
+  @PostMapping(value = "/{id}/settings")
+  public ResponseEntity<ApiResponse<LocalGroupResponse>> updateLocalGroupSettings(
+    @PathVariable("id") UUID id,
+    @RequestParam("requesterEmail") String requesterEmail,
+    @RequestParam(value = "imageFile", required = false) MultipartFile imageFile,
+    @RequestParam(value = "name", required = false) String newName) {
+    return localGroupService.updateLocalGroupSettings(id, requesterEmail, imageFile, newName);
+  }
+
+
 }
