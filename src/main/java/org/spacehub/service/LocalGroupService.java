@@ -166,17 +166,12 @@ public class LocalGroupService implements ILocalGroupService {
     }
 
     List<LocalGroupResponse> out = all.stream()
-      .filter(group -> {
-
-        if (group.getMembers() != null) {
-          group.getMembers().stream()
-            .anyMatch(member -> false);
-        }
-
-        return false;
-      })
+      .filter(group -> group.getMembers() != null &&
+        group.getMembers().stream()
+          .anyMatch(member -> member.getEmail().equalsIgnoreCase(requesterEmail)))
       .map(this::toResponse)
       .collect(Collectors.toList());
+
 
     return ResponseEntity.ok(new ApiResponse<>(200, "Filtered local groups fetched", out));
   }
@@ -358,83 +353,117 @@ public class LocalGroupService implements ILocalGroupService {
 
   @Override
   public ResponseEntity<ApiResponse<LocalGroupResponse>> updateLocalGroupSettings(
-    UUID groupId,
-    String requesterEmail,
-    MultipartFile imageFile,
-    String newName) {
+    UUID groupId, String requesterEmail, MultipartFile imageFile, String newName) {
 
-    if (groupId == null || requesterEmail == null || requesterEmail.isBlank()) {
-      return ResponseEntity.badRequest().body(new ApiResponse<>(400,
-        "groupId and requesterEmail are required", null));
+    if (isInvalidRequest(groupId, requesterEmail)) {
+      return badRequest("groupId and requesterEmail are required");
     }
 
     try {
-      LocalGroup group = localGroupRepository.findById(groupId)
-        .orElseThrow(() -> new ResourceNotFoundException("Local group not found"));
-      User requester = userRepository.findByEmail(requesterEmail)
-        .orElseThrow(() -> new ResourceNotFoundException("Requester not found"));
+      LocalGroup group = findGroupOrThrow(groupId);
+      User requester = findUserOrThrow(requesterEmail);
 
-      if (!Objects.equals(group.getCreatedBy().getId(), requester.getId())) {
-        return ResponseEntity.status(403).body(new ApiResponse<>(403,
-          "Only the group creator can update settings", null));
+      if (!isGroupCreator(group, requester)) {
+        return forbidden();
       }
 
-      boolean changed = false;
+      boolean changed = updateNameIfNeeded(group, newName);
+      changed |= updateImageIfNeeded(group, imageFile);
 
-      if (newName != null && !newName.isBlank()) {
-        String normalized = newName.trim();
-        if (!normalized.equals(group.getName())) {
-          group.setName(normalized);
-          if (group.getChatRoom() != null) {
-            group.getChatRoom().setName(normalized + " Room");
-          }
-          changed = true;
-        }
-      }
-
-      if (imageFile != null && !imageFile.isEmpty()) {
-        validateImage(imageFile);
-
-        String safeName = group.getName();
-        if (safeName == null || safeName.isBlank()) {
-          safeName = groupId.toString();
-        }
-        safeName = safeName.replaceAll("\\W", "_");
-        String fileName = System.currentTimeMillis() + "_" + imageFile.getOriginalFilename();
-        String key = "local-groups/" + safeName + "/" + fileName;
-
-        s3Service.uploadFile(key, imageFile.getInputStream(), imageFile.getSize());
-        group.setImageUrl(key);
-        changed = true;
-      }
-
-      if (changed) {
-        group.setUpdatedAt(LocalDateTime.now());
-        LocalGroup saved = localGroupRepository.save(group);
-
-        LocalGroupResponse resp = toResponse(saved);
-        String key = saved.getImageUrl();
-        if (key != null && !key.isBlank()) {
-          try {
-            resp.setImageUrl(s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1)));
-          } catch (Exception ignored) { }
-        }
-
-        return ResponseEntity.ok(new ApiResponse<>(200, "Local group settings updated", resp));
-      } else {
-        return ResponseEntity.ok(new ApiResponse<>(200, "No changes applied", toResponse(group)));
-      }
+      return buildResponse(group, changed);
 
     } catch (IOException ioe) {
-      return ResponseEntity.internalServerError().body(new ApiResponse<>(500,
-        "Error uploading image: "
-        + ioe.getMessage(), null));
+      return serverError("Error uploading image: " + ioe.getMessage());
     } catch (ResourceNotFoundException rnfe) {
-      return ResponseEntity.badRequest().body(new ApiResponse<>(400, rnfe.getMessage(), null));
+      return badRequest(rnfe.getMessage());
     } catch (Exception e) {
-      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: "
-        + e.getMessage(), null));
+      return serverError("Unexpected error: " + e.getMessage());
     }
   }
+
+  private boolean isInvalidRequest(UUID groupId, String requesterEmail) {
+    return groupId == null || requesterEmail == null || requesterEmail.isBlank();
+  }
+
+  private ResponseEntity<ApiResponse<LocalGroupResponse>> badRequest(String message) {
+    return ResponseEntity.badRequest().body(new ApiResponse<>(400, message, null));
+  }
+
+  private ResponseEntity<ApiResponse<LocalGroupResponse>> forbidden() {
+    return ResponseEntity.status(403).body(new ApiResponse<>(403,
+      "Only the group creator can update settings", null));
+  }
+
+  private ResponseEntity<ApiResponse<LocalGroupResponse>> serverError(String message) {
+    return ResponseEntity.internalServerError().body(new ApiResponse<>(500, message, null));
+  }
+
+  private LocalGroup findGroupOrThrow(UUID groupId) {
+    return localGroupRepository.findById(groupId)
+      .orElseThrow(() -> new ResourceNotFoundException("Local group not found"));
+  }
+
+  private User findUserOrThrow(String requesterEmail) {
+    return userRepository.findByEmail(requesterEmail)
+      .orElseThrow(() -> new ResourceNotFoundException("Requester not found"));
+  }
+
+  private boolean isGroupCreator(LocalGroup group, User requester) {
+    return Objects.equals(group.getCreatedBy().getId(), requester.getId());
+  }
+
+  private boolean updateNameIfNeeded(LocalGroup group, String newName) {
+    if (newName == null || newName.isBlank()) return false;
+
+    String normalized = newName.trim();
+    if (normalized.equals(group.getName())) return false;
+
+    group.setName(normalized);
+    if (group.getChatRoom() != null) {
+      group.getChatRoom().setName(normalized + " Room");
+    }
+    return true;
+  }
+
+  private boolean updateImageIfNeeded(LocalGroup group, MultipartFile imageFile) throws IOException {
+    if (imageFile == null || imageFile.isEmpty()) return false;
+
+    validateImage(imageFile);
+
+    String safeName = Optional.ofNullable(group.getName())
+      .filter(name -> !name.isBlank())
+      .orElse(group.getId().toString())
+      .replaceAll("\\W", "_");
+
+    String fileName = System.currentTimeMillis() + "_" + imageFile.getOriginalFilename();
+    String key = "local-groups/" + safeName + "/" + fileName;
+
+    s3Service.uploadFile(key, imageFile.getInputStream(), imageFile.getSize());
+    group.setImageUrl(key);
+    return true;
+  }
+
+  private ResponseEntity<ApiResponse<LocalGroupResponse>> buildResponse(LocalGroup group, boolean changed) {
+    if (changed) {
+      group.setUpdatedAt(LocalDateTime.now());
+      LocalGroup saved = localGroupRepository.save(group);
+
+      LocalGroupResponse resp = toResponse(saved);
+      setPresignedUrl(resp, saved.getImageUrl());
+
+      return ResponseEntity.ok(new ApiResponse<>(200, "Local group settings updated", resp));
+    }
+    return ResponseEntity.ok(new ApiResponse<>(200, "No changes applied", toResponse(group)));
+  }
+
+  private void setPresignedUrl(LocalGroupResponse resp, String key) {
+    if (key != null && !key.isBlank()) {
+      try {
+        resp.setImageUrl(s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1)));
+      } catch (Exception ignored) {}
+    }
+  }
+
+
 
 }
