@@ -1,10 +1,11 @@
 package org.spacehub.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.spacehub.dto.CreateGroupRequest;
-import org.spacehub.dto.RenameGroupRequest;
-import org.spacehub.response.ApiResponse;
-import org.spacehub.service.GroupService;
+import org.spacehub.DTO.Group.CreateGroupRequest;
+import org.spacehub.DTO.Community.RenameGroupRequest;
+import org.spacehub.entities.ApiResponse.ApiResponse;
+import org.spacehub.service.Group.GroupService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,10 +15,13 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/groups")
-@RequiredArgsConstructor
 public class GroupController {
 
     private final GroupService groupService;
+
+    public GroupController(GroupService groupService) {
+        this.groupService = groupService;
+    }
 
     @GetMapping("/community/{communityId}")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getGroupsByCommunity(
@@ -31,10 +35,10 @@ public class GroupController {
         return groupService.getCommunityWithGroups(communityId);
     }
 
-    @GetMapping("/community/{communityId}/details/{email}")
+    @GetMapping("/community/{communityId}/details/{requesterEmail}")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getCommunityDetailsWithAdminFlag(
             @PathVariable UUID communityId,
-            @PathVariable("email") String requesterEmail) {
+            @PathVariable String requesterEmail) {
         return groupService.getCommunityDetailsWithAdminFlag(communityId, requesterEmail);
     }
 

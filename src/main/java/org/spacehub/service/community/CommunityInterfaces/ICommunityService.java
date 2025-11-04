@@ -3,6 +3,7 @@ package org.spacehub.service.community.CommunityInterfaces;
 import org.spacehub.DTO.AcceptRequest;
 import org.spacehub.DTO.CancelJoinRequest;
 import org.spacehub.DTO.Community.*;
+import org.spacehub.DTO.Group.CreateGroupRequest;
 import org.spacehub.DTO.RejectRequest;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.Community.Community;
@@ -35,7 +36,7 @@ public interface ICommunityService {
 
   ResponseEntity<?> rejectRequest(RejectRequest rejectRequest);
 
-  ResponseEntity<ApiResponse<Map<String, Object>>> getCommunityWithRooms(UUID communityId);
+  ResponseEntity<ApiResponse<Map<String, Object>>> getCommunityWithGroups(UUID communityId);
 
   ResponseEntity<ApiResponse<String>> removeMemberFromCommunity(CommunityMemberRequest request);
 
@@ -54,11 +55,11 @@ public interface ICommunityService {
           String requesterEmail
   );
 
-  ResponseEntity<?> createRoomInCommunity(CreateRoomRequest request);
+  ResponseEntity<?> createGroupInCommunity(CreateGroupRequest request);
 
-  ResponseEntity<ApiResponse<List<Map<String, Object>>>> getRoomsByCommunity(UUID communityId);
+  ResponseEntity<ApiResponse<List<Map<String, Object>>>> getGroupsByCommunity(UUID communityId);
 
-  ResponseEntity<?> deleteRoom(UUID communityId, UUID roomId, String requesterEmail);
+  ResponseEntity<?> deleteGroup(UUID communityId, UUID groupId, String requesterEmail);
 
   ResponseEntity<?> searchCommunities(String q, String requesterEmail, int page, int size);
 
@@ -76,7 +77,7 @@ public interface ICommunityService {
           String newDescription
   );
 
-  ResponseEntity<?> renameRoomInCommunity(UUID communityId, UUID roomId, RenameRoomRequest req);
+  ResponseEntity<?> renameGroupInCommunity(UUID communityId, UUID groupId, RenameGroupRequest req);
 
   ResponseEntity<?> getRolesForRequester(UUID communityId, String requesterEmail);
 

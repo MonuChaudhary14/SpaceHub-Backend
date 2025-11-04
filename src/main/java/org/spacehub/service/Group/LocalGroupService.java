@@ -1,4 +1,4 @@
-package org.spacehub.service;
+package org.spacehub.service.Group;
 
 import org.spacehub.DTO.LocalGroup.DeleteLocalGroupRequest;
 import org.spacehub.DTO.LocalGroup.JoinLocalGroupRequest;
@@ -11,6 +11,7 @@ import org.spacehub.entities.User.User;
 import org.spacehub.repository.UserRepository;
 import org.spacehub.repository.localgroup.LocalGroupRepository;
 import org.spacehub.service.Interface.ILocalGroupService;
+import org.spacehub.service.S3Service;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

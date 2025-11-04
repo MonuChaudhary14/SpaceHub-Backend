@@ -9,6 +9,8 @@ import org.spacehub.DTO.CancelJoinRequest;
 import org.spacehub.DTO.AcceptRequest;
 import org.spacehub.DTO.Community.LeaveCommunity;
 import org.spacehub.DTO.Community.RolesResponse;
+import org.spacehub.DTO.Community.RenameGroupRequest;
+import org.spacehub.DTO.Group.CreateGroupRequest;
 import org.spacehub.DTO.RejectRequest;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.Community.Community;
@@ -972,6 +974,7 @@ public class CommunityService implements ICommunityService {
       return ResponseEntity.internalServerError().body(new ApiResponse<>(500,
               "An unexpected error occurred: " + e.getMessage(), null));
     }
+  }
 
   @Override
   public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getGroupsByCommunity(UUID communityId) {
@@ -1127,7 +1130,7 @@ public class CommunityService implements ICommunityService {
             .anyMatch(u -> u.getId().equals(user.getId()));
 
     if (isMember) {
-      return getCommunityWithRooms(communityId);
+      return getCommunityWithGroups(communityId);
     }
     else {
       if (isPending) {
@@ -1349,7 +1352,7 @@ public class CommunityService implements ICommunityService {
   }
 
   @Override
-  public ResponseEntity<?> renameGroupInCommunity(UUID communityId, UUID groupId, RenameGroupRequest request) {
+  public ResponseEntity<?> renameGroupInCommunity(UUID communityId, UUID groupId, RenameGroupRequest req) {
 
     if (req.getRequesterEmail() == null || req.getRequesterEmail().isBlank() ||
             req.getNewGroupName() == null || req.getNewGroupName().isBlank()) {
@@ -1362,7 +1365,7 @@ public class CommunityService implements ICommunityService {
       Community community = communityRepository.findById(communityId)
               .orElseThrow(() -> new ResourceNotFoundException("Community not found"));
 
-      User requester = userRepository.findByEmail(request.getRequesterEmail())
+      User requester = userRepository.findByEmail(req.getRequesterEmail())
               .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
       if (!isUserAdminInCommunity(community, requester)) {
@@ -1382,7 +1385,7 @@ public class CommunityService implements ICommunityService {
 
       boolean exists = groupRepository.findByCommunityId(communityId)
               .stream()
-              .anyMatch(g -> g.getName().equalsIgnoreCase(request.getNewGroupName().trim())
+              .anyMatch(g -> g.getName().equalsIgnoreCase(req.getNewGroupName().trim())
                       && !g.getId().equals(groupId));
 
       if (exists) {
@@ -1391,7 +1394,7 @@ public class CommunityService implements ICommunityService {
         );
       }
 
-      group.setName(request.getNewGroupName().trim());
+      group.setName(req.getNewGroupName().trim());
       groupRepository.save(group);
 
       return ResponseEntity.ok(new ApiResponse<>(200, "Group renamed successfully", group));

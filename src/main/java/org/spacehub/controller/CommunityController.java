@@ -2,23 +2,15 @@ package org.spacehub.controller;
 
 import org.spacehub.DTO.AcceptRequest;
 import org.spacehub.DTO.CancelJoinRequest;
-import org.spacehub.DTO.Community.CommunityBlockRequest;
-import org.spacehub.DTO.Community.CommunityChangeRoleRequest;
-import org.spacehub.DTO.Community.CommunityMemberListRequest;
-import org.spacehub.DTO.Community.CommunityMemberRequest;
-import org.spacehub.DTO.Community.CommunityRoomsRequest;
-import org.spacehub.DTO.Community.DeleteCommunityDTO;
-import org.spacehub.DTO.Community.JoinCommunity;
-import org.spacehub.DTO.Community.LeaveCommunity;
-import org.spacehub.DTO.Community.RenameRoomRequest;
-import org.spacehub.DTO.Community.UpdateCommunityDTO;
+import org.spacehub.DTO.Community.*;
+import org.spacehub.DTO.Group.CreateGroupRequest;
 import org.spacehub.DTO.RejectRequest;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.service.community.CommunityInterfaces.ICommunityService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.spacehub.DTO.Community.CreateRoomRequest;
+
 import java.util.Map;
 import java.util.UUID;
 
@@ -76,7 +68,7 @@ public class CommunityController {
     if (request.getCommunityId() == null) {
       return ResponseEntity.badRequest().body("communityId is required");
     }
-    return communityService.getCommunityWithRooms(request.getCommunityId());
+    return communityService.getCommunityWithGroups(request.getCommunityId());
   }
 
   @PostMapping("/removeMember")
@@ -122,14 +114,14 @@ public class CommunityController {
 
   @PostMapping("/{id}/rooms/create")
   public ResponseEntity<?> createRoomInCommunity(@PathVariable("id") UUID communityId,
-                                                 @RequestBody CreateRoomRequest request) {
+                                                 @RequestBody CreateGroupRequest request) {
     request.setCommunityId(communityId);
-    return communityService.createRoomInCommunity(request);
+    return communityService.createGroupInCommunity(request);
   }
 
   @GetMapping("/{id}/rooms/all")
   public ResponseEntity<?> getRoomsByCommunity(@PathVariable("id") UUID communityId) {
-    return communityService.getRoomsByCommunity(communityId);
+    return communityService.getGroupsByCommunity(communityId);
   }
 
   @DeleteMapping("/{communityId}/rooms/{roomId}")
@@ -137,7 +129,7 @@ public class CommunityController {
     @PathVariable("communityId") UUID communityId,
     @PathVariable("roomId") UUID roomId,
     @RequestParam("requesterEmail") String requesterEmail) {
-    return communityService.deleteRoom(communityId, roomId, requesterEmail);
+    return communityService.deleteGroup(communityId, roomId, requesterEmail);
   }
 
 
@@ -180,9 +172,9 @@ public class CommunityController {
   @PutMapping("/{communityId}/rooms/{roomId}/rename")
   public ResponseEntity<?> renameRoom(@PathVariable UUID communityId,
                                       @PathVariable UUID roomId,
-                                      @RequestBody RenameRoomRequest req) {
+                                      @RequestBody RenameGroupRequest req) {
     req.setRequesterEmail(req.getRequesterEmail());
-    return communityService.renameRoomInCommunity(communityId, roomId, req);
+    return communityService.renameGroupInCommunity(communityId, roomId, req);
   }
 
   @GetMapping("/{id}/roles")

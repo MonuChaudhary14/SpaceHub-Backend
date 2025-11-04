@@ -1,18 +1,13 @@
-package org.spacehub.DTO.Group;
+package org.spacehub.DTO.Community;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.UUID;
-
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Data
-public class CreateGroupRequest {
-
-    private UUID communityId;
-    private String groupName;
+public class RenameGroupRequest {
     private String requesterEmail;
-
+    private String newGroupName;
 }

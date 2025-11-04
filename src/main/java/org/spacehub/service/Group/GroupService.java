@@ -1,14 +1,16 @@
 package org.spacehub.service.Group;
 
 import org.spacehub.DTO.Group.CreateGroupRequest;
-import org.spacehub.DTO.RenameGroupRequest;
+import org.spacehub.DTO.Community.RenameGroupRequest;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+@Service
 public interface GroupService {
 
     ResponseEntity<ApiResponse<List<Map<String, Object>>>> getGroupsByCommunity(UUID communityId);
