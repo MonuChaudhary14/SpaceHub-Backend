@@ -8,11 +8,9 @@ import org.spacehub.DTO.Community.JoinCommunity;
 import org.spacehub.DTO.CancelJoinRequest;
 import org.spacehub.DTO.AcceptRequest;
 import org.spacehub.DTO.Community.LeaveCommunity;
-import org.spacehub.DTO.Community.RenameRoomRequest;
 import org.spacehub.DTO.Community.RolesResponse;
 import org.spacehub.DTO.RejectRequest;
 import org.spacehub.entities.ApiResponse.ApiResponse;
-import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.Community.Community;
 import org.spacehub.entities.Community.CommunityUser;
 import org.spacehub.DTO.Community.CommunityChangeRoleRequest;
@@ -20,7 +18,7 @@ import org.spacehub.DTO.Community.PendingRequestUserDTO;
 import org.spacehub.entities.Community.Role;
 import org.spacehub.entities.Group.Group;
 import org.spacehub.entities.User.User;
-import org.spacehub.repository.ChatRoom.ChatRoomRepository;
+import org.spacehub.repository.GroupRepository;
 import org.spacehub.repository.community.CommunityRepository;
 import org.spacehub.repository.UserRepository;
 import org.spacehub.repository.community.CommunityUserRepository;
@@ -36,7 +34,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.multipart.MultipartFile;
-import org.spacehub.DTO.Community.CreateRoomRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -59,7 +56,7 @@ public class CommunityService implements ICommunityService {
 
   private final CommunityRepository communityRepository;
   private final UserRepository userRepository;
-  private final ChatRoomRepository chatRoomRepository;
+  private final GroupRepository groupRepository;
   private final CommunityUserRepository communityUserRepository;
   private final S3Service s3Service;
 
@@ -70,11 +67,11 @@ public class CommunityService implements ICommunityService {
   }
 
   public CommunityService(CommunityRepository communityRepository, UserRepository userRepository,
-                          ChatRoomRepository chatRoomRepository, S3Service s3Service,
+                          GroupRepository groupRepository, S3Service s3Service,
                           CommunityUserRepository communityUserRepository) {
     this.communityRepository = communityRepository;
     this.userRepository = userRepository;
-    this.chatRoomRepository = chatRoomRepository;
+    this.groupRepository = groupRepository;
     this.communityUserRepository = communityUserRepository;
     this.s3Service = s3Service;
   }
@@ -473,7 +470,8 @@ public class CommunityService implements ICommunityService {
             .orElseThrow(() -> new ResourceNotFoundException("User not found"));
   }
 
-  public ResponseEntity<ApiResponse<Map<String, Object>>> getCommunityWithRooms(UUID communityId) {
+  @Override
+  public ResponseEntity<ApiResponse<Map<String, Object>>> getCommunityWithGroups(UUID communityId) {
 
     Optional<Community> optionalCommunity = communityRepository.findById(communityId);
     if (optionalCommunity.isEmpty()) {
@@ -484,13 +482,13 @@ public class CommunityService implements ICommunityService {
 
     Community community = optionalCommunity.get();
 
-    List<ChatRoom> rooms = chatRoomRepository.findByCommunityId(communityId);
+    List<Group> groups = groupRepository.findByCommunityId(communityId);
 
     Map<String, Object> response = new HashMap<>();
     response.put("communityId", community.getId());
     response.put("communityName", community.getName());
     response.put("description", community.getDescription());
-    response.put("rooms", rooms);
+    response.put("groups", groups);
 
     List<Map<String, Object>> members = new ArrayList<>();
     for (CommunityUser communityUser : community.getCommunityUsers()) {
@@ -870,8 +868,7 @@ public class CommunityService implements ICommunityService {
   }
 
   @Override
-  public ResponseEntity<ApiResponse<Map<String, Object>>> getCommunityDetailsWithAdminFlag(
-          UUID communityId, String requesterEmail) {
+  public ResponseEntity<ApiResponse<Map<String, Object>>> getCommunityDetailsWithAdminFlag(UUID communityId, String requesterEmail) {
 
     if (communityId == null || requesterEmail == null || requesterEmail.isBlank()) {
       return ResponseEntity.badRequest()
@@ -892,14 +889,14 @@ public class CommunityService implements ICommunityService {
       isAdmin = isUserAdminInCommunity(community, user);
     }
 
-    List<ChatRoom> rooms = chatRoomRepository.findByCommunityId(communityId);
+    List<Group> groups = groupRepository.findByCommunityId(communityId);
 
     Map<String, Object> response = new HashMap<>();
-    response.put("communityId", community.getId());  // UUID
+    response.put("communityId", community.getId());
     response.put("communityName", community.getName());
     response.put("description", community.getDescription());
     response.put("isAdmin", isAdmin);
-    response.put("rooms", rooms);
+    response.put("groups", groups);
 
     List<Map<String, Object>> members = new ArrayList<>();
     for (CommunityUser communityUser : community.getCommunityUsers()) {
@@ -921,9 +918,9 @@ public class CommunityService implements ICommunityService {
             .anyMatch(cu -> cu.getUser().getId().equals(user.getId()) && cu.getRole() == Role.ADMIN);
   }
 
-  public ResponseEntity<?> createRoomInCommunity(CreateRoomRequest request) {
+  @Override
+  public ResponseEntity<?> createGroupInCommunity(CreateGroupRequest request) {
     try {
-
       if (request.getRequesterEmail() == null || request.getRequesterEmail().isBlank()) {
         return ResponseEntity.badRequest()
                 .body(new ApiResponse<>(400, "Requester email is required", null));
@@ -939,35 +936,35 @@ public class CommunityService implements ICommunityService {
 
       if (!isUserAdminInCommunity(community, requester)) {
         return ResponseEntity.status(403)
-                .body(new ApiResponse<>(403, "You are not authorized to create a room in this community",
+                .body(new ApiResponse<>(403, "You are not authorized to create a group in this community",
                         null));
       }
 
-      if (request.getRoomName() == null || request.getRoomName().isBlank()) {
+      if (request.getGroupName() == null || request.getGroupName().isBlank()) {
         return ResponseEntity.badRequest()
-                .body(new ApiResponse<>(400, "Room name cannot be empty", null));
+                .body(new ApiResponse<>(400, "Group name cannot be empty", null));
       }
 
-      boolean roomExists = chatRoomRepository.findByCommunityId(community.getId())
+      boolean groupExists = groupRepository.findByCommunityId(community.getId())
               .stream()
-              .anyMatch(room -> room.getName().equalsIgnoreCase(request.getRoomName()));
+              .anyMatch(group -> group.getName().equalsIgnoreCase(request.getGroupName()));
 
-      if (roomExists) {
+      if (groupExists) {
         return ResponseEntity.badRequest()
-                .body(new ApiResponse<>(400, "A room with this name already exists", null));
+                .body(new ApiResponse<>(400, "A group with this name already exists", null));
       }
 
-      ChatRoom newRoom = new ChatRoom();
-      newRoom.setName(request.getRoomName().trim());
-      newRoom.setCommunity(community);
+      Group newGroup = new Group();
+      newGroup.setName(request.getGroupName().trim());
+      newGroup.setCommunity(community);
 
       UUID code = UUID.randomUUID();
-      newRoom.setRoomCode(code);
+      newGroup.setGroupCode(code);
 
-      ChatRoom savedRoom = chatRoomRepository.save(newRoom);
+      Group savedGroup = groupRepository.save(newGroup);
 
       return ResponseEntity.status(201)
-              .body(new ApiResponse<>(201, "Room created successfully", savedRoom));
+              .body(new ApiResponse<>(201, "Group created successfully", savedGroup));
 
     } catch (ResourceNotFoundException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
@@ -975,7 +972,6 @@ public class CommunityService implements ICommunityService {
       return ResponseEntity.internalServerError().body(new ApiResponse<>(500,
               "An unexpected error occurred: " + e.getMessage(), null));
     }
-  }
 
   @Override
   public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getGroupsByCommunity(UUID communityId) {
