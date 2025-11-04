@@ -2,6 +2,7 @@ package org.spacehub.entities.ChatRoom;
 
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.util.List;
 
 @Entity

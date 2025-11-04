@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.ToString;
-import org.spacehub.entities.ChatRoom.ChatRoom;
+import org.spacehub.entities.Group.Group;
 import org.spacehub.entities.User.User;
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -31,18 +31,18 @@ public class Community {
 
   @ManyToMany
   @JoinTable(
-    name = "community_pending_requests",
-    joinColumns = @JoinColumn(name = "community_id"),
-    inverseJoinColumns = @JoinColumn(name = "user_id")
+          name = "community_pending_requests",
+          joinColumns = @JoinColumn(name = "community_id"),
+          inverseJoinColumns = @JoinColumn(name = "user_id")
   )
   @ToString.Exclude
   private Set<User> pendingRequests = new HashSet<>();
 
   @ManyToMany
   @JoinTable(
-    name = "community_members",
-    joinColumns = @JoinColumn(name = "community_id"),
-    inverseJoinColumns = @JoinColumn(name = "user_id")
+          name = "community_members",
+          joinColumns = @JoinColumn(name = "community_id"),
+          inverseJoinColumns = @JoinColumn(name = "user_id")
   )
   private Set<User> members = new HashSet<>();
 
@@ -78,7 +78,7 @@ public class Community {
 
   @OneToMany(mappedBy = "community", cascade = CascadeType.ALL, orphanRemoval = true)
   @JsonManagedReference
-  private Set<ChatRoom> chatRooms = new HashSet<>();
+  private Set<Group> groups = new HashSet<>();
 
   @Override
   public boolean equals(Object o) {

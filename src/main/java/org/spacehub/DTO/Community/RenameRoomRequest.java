@@ -1,9 +1,7 @@
-package org.spacehub.DTO.Community;
-
-import lombok.Data;
-
 @Data
-public class RenameRoomRequest {
+@NoArgsConstructor
+@AllArgsConstructor
+public class RenameGroupRequest {
   private String requesterEmail;
-  private String newRoomName;
+  private String newGroupName;
 }

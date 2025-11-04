@@ -1,9 +1,8 @@
 package org.spacehub.entities.ChatRoom;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
-import org.spacehub.entities.Community.Community;
+import org.spacehub.entities.Group.Group;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -29,9 +28,6 @@ public class ChatRoom implements Serializable {
   private UUID roomCode;
 
   @ManyToOne
-  @JoinColumn(name = "community_id")
-  @JsonBackReference
-  private Community community;
-
+  @JoinColumn(name = "group_id")
+  private Group group;
 }
-
