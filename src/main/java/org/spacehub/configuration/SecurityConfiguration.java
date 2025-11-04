@@ -33,14 +33,14 @@ public class SecurityConfiguration {
     CorsConfiguration config = new CorsConfiguration();
 
     config.setAllowedOrigins(List.of(
-            "http://127.0.0.1:5500",
-            "http://localhost:5500",
-            "http://localhost:5173",
-            "http://localhost:8080",
-            "https://codewithketan.me",
-            "https://space-hub-frontend.vercel.app",
-            "https://www.spacehubx.me",
-            "https://audio-room-tawny.vercel.app"
+      "http://127.0.0.1:5500",
+      "http://localhost:5500",
+      "http://localhost:5173",
+      "http://localhost:8080",
+      "https://codewithketan.me",
+      "https://space-hub-frontend.vercel.app",
+      "https://www.spacehubx.me",
+      "https://audio-room-tawny.vercel.app"
     ));
     config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
     config.setAllowedHeaders(List.of("*"));
@@ -60,17 +60,27 @@ public class SecurityConfiguration {
             .authorizeHttpRequests(auth -> auth
                     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                     .requestMatchers(
-                            "/ws-messages/**",
-                            "/api/v1/validateforgototp",
-                            "/api/v1/**",
-                            "/api/**",
-                            "/ws/**",
-                            "/swagger-ui/**",
-                            "/v3/api-docs/**",
-                            "/v3/api-docs.yaml",
-                            "/chat/**",
-                            "/files/**",
-                            "/wss/**"
+//                            "/ws-messages/**",
+//                            "/api/v1/validateforgototp",
+//                            "/api/v1/**",
+//                            "/api/**",
+//                            "/ws/**",
+//                            "/swagger-ui/**",
+//                            "/v3/api-docs/**",
+//                            "/v3/api-docs.yaml",
+//                            "/chat/**",
+//                            "/files/**",
+//                            "/wss/**"
+                      "/api/v1/login",
+                      "/api/v1/registration",
+                      "/api/v1/validateregisterotp",
+                      "/api/v1/forgotpassword",
+                      "/api/v1/validateforgototp",
+                      "/api/v1/resetpassword",
+                      "/api/v1/resendotp",
+                      "/api/v1/resendforgototp",
+                      "/swagger-ui/**",
+                      "/v3/api-docs/**"
                     ).permitAll()
                     .anyRequest().authenticated()
             )
@@ -84,7 +94,7 @@ public class SecurityConfiguration {
 
   @Bean
   public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig)
-          throws Exception {
+    throws Exception {
     return authConfig.getAuthenticationManager();
   }
 }
