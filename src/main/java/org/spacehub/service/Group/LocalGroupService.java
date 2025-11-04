@@ -8,6 +8,7 @@ import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.LocalGroup.LocalGroup;
 import org.spacehub.entities.User.User;
+import org.spacehub.entities.VoiceRoom.VoiceRoom;
 import org.spacehub.repository.UserRepository;
 import org.spacehub.repository.localgroup.LocalGroupRepository;
 import org.spacehub.service.Interface.ILocalGroupService;
@@ -47,21 +48,21 @@ public class LocalGroupService implements ILocalGroupService {
   }
 
   public ResponseEntity<ApiResponse<LocalGroupResponse>> createLocalGroup(
-    String name, String description, String creatorEmail, MultipartFile imageFile) {
+          String name, String description, String creatorEmail, MultipartFile imageFile) {
 
     if (name == null || name.isBlank() || creatorEmail == null || creatorEmail.isBlank()) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400,
-        "name and creatorEmail are required", null));
+              "name and creatorEmail are required", null));
     }
 
     if (imageFile == null || imageFile.isEmpty()) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Group image is required",
-        null));
+              null));
     }
 
     try {
       User creator = userRepository.findByEmail(creatorEmail)
-        .orElseThrow(() -> new ResourceNotFoundException("Creator not found"));
+              .orElseThrow(() -> new ResourceNotFoundException("Creator not found"));
 
       validateImage(imageFile);
 
@@ -80,27 +81,41 @@ public class LocalGroupService implements ILocalGroupService {
       group.setUpdatedAt(LocalDateTime.now());
       group.getMembers().add(creator);
 
-      UUID roomCode = UUID.randomUUID();
-      ChatRoom chatRoom = ChatRoom.builder().name(name + " Chat Room")
-              .roomCode(roomCode).community(null).build();
+      UUID chatRoomCode = UUID.randomUUID();
+      ChatRoom chatRoom = ChatRoom.builder()
+              .name(name + " Chat Room")
+              .roomCode(chatRoomCode)
+              .localGroup(group)
+              .build();
+
+      UUID voiceRoomCode = UUID.randomUUID();
+      VoiceRoom voiceRoom = VoiceRoom.builder()
+              .name(name + " Voice Room")
+              .roomCode(voiceRoomCode)
+              .localGroup(group)
+              .build();
 
       group.setChatRoom(chatRoom);
+      group.setVoiceRoom(voiceRoom);
 
       LocalGroup saved = localGroupRepository.save(group);
 
       LocalGroupResponse resp = toResponse(saved);
       resp.setImageUrl(imageUrl);
+      resp.setChatRoomCode(chatRoomCode.toString());
+      resp.setVoiceRoomCode(voiceRoomCode.toString());
 
       return ResponseEntity.status(201).body(new ApiResponse<>(201,
-        "Local group created successfully", resp));
+              "Local group created successfully", resp));
+
     } catch (IOException e) {
       return ResponseEntity.internalServerError().body(
-        new ApiResponse<>(500, "Error uploading image: " + e.getMessage(), null));
+              new ApiResponse<>(500, "Error uploading image: " + e.getMessage(), null));
     } catch (RuntimeException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
     } catch (Exception e) {
       return ResponseEntity.internalServerError().body(
-        new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
+              new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
     }
   }
 

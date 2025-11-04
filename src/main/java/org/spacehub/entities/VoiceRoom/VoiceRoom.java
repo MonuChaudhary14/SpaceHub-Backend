@@ -3,6 +3,8 @@ package org.spacehub.entities.VoiceRoom;
 import jakarta.persistence.*;
 import lombok.*;
 import org.spacehub.entities.Group.Group;
+import org.spacehub.entities.LocalGroup.LocalGroup;
+
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.UUID;
@@ -31,6 +33,9 @@ public class VoiceRoom implements Serializable {
   @ManyToOne
   @JoinColumn(name = "group_id")
   private Group group;
+
+  @OneToOne(mappedBy = "voiceRoom")
+  private LocalGroup localGroup;
 
   @OneToMany(mappedBy = "voiceRoom", cascade = CascadeType.ALL, orphanRemoval = true)
   private Set<VoiceRoomUser> users = new HashSet<>();

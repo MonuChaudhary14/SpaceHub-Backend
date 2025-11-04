@@ -39,8 +39,10 @@ public class Group implements Serializable {
     private Community community;
 
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "chat_room_id")
     private Set<ChatRoom> chatRooms = new HashSet<>();
 
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "voice_room_id")
     private Set<VoiceRoom> voiceRooms = new HashSet<>();
 }

@@ -3,6 +3,7 @@ package org.spacehub.entities.ChatRoom;
 import jakarta.persistence.*;
 import lombok.*;
 import org.spacehub.entities.Group.Group;
+import org.spacehub.entities.LocalGroup.LocalGroup;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -30,4 +31,8 @@ public class ChatRoom implements Serializable {
   @ManyToOne
   @JoinColumn(name = "group_id")
   private Group group;
+
+  @OneToOne(mappedBy = "chatRoom")
+  private LocalGroup localGroup;
+
 }
