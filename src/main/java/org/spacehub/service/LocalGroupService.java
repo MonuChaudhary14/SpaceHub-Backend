@@ -413,10 +413,14 @@ public class LocalGroupService implements ILocalGroupService {
   }
 
   private boolean updateNameIfNeeded(LocalGroup group, String newName) {
-    if (newName == null || newName.isBlank()) return false;
+    if (newName == null || newName.isBlank()) {
+      return false;
+    }
 
     String normalized = newName.trim();
-    if (normalized.equals(group.getName())) return false;
+    if (normalized.equals(group.getName())) {
+      return false;
+    }
 
     group.setName(normalized);
     if (group.getChatRoom() != null) {
@@ -426,7 +430,9 @@ public class LocalGroupService implements ILocalGroupService {
   }
 
   private boolean updateImageIfNeeded(LocalGroup group, MultipartFile imageFile) throws IOException {
-    if (imageFile == null || imageFile.isEmpty()) return false;
+    if (imageFile == null || imageFile.isEmpty()) {
+      return false;
+    }
 
     validateImage(imageFile);
 
@@ -463,7 +469,5 @@ public class LocalGroupService implements ILocalGroupService {
       } catch (Exception ignored) {}
     }
   }
-
-
 
 }

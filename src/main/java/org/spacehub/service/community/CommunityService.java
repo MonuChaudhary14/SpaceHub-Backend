@@ -167,29 +167,38 @@ public class CommunityService implements ICommunityService {
   }
 
   @CacheEvict(value = {"communities"}, key = "#deleteCommunity.name")
-  public ResponseEntity<?> deleteCommunityByName(@RequestBody DeleteCommunityDTO deleteCommunity) {
+  public ResponseEntity<ApiResponse<Void>> deleteCommunityByName(@RequestBody DeleteCommunityDTO deleteCommunity) {
 
     String name = deleteCommunity.getName();
     String userEmail = deleteCommunity.getUserEmail();
 
     Community community = communityRepository.findByName(name);
     if (community == null) {
-      return ResponseEntity.badRequest().body("Community not found");
+      return ResponseEntity.badRequest().body(
+        new ApiResponse<>(400, "Community not found", null)
+      );
     }
 
     Optional<User> userOptional = userRepository.findByEmail(userEmail);
     if (userOptional.isEmpty()) {
-      return ResponseEntity.badRequest().body("User not found");
+      return ResponseEntity.badRequest().body(
+        new ApiResponse<>(400, "User not found", null)
+      );
     }
 
     User user = userOptional.get();
 
     if (!community.getCreatedBy().getId().equals(user.getId())) {
-      return ResponseEntity.status(403).body("You are not authorized to delete this community");
+      return ResponseEntity.status(403).body(
+        new ApiResponse<>(403, "You are not authorized to delete this community", null)
+      );
     }
 
     communityRepository.delete(community);
-    return ResponseEntity.ok().body("Community deleted successfully");
+
+    return ResponseEntity.ok(
+      new ApiResponse<>(200, "Community deleted successfully", null)
+    );
   }
 
   @CachePut(value = "communities", key = "#joinCommunity.communityName")
