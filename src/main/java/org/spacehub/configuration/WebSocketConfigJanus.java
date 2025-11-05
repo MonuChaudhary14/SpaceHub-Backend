@@ -21,6 +21,7 @@ public class WebSocketConfigJanus implements WebSocketMessageBrokerConfigurer {
     registry.addEndpoint("/ws")
             .setAllowedOrigins("https://codewithketan.me", "http://127.0.0.1:5500", "http://localhost:5173",
               "http://localhost:8080", "https://space-hub-frontend.vercel.app", "https://www.spacehubx.me",
-              "https://audio-room-tawny.vercel.app", "http://127.0.0.1:5500/coding/index.html").withSockJS();
+              "https://audio-room-tawny.vercel.app", "http://127.0.0.1:5500/coding/index.html",
+              "https://somiljain2006.github.io/Audio-room/").withSockJS();
   }
 }
