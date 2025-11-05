@@ -53,7 +53,8 @@ public class JanusService {
                 "request", "create",
                 "room", roomId,
                 "description", "SpaceHub Voice Room " + roomId,
-                "is_private", false
+                "is_private", false,
+                "sampling_rate", 48000
         );
 
         Map<String, Object> request = Map.of(
@@ -74,9 +75,12 @@ public class JanusService {
 
         if (event.has("plugindata") && event.get("plugindata").has("data")) {
             JsonNode data = event.get("plugindata").get("data");
-            if (data.has("audiobridge") && "created".equalsIgnoreCase(data.get("audiobridge").asText())) {
-                System.out.println("[JanusService] Room created successfully: " + roomId);
-                return event;
+            if (data.has("audiobridge")) {
+                String status = data.get("audiobridge").asText();
+                if ("created".equalsIgnoreCase(status) || "event".equalsIgnoreCase(status)) {
+                    System.out.println("Room confirmed: " + roomId + " (" + status + ")");
+                    return event;
+                }
             }
         }
 
@@ -168,7 +172,7 @@ public class JanusService {
 
     private JsonNode pollForPluginEvent(String sessionId) {
         try {
-            for (int i = 0; i < 15; i++) {
+            for (int i = 0; i < 25; i++) {
                 String pollUrl = String.format("%s/%s?rid=%d&maxev=1", janusUrl, sessionId, System.currentTimeMillis());
                 ResponseEntity<JsonNode> resp = restTemplate.getForEntity(pollUrl, JsonNode.class);
                 JsonNode body = resp.getBody();
