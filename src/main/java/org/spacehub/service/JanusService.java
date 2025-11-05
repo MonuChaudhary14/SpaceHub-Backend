@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.*;
@@ -119,7 +120,8 @@ public class JanusService {
     restTemplate.postForEntity(handleUrl, request, JsonNode.class);
   }
 
-  public void sendOffer(String sessionId, String handleId, String sdpOffer) {
+  public void sendOffer(String sessionId, String handleId, String sdpOffer,
+                        String userId, String roomId, SimpMessagingTemplate messagingTemplate) {
     Map<String, Object> body = Map.of("request", "configure", "muted", false, "audio", true);
     Map<String, Object> jsep = Map.of("type", "offer", "sdp", sdpOffer);
     Map<String, Object> request = Map.of(
@@ -127,7 +129,19 @@ public class JanusService {
       jsep
     );
     String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
-    restTemplate.postForEntity(handleUrl, request, JsonNode.class);
+
+    // 3. CAPTURE the response
+    ResponseEntity<JsonNode> response = restTemplate.postForEntity(handleUrl, request, JsonNode.class);
+
+    // 4. FORWARD the response (which contains the SDP Answer)
+    //    back to the *specific user*
+    if (response.getBody() != null) {
+      String destination = "/topic/room/" + roomId + "/answer/" + userId;
+      logger.info("Forwarding SDP Answer to {}", destination);
+      messagingTemplate.convertAndSend(destination, response.getBody());
+    } else {
+      logger.warn("Janus returned no body for sendOffer for user {}", userId);
+    }
   }
 
   public void sendIce(String sessionId, String handleId, Object candidate) {

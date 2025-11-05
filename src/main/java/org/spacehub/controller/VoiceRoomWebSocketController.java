@@ -89,12 +89,14 @@ public class VoiceRoomWebSocketController {
 
     String sessionId = userSessionMap.get(userId);
     String handleId = userHandleMap.get(userId);
+    String roomId = userRoomMap.get(userId);
 
-    if (sessionId == null || handleId == null) {
-      logger.warn("Offer from unregistered user {}", userId);
+    if (sessionId == null || handleId == null || roomId == null) {
+      logger.warn("Offer from unregistered user {} (or missing session/handle/room)", userId);
       return;
     }
-    janusService.sendOffer(sessionId, handleId, sdp);
+
+    janusService.sendOffer(sessionId, handleId, sdp, userId, roomId, messagingTemplate);
   }
 
   @MessageMapping("/ice")
