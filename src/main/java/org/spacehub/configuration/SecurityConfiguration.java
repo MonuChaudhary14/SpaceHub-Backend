@@ -62,13 +62,13 @@ public class SecurityConfiguration {
                     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                     .requestMatchers(
                             "/ws-messages/**",
-                            "/api/v1/validateforgototp",
                             "/api/v1/**",
                             "/api/**",
                             "/ws/**",
                             "/swagger-ui/**",
                             "/v3/api-docs/**",
                             "/v3/api-docs.yaml",
+                            "/chat",
                             "/chat/**",
                             "/files/**",
                             "/wss/**"
