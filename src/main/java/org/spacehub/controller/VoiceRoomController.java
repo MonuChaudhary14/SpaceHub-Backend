@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.Random;
 
 @RestController
-@RequestMapping("/api/voice-room")
+@RequestMapping("/api/v1/voice-room")
 @RequiredArgsConstructor
 public class VoiceRoomController {
 

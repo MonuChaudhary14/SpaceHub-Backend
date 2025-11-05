@@ -22,6 +22,6 @@ public class WebSocketConfig implements WebSocketConfigurer{
                     "https://space-hub-frontend.vercel.app",
                     "https://www.spacehubx.me",
                     "https://audio-room-tawny.vercel.app"
-            );
+      );
   }
 }
