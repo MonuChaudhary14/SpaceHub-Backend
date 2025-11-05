@@ -1,64 +1,128 @@
 package org.spacehub.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.spacehub.service.JanusService;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.util.Map;
-import java.util.Random;
+import org.spacehub.entities.ChatRoom.ChatRoom;
+import org.spacehub.entities.VoiceRoom;
+import org.spacehub.repository.ChatRoom.ChatRoomRepository;
+import org.spacehub.service.JanusService;
+import org.spacehub.service.VoiceRoomService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/v1/voice-room")
 @RequiredArgsConstructor
 public class VoiceRoomController {
 
-  private final JanusService janusService;
   private static final Logger logger = LoggerFactory.getLogger(VoiceRoomController.class);
+  private final JanusService janusService;
+  private final VoiceRoomService voiceRoomService;
+  private final ChatRoomRepository chatRoomRepository;
 
   @PostMapping("/create")
-  public ResponseEntity<?> createRoom(@RequestParam String displayName) {
+  public ResponseEntity<?> createVoiceRoom(
+          @RequestParam String chatRoomCode,
+          @RequestParam String name,
+          @RequestParam String createdBy
+  ) {
     try {
-      String sessionId = janusService.createSession();
-      String handleId = janusService.attachAudioBridgePlugin(sessionId);
-      int roomId = 1000 + new Random().nextInt(9000);
+      ChatRoom chatRoom = chatRoomRepository.findByRoomCode(UUID.fromString(chatRoomCode))
+              .orElseThrow(() -> new RuntimeException("Chat room not found"));
 
-      janusService.createAudioRoom(sessionId, handleId, roomId);
-      janusService.joinAudioRoom(sessionId, handleId, roomId, displayName);
+      VoiceRoom room = voiceRoomService.createVoiceRoom(chatRoom, name, createdBy);
 
-      return ResponseEntity.ok(Map.of(
-        "message", "Room creation requested",
-        "sessionId", sessionId,
-        "handleId", handleId,
-        "roomId", roomId
-      ));
+      Map<String, Object> response = Map.of(
+              "message", "Voice room created successfully",
+              "voiceRoomName", room.getName(),
+              "voiceRoomId", room.getId(),
+              "janusRoomId", room.getJanusRoomId(),
+              "chatRoom", chatRoom.getName()
+      );
+
+      return ResponseEntity.ok(response);
     } catch (Exception e) {
-      logger.error("Error creating room: {}", e.getMessage(), e);
-      return ResponseEntity.status(500).body(Map.of("error", "Failed to create room", "message",
-        e.getMessage()));
+      logger.error("Error creating voice room: {}", e.getMessage(), e);
+      return ResponseEntity.status(500).body(Map.of(
+              "error", "Failed to create voice room",
+              "message", e.getMessage()
+      ));
     }
   }
 
   @PostMapping("/join")
-  public ResponseEntity<?> joinRoom(@RequestParam int roomId,
-                                    @RequestParam String displayName) {
+  public ResponseEntity<?> joinVoiceRoom(
+          @RequestParam Long voiceRoomId,
+          @RequestParam String displayName
+  ) {
     try {
+      VoiceRoom voiceRoom = voiceRoomService.getVoiceRoomById(voiceRoomId);
       String sessionId = janusService.createSession();
       String handleId = janusService.attachAudioBridgePlugin(sessionId);
 
-      janusService.joinAudioRoom(sessionId, handleId, roomId, displayName);
+      janusService.joinAudioRoom(sessionId, handleId, voiceRoom.getJanusRoomId(), displayName);
+
+      Map<String, Object> response = Map.of(
+              "message", "Joined voice room successfully",
+              "voiceRoomName", voiceRoom.getName(),
+              "roomId", voiceRoom.getJanusRoomId(),
+              "sessionId", sessionId,
+              "handleId", handleId
+      );
+
+      return ResponseEntity.ok(response);
+    } catch (Exception e) {
+      logger.error("Error joining voice room: {}", e.getMessage(), e);
+      return ResponseEntity.status(500).body(Map.of(
+              "error", "Failed to join voice room",
+              "message", e.getMessage()
+      ));
+    }
+  }
+
+  @GetMapping("/list/{chatRoomCode}")
+  public ResponseEntity<?> listVoiceRooms(@PathVariable String chatRoomCode) {
+    try {
+      ChatRoom chatRoom = chatRoomRepository.findByRoomCode(UUID.fromString(chatRoomCode))
+              .orElseThrow(() -> new RuntimeException("Chat room not found"));
+
+      List<VoiceRoom> voiceRooms = voiceRoomService.getVoiceRoomsForChatRoom(chatRoom);
 
       return ResponseEntity.ok(Map.of(
-        "message", "Join room requested",
-        "roomId", roomId,
-        "sessionId", sessionId,
-        "handleId", handleId
+              "chatRoom", chatRoom.getName(),
+              "totalVoiceRooms", voiceRooms.size(),
+              "voiceRooms", voiceRooms
       ));
     } catch (Exception e) {
-      logger.error("Error joining room: {}", e.getMessage(), e);
-      return ResponseEntity.status(500).body(Map.of("error", "Failed to join room", "message",
-        e.getMessage()));
+      logger.error("Error listing voice rooms: {}", e.getMessage(), e);
+      return ResponseEntity.status(500).body(Map.of(
+              "error", "Failed to list voice rooms",
+              "message", e.getMessage()
+      ));
+    }
+  }
+
+  @DeleteMapping("/delete")
+  public ResponseEntity<?> deleteVoiceRoom(
+          @RequestParam String chatRoomCode,
+          @RequestParam String name,
+          @RequestParam String requester
+  ) {
+    try {
+      ChatRoom chatRoom = chatRoomRepository.findByRoomCode(UUID.fromString(chatRoomCode))
+              .orElseThrow(() -> new RuntimeException("Chat room not found"));
+
+      voiceRoomService.deleteVoiceRoom(chatRoom, name, requester);
+      return ResponseEntity.ok(Map.of("message", "Voice room deleted successfully"));
+    } catch (Exception e) {
+      logger.error("Error deleting voice room: {}", e.getMessage(), e);
+      return ResponseEntity.status(500).body(Map.of(
+              "error", "Failed to delete voice room",
+              "message", e.getMessage()
+      ));
     }
   }
 }
