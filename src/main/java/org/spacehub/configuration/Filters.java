@@ -32,7 +32,7 @@ public class Filters extends OncePerRequestFilter {
   @Override
   protected boolean shouldNotFilter(HttpServletRequest request) {
     String path = request.getRequestURI();
-    return path.startsWith("/files/") || path.startsWith("/swagger-ui/") || path.startsWith("/v3/api-docs/");
+    return path.startsWith("/chat") || path.startsWith("/ws") || path.startsWith("/files/") || path.startsWith("/swagger-ui/") || path.startsWith("/v3/api-docs/");
   }
 
 
