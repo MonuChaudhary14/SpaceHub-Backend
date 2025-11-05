@@ -514,57 +514,36 @@ public class CommunityService implements ICommunityService {
         null));
     }
 
-    Community community = communityRepository.findById(request.getCommunityId()).orElse(null);
-    if (community == null) {
-      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Community not found",
-        null));
-    }
+    try {
+      Community community = communityRepository.findById(request.getCommunityId())
+        .orElseThrow(() -> new ResourceNotFoundException("Community not found"));
 
-    Optional<User> optionalRequester = userRepository.findByEmail(request.getRequesterEmail());
-    Optional<User> optionalTarget = userRepository.findByEmail(request.getUserEmail());
-    if (optionalRequester.isEmpty() || optionalTarget.isEmpty()) {
-      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "User not found",
-        null));
-    }
+      User requester = findUserByEmail(request.getRequesterEmail());
+      User target = findUserByEmail(request.getUserEmail());
 
-    User requester = optionalRequester.get();
-    User target = optionalTarget.get();
+      if (!community.getCreatedBy().getId().equals(requester.getId())) {
+        return ResponseEntity.status(403).body(new ApiResponse<>(403,
+          "Only the community creator can remove members", null));
+      }
 
-    if (!community.getCreatedBy().getId().equals(requester.getId())) {
-      return ResponseEntity.status(403).body(new ApiResponse<>(403,
-        "Only the community creator can remove members", null));
-    }
-
-    Optional<CommunityUser> communityUserOptional = community.getCommunityUsers()
-      .stream()
-      .filter(communityUser -> communityUser.getUser() != null &&
-        communityUser.getUser().getId().equals(target.getId()))
-      .findFirst();
-
-    if (communityUserOptional.isEmpty()) {
-      List<CommunityUser> byRepo = communityUserRepository.findByCommunityId(community.getId());
-      communityUserOptional = byRepo.stream()
-        .filter(cu -> cu.getUser() != null && cu.getUser().getId().equals(target.getId()))
-        .findFirst();
+      Optional<CommunityUser> communityUserOptional = communityUserRepository
+        .findByCommunityIdAndUserId(community.getId(), target.getId());
 
       if (communityUserOptional.isEmpty()) {
         return ResponseEntity.badRequest().body(new ApiResponse<>(400, "User is not a member",
           null));
       }
+
+      communityUserRepository.delete(communityUserOptional.get());
+
+      return ResponseEntity.ok(new ApiResponse<>(200, "Member removed successfully", null));
+
+    } catch (ResourceNotFoundException ex) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, ex.getMessage(), null));
+    } catch (Exception e) {
+      return ResponseEntity.internalServerError().body(new ApiResponse<>(500,
+        "Unexpected error: " + e.getMessage(), null));
     }
-
-    CommunityUser userToRemove = communityUserOptional.get();
-
-    communityUserRepository.deleteById(userToRemove.getId());
-    communityUserRepository.flush();
-
-    if (community.getCommunityUsers() != null) {
-      community.getCommunityUsers().removeIf(cu -> cu.getId() != null &&
-        cu.getId().equals(userToRemove.getId()));
-      communityRepository.save(community);
-    }
-
-    return ResponseEntity.ok(new ApiResponse<>(200, "Member removed successfully", null));
   }
 
   public ResponseEntity<ApiResponse<String>> changeMemberRole(CommunityChangeRoleRequest request) {
