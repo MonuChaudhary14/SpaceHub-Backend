@@ -175,31 +175,7 @@ public class NotificationService implements INotificationService {
         createNotification(request);
     }
 
-    public void sendCommunityInviteNotification(User sender, User recipient, UUID communityId) {
-        NotificationRequestDTO request = NotificationRequestDTO.builder()
-                .senderEmail(sender.getEmail())
-                .email(recipient.getEmail())
-                .type(NotificationType.COMMUNITY_INVITE)
-                .communityId(communityId)
-                .scope("community")
-                .actionable(true)
-                .build();
-        createNotification(request);
-    }
-
-    public void sendLocalGroupInviteNotification(User sender, User recipient, UUID groupId) {
-        NotificationRequestDTO request = NotificationRequestDTO.builder()
-                .senderEmail(sender.getEmail())
-                .email(recipient.getEmail())
-                .type(NotificationType.LOCAL_GROUP_INVITE)
-                .referenceId(groupId)
-                .scope("local-group")
-                .actionable(true)
-                .build();
-        createNotification(request);
-    }
-
-    public void sendLocalGroupJoinNotification(User newMember, User inviter, UUID groupId) {
+  public void sendLocalGroupJoinNotification(User newMember, User inviter, UUID groupId) {
         NotificationRequestDTO request = NotificationRequestDTO.builder()
                 .senderEmail(newMember.getEmail())
                 .email(inviter.getEmail())
@@ -210,21 +186,6 @@ public class NotificationService implements INotificationService {
                 .build();
 
         createNotification(request);
-    }
-
-    public void sendSystemUpdateNotification(String title, String message, List<User> users) {
-        users.forEach(user -> {
-            NotificationRequestDTO request = NotificationRequestDTO.builder()
-                    .senderEmail("system@spacehub.com")
-                    .email(user.getEmail())
-                    .type(NotificationType.SYSTEM_UPDATE)
-                    .title(title)
-                    .message(message)
-                    .scope("system")
-                    .actionable(false)
-                    .build();
-            createNotification(request);
-        });
     }
 
 
