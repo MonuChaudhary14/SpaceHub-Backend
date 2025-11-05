@@ -12,6 +12,7 @@ import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignReques
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 import java.io.InputStream;
 import java.time.Duration;
+import java.util.UUID;
 
 @Service
 public class S3Service implements IS3Service {
@@ -65,4 +66,10 @@ public class S3Service implements IS3Service {
 
     return s3Presigner.presignGetObject(presignRequest).url().toString();
   }
+
+  public String generateFileKey(String originalFilename) {
+    String uniqueId = UUID.randomUUID().toString();
+    return "chat-uploads/" + uniqueId + "_" + originalFilename;
+  }
+
 }
