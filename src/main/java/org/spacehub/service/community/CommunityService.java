@@ -1203,6 +1203,7 @@ public class CommunityService implements ICommunityService {
     }
   }
 
+  @CacheEvict(value = "communities", allEntries = true)
   @Override
   public ResponseEntity<?> uploadCommunityBanner(
     UUID communityId,
