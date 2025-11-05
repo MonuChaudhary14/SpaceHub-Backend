@@ -1,75 +1,64 @@
 package org.spacehub.controller;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import org.spacehub.service.JanusService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.HashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Random;
 
 @RestController
-@RequestMapping("/api/v1/voice-room")
+@RequestMapping("/api/voice-room")
 @RequiredArgsConstructor
 public class VoiceRoomController {
 
-    private final JanusService janusService;
+  private final JanusService janusService;
+  private static final Logger logger = LoggerFactory.getLogger(VoiceRoomController.class);
 
-    @PostMapping("/create")
-    public ResponseEntity<?> createRoom(@RequestParam String displayName) {
-        try {
-            String sessionId = janusService.createSession();
-            String handleId = janusService.attachAudioBridgePlugin(sessionId);
-            int roomId = 1000 + new Random().nextInt(9000);
+  @PostMapping("/create")
+  public ResponseEntity<?> createRoom(@RequestParam String displayName) {
+    try {
+      String sessionId = janusService.createSession();
+      String handleId = janusService.attachAudioBridgePlugin(sessionId);
+      int roomId = 1000 + new Random().nextInt(9000);
 
-            JsonNode createEvent = janusService.createAudioRoom(sessionId, handleId, roomId);
-            JsonNode joinEvent = janusService.joinAudioRoom(sessionId, handleId, roomId, displayName);
+      janusService.createAudioRoom(sessionId, handleId, roomId);
+      janusService.joinAudioRoom(sessionId, handleId, roomId, displayName);
 
-            Map<String, Object> response = new HashMap<>();
-            response.put("message", "Room created and joined successfully");
-            response.put("sessionId", sessionId);
-            response.put("handleId", handleId);
-            response.put("roomId", roomId);
-            response.put("createEvent", createEvent);
-            response.put("joinEvent", joinEvent);
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().body(Map.of(
-                    "message", "Failed to create or join room",
-                    "error", e.getMessage()
-            ));
-        }
+      return ResponseEntity.ok(Map.of(
+        "message", "Room creation requested",
+        "sessionId", sessionId,
+        "handleId", handleId,
+        "roomId", roomId
+      ));
+    } catch (Exception e) {
+      logger.error("Error creating room: {}", e.getMessage(), e);
+      return ResponseEntity.status(500).body(Map.of("error", "Failed to create room", "message",
+        e.getMessage()));
     }
+  }
 
-    @PostMapping("/join")
-    public ResponseEntity<?> joinRoom(@RequestParam int roomId,
-                                      @RequestParam String displayName) {
+  @PostMapping("/join")
+  public ResponseEntity<?> joinRoom(@RequestParam int roomId,
+                                    @RequestParam String displayName) {
+    try {
+      String sessionId = janusService.createSession();
+      String handleId = janusService.attachAudioBridgePlugin(sessionId);
 
-        String sessionId = janusService.createSession();
-        String handleId = janusService.attachAudioBridgePlugin(sessionId);
-        JsonNode joinEvent = janusService.joinAudioRoom(sessionId, handleId, roomId, displayName);
+      janusService.joinAudioRoom(sessionId, handleId, roomId, displayName);
 
-        return ResponseEntity.ok(Map.of(
-                "message", "Joined room successfully",
-                "roomId", roomId,
-                "sessionId", sessionId,
-                "handleId", handleId,
-                "joinEvent", Objects.toString(joinEvent, "")
-        ));
+      return ResponseEntity.ok(Map.of(
+        "message", "Join room requested",
+        "roomId", roomId,
+        "sessionId", sessionId,
+        "handleId", handleId
+      ));
+    } catch (Exception e) {
+      logger.error("Error joining room: {}", e.getMessage(), e);
+      return ResponseEntity.status(500).body(Map.of("error", "Failed to join room", "message",
+        e.getMessage()));
     }
-
-    @PostMapping("/send-offer")
-    public ResponseEntity<?> sendOffer(@RequestBody Map<String, String> body) {
-        String sessionId = body.get("sessionId");
-        String handleId = body.get("handleId");
-        String sdp = body.get("sdp");
-
-        JsonNode janusResponse = janusService.sendOffer(sessionId, handleId, sdp);
-        return ResponseEntity.ok(janusResponse);
-    }
+  }
 }
