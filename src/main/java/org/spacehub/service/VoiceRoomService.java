@@ -42,7 +42,7 @@ public class VoiceRoomService {
 
         voiceRoomRepository.save(voiceRoom);
 
-        logger.info("🎤 Created voice room '{}' (janusId={}) for chatRoom '{}'",
+        logger.info("Created voice room '{}' (janusId={}) for chatRoom '{}'",
                 name, janusRoomId, chatRoom.getName());
 
         return voiceRoom;
