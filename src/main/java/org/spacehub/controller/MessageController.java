@@ -5,6 +5,8 @@ import org.spacehub.service.Interface.IMessageService;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
+
+import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -25,18 +27,21 @@ public class MessageController {
   }
 
   @MessageMapping("/chat")
-  public void sendMessage(Message message) {
+  public void sendMessage(Message message, Principal principal) {
+    message.setSenderId(principal.getName());
     Message savedMessage = service.saveMessage(message);
+
     messagingTemplate.convertAndSendToUser(
-      message.getReceiverId(),
+      savedMessage.getReceiverId(),
       "/queue/messages",
       savedMessage
     );
 
     messagingTemplate.convertAndSendToUser(
-      message.getSenderId(),
+      savedMessage.getSenderId(),
       "/queue/messages",
       savedMessage
     );
   }
+
 }
