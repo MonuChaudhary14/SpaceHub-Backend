@@ -58,22 +58,22 @@ public class SecurityConfiguration {
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http
-      .cors(withDefaults())
-      .csrf(AbstractHttpConfigurer::disable)
-      .authorizeHttpRequests(auth -> auth
-          .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-          .requestMatchers(
-            "/ws-messages/**",
-            "/api/v1/**",
-            "/api/**",
-            "/ws/**",
-            "/swagger-ui/**",
-            "/v3/api-docs/**",
-            "/v3/api-docs.yaml",
-            "/chat",
-            "/chat/**",
-            "/files/**",
-            "/wss/**"
+            .cors(withDefaults())
+            .csrf(AbstractHttpConfigurer::disable)
+            .authorizeHttpRequests(auth -> auth
+                    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                    .requestMatchers(
+                            "/ws-messages/**",
+                            "/api/v1/**",
+                            "/api/**",
+                            "/ws/**",
+                            "/swagger-ui/**",
+                            "/v3/api-docs/**",
+                            "/v3/api-docs.yaml",
+                            "/chat",
+                            "/chat/**",
+                            "/files/**",
+                            "/wss/**"
 //                      "/api/v1/login",
 //                      "/api/v1/registration",
 //                      "/api/v1/validateregisterotp",
