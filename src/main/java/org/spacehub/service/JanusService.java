@@ -10,7 +10,7 @@ import java.util.UUID;
 @Service
 public class JanusService {
 
-    private final String janusUrl = "http://localhost:8088/janus";
+    private final String janusUrl = "http://172.17.0.2:8088/janus";
 
     private final RestTemplate restTemplate = new RestTemplate();
 
