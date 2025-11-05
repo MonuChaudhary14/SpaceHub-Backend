@@ -130,11 +130,9 @@ public class JanusService {
     );
     String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
 
-    // 3. CAPTURE the response
+
     ResponseEntity<JsonNode> response = restTemplate.postForEntity(handleUrl, request, JsonNode.class);
 
-    // 4. FORWARD the response (which contains the SDP Answer)
-    //    back to the *specific user*
     if (response.getBody() != null) {
       String destination = "/topic/room/" + roomId + "/answer/" + userId;
       logger.info("Forwarding SDP Answer to {}", destination);
