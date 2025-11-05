@@ -17,11 +17,6 @@ public class WebSocketConfig implements WebSocketConfigurer{
   @Override
   public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
     registry.addHandler(chatWebSocketHandler, "/chat")
-            .setAllowedOrigins(
-                    "https://codewithketan.me",
-                    "https://space-hub-frontend.vercel.app",
-                    "https://www.spacehubx.me",
-                    "https://audio-room-tawny.vercel.app"
-      );
+            .setAllowedOrigins("*");
   }
 }
