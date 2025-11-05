@@ -32,17 +32,19 @@ public class SecurityConfiguration {
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration config = new CorsConfiguration();
 
-    config.setAllowedOrigins(List.of(
-      "http://127.0.0.1:5500",
-      "http://localhost:5500",
-      "http://localhost:5173",
-      "http://localhost:8080",
-      "https://codewithketan.me",
-      "https://space-hub-frontend.vercel.app",
-      "https://www.spacehubx.me",
-      "https://audio-room-tawny.vercel.app",
-      "http://127.0.0.1:5500/coding/index.html"
-    ));
+    config.setAllowedOriginPatterns(List.of("*"));
+
+//    config.setAllowedOrigins(List.of(
+//      "http://127.0.0.1:5500",
+//      "http://localhost:5500",
+//      "http://localhost:5173",
+//      "http://localhost:8080",
+//      "https://codewithketan.me",
+//      "https://space-hub-frontend.vercel.app",
+//      "https://www.spacehubx.me",
+//      "https://audio-room-tawny.vercel.app",
+//      "http://127.0.0.1:5500/coding/index.html"
+//    ));
     config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
     config.setAllowedHeaders(List.of("*"));
     config.setExposedHeaders(List.of("Authorization"));
@@ -56,22 +58,22 @@ public class SecurityConfiguration {
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http
-            .cors(withDefaults())
-            .csrf(AbstractHttpConfigurer::disable)
-            .authorizeHttpRequests(auth -> auth
-                    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                    .requestMatchers(
-                            "/ws-messages/**",
-                            "/api/v1/**",
-                            "/api/**",
-                            "/ws/**",
-                            "/swagger-ui/**",
-                            "/v3/api-docs/**",
-                            "/v3/api-docs.yaml",
-                            "/chat",
-                            "/chat/**",
-                            "/files/**",
-                            "/wss/**"
+      .cors(withDefaults())
+      .csrf(AbstractHttpConfigurer::disable)
+      .authorizeHttpRequests(auth -> auth
+          .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+          .requestMatchers(
+            "/ws-messages/**",
+            "/api/v1/**",
+            "/api/**",
+            "/ws/**",
+            "/swagger-ui/**",
+            "/v3/api-docs/**",
+            "/v3/api-docs.yaml",
+            "/chat",
+            "/chat/**",
+            "/files/**",
+            "/wss/**"
 //                      "/api/v1/login",
 //                      "/api/v1/registration",
 //                      "/api/v1/validateregisterotp",
@@ -82,13 +84,14 @@ public class SecurityConfiguration {
 //                      "/api/v1/resendforgototp",
 //                      "/swagger-ui/**",
 //                      "/v3/api-docs/**"
-                    ).permitAll()
-                    .anyRequest().authenticated()
-            )
-            .httpBasic(AbstractHttpConfigurer::disable)
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authenticationProvider(authenticationProvider)
-            .addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class);
+          ).permitAll()
+          .anyRequest().authenticated()
+      )
+      .httpBasic(AbstractHttpConfigurer::disable)
+//            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+      .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.ALWAYS))
+      .authenticationProvider(authenticationProvider)
+      .addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class);
 
     return http.build();
   }
