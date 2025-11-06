@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -67,7 +68,7 @@ public class VoiceRoomService {
     }
 
     @Transactional(readOnly = true)
-    public VoiceRoom getVoiceRoomById(Long id) {
+    public VoiceRoom getVoiceRoomById(UUID id) {
         return voiceRoomRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Voice room not found with ID: " + id));
     }
