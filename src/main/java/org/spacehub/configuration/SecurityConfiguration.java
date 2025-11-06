@@ -45,6 +45,7 @@ public class SecurityConfiguration {
                 "https://audio-room-tawny.vercel.app",
                 "https://somiljain2006.github.io/Audio-room",
                 "https://somiljain2006.github.io",
+                "https://direct-message-wheat.vercel.app",
                 "https://audio-room-nine.vercel.app"
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
