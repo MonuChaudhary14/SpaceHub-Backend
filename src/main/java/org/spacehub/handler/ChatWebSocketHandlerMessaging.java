@@ -1,6 +1,8 @@
 package org.spacehub.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.spacehub.entities.DirectMessaging.Message;
 import org.spacehub.service.MessageQueueService;
 import org.springframework.stereotype.Component;
@@ -17,18 +19,21 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
 
     private final MessageQueueService messageQueueService;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     private final Map<String, WebSocketSession> activeUsers = new ConcurrentHashMap<>();
 
     public ChatWebSocketHandlerMessaging(MessageQueueService messageQueueService) {
         this.messageQueueService = messageQueueService;
+        this.objectMapper = new ObjectMapper()
+                .registerModule(new JavaTimeModule())
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        System.out.println("WebSocket connection from " + session.getRemoteAddress());
-        sendSystemMessage(session, "Connected to Direct Messaging WebSocket");
+        System.out.println("WebSocket connection: " + session.getRemoteAddress());
+        sendSystemMessage(session,"Connected to Direct Messaging WebSocket");
     }
 
     @Override
@@ -41,7 +46,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
             String content = (String) data.get("content");
 
             if (senderEmail == null || receiverEmail == null || content == null) {
-                sendSystemMessage(session, "Missing senderEmail, receiverEmail, or content");
+                sendSystemMessage(session, "⚠️ Missing senderEmail, receiverEmail, or content");
                 return;
             }
 
@@ -55,7 +60,6 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
                     .build();
 
             messageQueueService.enqueue(chatMessage);
-
             WebSocketSession receiverSession = activeUsers.get(receiverEmail);
             if (receiverSession != null && receiverSession.isOpen()) {
                 receiverSession.sendMessage(new TextMessage(objectMapper.writeValueAsString(chatMessage)));
@@ -73,12 +77,12 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         activeUsers.entrySet().removeIf(entry -> entry.getValue().equals(session));
-        System.out.println("Connection closed: " + status);
+        System.out.println("WebSocket connection closed: " + status);
     }
 
     @Override
     public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
-        System.err.println("Transport error: " + exception.getMessage());
+        System.err.println("WebSocket transport error: " + exception.getMessage());
         session.close(CloseStatus.SERVER_ERROR);
     }
 
@@ -86,7 +90,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
         session.sendMessage(new TextMessage(objectMapper.writeValueAsString(Map.of("system", content))));
     }
 
-    public Set<String> getActiveUserEmails() {
+    public Set<String> getActiveUsers() {
         return activeUsers.keySet();
     }
 
