@@ -12,5 +12,8 @@ public interface IS3Service {
   String generatePresignedUploadUrl(String key, Duration duration);
 
   String generatePresignedDownloadUrl(String key, Duration duration);
+
+  String generateFileKey(String originalFilename);
+
 }
 

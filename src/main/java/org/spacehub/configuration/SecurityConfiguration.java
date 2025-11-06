@@ -57,6 +57,7 @@ public class SecurityConfiguration {
         return source;
     }
 
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -86,6 +87,7 @@ public class SecurityConfiguration {
 //                      "/api/v1/resendforgototp",
 //                      "/swagger-ui/**",
 //                      "/v3/api-docs/**"
+
                                 ).permitAll()
                                 .anyRequest().authenticated()
                 )

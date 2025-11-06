@@ -34,6 +34,10 @@ public class FriendService implements IFriendService {
   @CacheEvict(value = {"outgoingRequests"}, allEntries = true)
   public String sendFriendRequest(String userEmail, String friendEmail) {
 
+    if (userEmail.equalsIgnoreCase(friendEmail)) {
+      return "You cannot send a friend request to yourself.";
+    }
+
     User user = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -45,33 +49,38 @@ public class FriendService implements IFriendService {
       return "Cannot send request. You are blocked by this user.";
     }
 
-
     if (friendsRepository.findByUserAndFriend(user, friend).isPresent() ||
             friendsRepository.findByUserAndFriend(friend, user).isPresent()) {
-      return "Friend request already exists or you are already friends";
+      return "Friend request already exists or you are already friends.";
     }
 
     Friends request = new Friends();
-    request.setFriend(friend);
     request.setUser(user);
+    request.setFriend(friend);
     request.setStatus("pending");
 
     friendsRepository.save(request);
 
     notificationService.sendFriendRequestNotification(user, friend);
 
-    return "Friend request sent successfully";
+    return "Friend request sent successfully.";
   }
 
   @CacheEvict(value = {"incomingRequests"}, allEntries = true)
   public String respondFriendRequest(String userEmail, String requesterEmail, boolean accept) {
-    User user = userRepository.findByEmail(userEmail)
-            .orElseThrow(() -> new RuntimeException("User not found"));
-    User requester = userRepository.findByEmail(requesterEmail)
-            .orElseThrow(() -> new RuntimeException("Requester not found"));
+    if (userEmail.equalsIgnoreCase(requesterEmail)) {
+      return "Invalid operation.";
+    }
 
-    Friends request = friendsRepository.findByUserAndFriend(requester, user)
-            .orElseThrow(() -> new RuntimeException("Friend request not found"));
+    User user = userRepository.findByEmail(userEmail).orElseThrow(() -> new RuntimeException("User not found"));
+
+    User requester = userRepository.findByEmail(requesterEmail).orElseThrow(() -> new RuntimeException("Requester not found"));
+
+    Friends request = friendsRepository.findByUserAndFriend(requester, user).orElseThrow(() -> new RuntimeException("Friend request not found"));
+
+    if (!"pending".equals(request.getStatus())) {
+      return "This request is no longer pending.";
+    }
 
     if (accept) {
       request.setStatus("accepted");
@@ -106,7 +115,7 @@ public class FriendService implements IFriendService {
               .build();
       notificationService.createNotification(notification);
 
-      return "Friend request rejected";
+      return "Friend request rejected.";
     }
   }
 
@@ -141,20 +150,31 @@ public class FriendService implements IFriendService {
 
   @CacheEvict(value = {"friends", "incomingRequests"}, allEntries = true)
   public String blockFriend(String userEmail, String friendEmail) {
+
+    if (userEmail.equalsIgnoreCase(friendEmail)) {
+      return "You cannot block yourself.";
+    }
+
     User user = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new RuntimeException("User not found"));
     User friend = userRepository.findByEmail(friendEmail)
             .orElseThrow(() -> new RuntimeException("Friend not found"));
 
-    Optional<Friends> friendshipOpt = friendsRepository.findByUserAndFriend(user, friend);
-    if (friendshipOpt.isEmpty()) {
-      friendshipOpt = friendsRepository.findByUserAndFriend(friend, user);
+    Optional<Friends> existing = friendsRepository.findByUserAndFriend(user, friend);
+    if (existing.isEmpty()) {
+      existing = friendsRepository.findByUserAndFriend(friend, user);
     }
 
-    Friends friendship = friendshipOpt.orElseThrow(() -> new RuntimeException("Friendship not found"));
-    friendship.setStatus("blocked");
-    friendsRepository.save(friendship);
-    return "Friend blocked successfully";
+    Friends relationship = existing.orElseGet(() -> {
+      Friends newFriend = new Friends();
+      newFriend.setUser(user);
+      newFriend.setFriend(friend);
+      return newFriend;
+    });
+
+    relationship.setStatus("blocked");
+    friendsRepository.save(relationship);
+    return "User blocked successfully.";
   }
 
   @Cacheable(value = "incomingRequests", key = "#userEmail")
@@ -193,6 +213,10 @@ public class FriendService implements IFriendService {
 
   @CacheEvict(value = {"friends", "outgoingRequests"}, allEntries = true)
   public String unblockUser(String userEmail, String blockedUserEmail) {
+    if (userEmail.equalsIgnoreCase(blockedUserEmail)) {
+      return "You cannot unblock yourself.";
+    }
+
     User user = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new RuntimeException("User not found"));
     User blockedUser = userRepository.findByEmail(blockedUserEmail)
@@ -200,8 +224,7 @@ public class FriendService implements IFriendService {
 
     Optional<Friends> blocked = friendsRepository.findByUserAndFriendAndStatus(user, blockedUser, "blocked");
     if (blocked.isPresent()) {
-      blocked.get().setStatus("accepted");
-      friendsRepository.save(blocked.get());
+      friendsRepository.delete(blocked.get());
       return "User unblocked successfully.";
     } else {
       return "No blocked user found.";

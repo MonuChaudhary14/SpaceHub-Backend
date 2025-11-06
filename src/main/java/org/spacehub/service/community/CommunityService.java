@@ -40,17 +40,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import java.time.Duration;
+
 import java.util.Collections;
+
 import java.util.stream.Collectors;
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
 
 @Transactional
 @Service
@@ -1070,8 +1065,11 @@ public class CommunityService implements ICommunityService {
     }
 
     Pageable pageable = PageRequest.of(Math.max(0, page), Math.max(1, size));
-    Page<Community> communityPage = communityRepository
-      .findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCase(q, q, pageable);
+
+    String pattern = Arrays.stream(q.split("")).filter(ch -> !ch.isBlank())
+            .collect(Collectors.joining("%"));
+
+    Page<Community> communityPage = communityRepository.searchByNamePattern(pattern, pageable);
 
     User requester = null;
     if (requesterEmail != null && !requesterEmail.isBlank()) {

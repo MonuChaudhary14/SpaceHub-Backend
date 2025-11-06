@@ -253,51 +253,63 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     String senderEmail = userSessions.get(session);
 
     if (roomCode == null || senderEmail == null) {
-      logger.warn("Received message but roomCode or senderEmail missing for session {}", session.getId());
+      logger.warn("Missing roomCode or senderEmail for session {}", session.getId());
       return;
     }
 
-    String messageText;
     try {
       JsonNode node = objectMapper.readTree(payload);
-      messageText = node.has("message") ? node.get("message").asText() : node.asText();
-    } catch (Exception e) {
-      messageText = payload;
-    }
+      String type = node.has("type") ? node.get("type").asText() : "MESSAGE";
 
-    UUID roomUuid;
-    try {
-      roomUuid = UUID.fromString(roomCode);
+      if ("FILE".equalsIgnoreCase(type)) {
+        String fileName = node.get("fileName").asText();
+        String fileUrl = node.get("fileUrl").asText();
+        String contentType = node.get("contentType").asText();
+
+        Map<String, Object> filePayload = Map.of(
+                "type", "FILE",
+                "senderEmail", senderEmail,
+                "fileName", fileName,
+                "fileUrl", fileUrl,
+                "contentType", contentType,
+                "timestamp", System.currentTimeMillis()
+        );
+
+        broadcastJsonToRoom(roomCode, filePayload);
+        return;
+      }
+
+      String messageText = node.has("message") ? node.get("message").asText() : payload;
+
+      ChatMessage message = ChatMessage.builder()
+              .senderEmail(senderEmail)
+              .message(messageText)
+              .timestamp(System.currentTimeMillis())
+              .roomCode(roomCode)
+              .build();
+
+      chatMessageQueue.enqueue(message);
+      broadcastMessageToRoom(message);
+
     }
     catch (Exception e) {
-      logger.warn("Invalid roomCode in session map: {}", roomCode);
-      return;
-    }
-
-    Optional<ChatRoom> optionalRoom = chatRoomService.findByRoomCode(roomUuid);
-    if (optionalRoom.isEmpty()) {
-      logger.warn("Room not found for code {}", roomCode);
-      return;
-    }
-
-    ChatRoom room = optionalRoom.get();
-
-    ChatMessage chatMsg = ChatMessage.builder()
-            .senderEmail(senderEmail)
-            .message(messageText)
-            .timestamp(System.currentTimeMillis())
-            .room(room)
-            .roomCode(roomCode)
-            .build();
-
-    try {
-      chatMessageQueue.enqueue(chatMsg);
-      broadcastMessageToRoom(chatMsg);
-    }
-    catch (Exception e) {
-      logger.error("Failed to enqueue or broadcast message", e);
+      logger.error("Error processing WebSocket message", e);
     }
   }
 
+  private void broadcastJsonToRoom(String roomCode, Map<String, Object> payload) {
+    Set<WebSocketSession> sessions = rooms.getOrDefault(roomCode, ConcurrentHashMap.newKeySet());
+    sessions.removeIf(s -> !s.isOpen());
+
+    try {
+      String json = objectMapper.writeValueAsString(payload);
+      for (WebSocketSession s : sessions) {
+        s.sendMessage(new TextMessage(json));
+      }
+    }
+    catch (Exception e) {
+      logger.error("Failed to broadcast file message", e);
+    }
+  }
 
 }
