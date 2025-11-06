@@ -820,71 +820,76 @@ public class CommunityService implements ICommunityService {
 
   private List<Map<String, Object>> buildCommunityListForUser(String normalizedEmail) {
     Optional<User> userOpt = userRepository.findByEmail(normalizedEmail);
-    if (userOpt.isEmpty()) return Collections.emptyList();
-    User user = userOpt.get();
+    if (userOpt.isEmpty()) {
+      return Collections.emptyList();
+    }
 
+    User user = userOpt.get();
     List<Community> all = communityRepository.findAll();
     List<Map<String, Object>> out = new ArrayList<>();
 
     for (Community c : all) {
-      boolean isCreator = c.getCreatedBy() != null && c.getCreatedBy().getId().equals(user.getId());
-
-      List<CommunityUser> communityUsers = communityUserRepository.findByCommunityId(c.getId());
-      Optional<CommunityUser> myCommunityUser = communityUsers.stream()
-        .filter(cu -> cu.getUser() != null && cu.getUser().getId().equals(user.getId()))
-        .findFirst();
-
-      if (!isCreator && myCommunityUser.isEmpty()) {
+      if (!isUserInCommunity(c, user)) {
         continue;
       }
-
-      Map<String, Object> m = new HashMap<>();
-      m.put("communityId", c.getId());
-      m.put("name", c.getName());
-      m.put("description", c.getDescription());
-
-      String role;
-      if (isCreator) {
-        role = "ADMIN";
-      } else role = myCommunityUser.map(communityUser -> communityUser.getRole().name()).
-        orElse("MEMBER");
-
-      m.put("role", role);
-
-      String key = c.getImageUrl();
-      if (key != null && !key.isBlank()) {
-        try {
-          String presigned = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1));
-          m.put("imageUrl", presigned);
-          m.put("imageKey", key);
-        } catch (Exception e) {
-          m.put("imageUrl", null);
-          m.put("imageKey", key);
-        }
-      } else {
-        m.put("imageUrl", null);
-        m.put("imageKey", null);
-      }
-
-      String bannerKey = c.getBannerUrl();
-      if (bannerKey != null && !bannerKey.isBlank()) {
-        try {
-          String presigned = s3Service.generatePresignedDownloadUrl(bannerKey, Duration.ofHours(1));
-          m.put("bannerUrl", presigned);
-          m.put("bannerKey", bannerKey);
-        } catch (Exception e) {
-          m.put("bannerUrl", null);
-          m.put("bannerKey", bannerKey);
-        }
-      } else {
-        m.put("bannerUrl", null);
-        m.put("bannerKey", null);
-      }
-
-      out.add(m);
+      out.add(buildCommunityMap(c, user));
     }
 
     return out;
+  }
+
+  private boolean isUserInCommunity(Community c, User user) {
+    boolean isCreator = c.getCreatedBy() != null && c.getCreatedBy().getId().equals(user.getId());
+    if (isCreator) return true;
+
+    List<CommunityUser> members = communityUserRepository.findByCommunityId(c.getId());
+    return members.stream()
+      .anyMatch(cu -> cu.getUser() != null && cu.getUser().getId().equals(user.getId()));
+  }
+
+  private Map<String, Object> buildCommunityMap(Community c, User user) {
+    Map<String, Object> m = new HashMap<>();
+
+    m.put("communityId", c.getId());
+    m.put("name", c.getName());
+    m.put("description", c.getDescription());
+    m.put("role", getUserRole(c, user));
+
+    setImageInfo(m, "image", c.getImageUrl());
+    setImageInfo(m, "banner", c.getBannerUrl());
+
+    return m;
+  }
+
+  private String getUserRole(Community c, User user) {
+    if (c.getCreatedBy() != null && c.getCreatedBy().getId().equals(user.getId())) {
+      return "ADMIN";
+    }
+
+    return communityUserRepository.findByCommunityId(c.getId()).stream()
+      .filter(cu -> cu.getUser() != null && cu.getUser().getId().equals(user.getId()))
+      .map(cu -> cu.getRole().name())
+      .findFirst()
+      .orElse("MEMBER");
+  }
+
+  private void setImageInfo(Map<String, Object> map, String type, String key) {
+    String urlKey = type + "Url";
+    String keyName = type + "Key";
+
+    if (key == null || key.isBlank()) {
+      map.put(urlKey, null);
+      map.put(keyName, null);
+      return;
+    }
+
+    try {
+      String presigned = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1));
+      map.put(urlKey, presigned);
+    } catch (Exception e) {
+      map.put(urlKey, null);
+    }
+    map.put(keyName, key);
   }
 
   private String generatePresignedUrlSafely(String key) {
