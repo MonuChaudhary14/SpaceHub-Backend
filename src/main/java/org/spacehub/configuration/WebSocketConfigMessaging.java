@@ -55,23 +55,14 @@ public class WebSocketConfigMessaging implements WebSocketMessageBrokerConfigure
             .build()
             .getQueryParams();
 
-          String username = params.getFirst("username");
+//          String username = params.getFirst("username");
 //          String latStr = params.getFirst("lat");
 //          String lonStr = params.getFirst("lon");
-
-          if (username == null || username.isEmpty()) {
+          String email = params.getFirst("email");
+          if (email == null || email.isEmpty()) {
             return null;
           }
-
-//          if (latStr != null && lonStr != null) {
-//            try {
-//              double lat = Double.parseDouble(latStr);
-//              double lon = Double.parseDouble(lonStr);
-//              locationService.updateLocation(username, lat, lon);
-//            } catch (NumberFormatException ignored) {}
-//          }
-
-          return () -> username;
+          return () -> email;
         }
       })
       .withSockJS();
