@@ -42,7 +42,7 @@ public class SecurityConfiguration {
       "https://codewithketan.me",
       "https://space-hub-frontend.vercel.app",
       "https://www.spacehubx.me",
-      "https://audio-room-tawny.vercel.app"
+      "https://audio-room-nine.vercel.app"
     ));
     config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
     config.setAllowedHeaders(List.of("*"));
