@@ -3,6 +3,7 @@ package org.spacehub.configuration;
 import org.spacehub.handler.ChatWebSocketHandlerMessaging;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
+import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 
 @Configuration
@@ -17,7 +18,7 @@ public class WebSocketConfigMessaging implements WebSocketConfigurer {
 
   @Override
   public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-    registry.addHandler(chatWebSocketHandlerMessaging, "/ws/chat")
+    registry.addHandler(chatWebSocketHandler, "/ws/chat")
             .setAllowedOriginPatterns(
                     "*",
                     "https://codewithketan.me",
