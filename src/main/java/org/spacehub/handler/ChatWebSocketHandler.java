@@ -45,7 +45,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
   }
 
   @Override
-  public void afterConnectionEstablished(WebSocketSession session) throws Exception {
+  public void afterConnectionEstablished(@NonNull WebSocketSession session) {
     try {
       String rawQuery = session.getUri() != null ? session.getUri().getQuery() : null;
       Map<String, String> params = parseQuery(rawQuery);
@@ -174,25 +174,6 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
       logger.error("Error parsing query params", e);
     }
     return params;
-  }
-
-  private boolean validateConnection(WebSocketSession session, String roomCode, String email) throws Exception {
-    if (roomCode == null || email == null) {
-      session.close(CloseStatus.BAD_DATA);
-      return false;
-    }
-    return true;
-  }
-
-  private boolean isUserMemberOfRoom(ChatRoom room, String email) {
-    List<ChatRoomUser> members = chatRoomUserService.getMembers(room);
-    if (members == null) return false;
-    for (ChatRoomUser member : members) {
-      if (member.getEmail() != null && member.getEmail().equalsIgnoreCase(email)) {
-        return true;
-      }
-    }
-    return false;
   }
 
   private void broadcastSystemMessage(String roomCode, String text) {

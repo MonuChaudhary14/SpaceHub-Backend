@@ -74,9 +74,11 @@ public class FriendService implements IFriendService {
 
     User user = userRepository.findByEmail(userEmail).orElseThrow(() -> new RuntimeException("User not found"));
 
-    User requester = userRepository.findByEmail(requesterEmail).orElseThrow(() -> new RuntimeException("Requester not found"));
+    User requester = userRepository.findByEmail(requesterEmail).orElseThrow(() ->
+      new RuntimeException("Requester not found"));
 
-    Friends request = friendsRepository.findByUserAndFriend(requester, user).orElseThrow(() -> new RuntimeException("Friend request not found"));
+    Friends request = friendsRepository.findByUserAndFriend(requester, user).orElseThrow(() ->
+      new RuntimeException("Friend request not found"));
 
     if (!"pending".equals(request.getStatus())) {
       return "This request is no longer pending.";

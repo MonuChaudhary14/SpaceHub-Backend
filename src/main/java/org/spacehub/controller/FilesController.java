@@ -37,10 +37,12 @@ public class FilesController {
   }
 
   @PostMapping("/presigned/chat-upload")
-  public ResponseEntity<ApiResponse<Map<String, String>>> getChatFilePresignedUrl(@RequestParam("filename") String filename) {
+  public ResponseEntity<ApiResponse<Map<String, String>>> getChatFilePresignedUrl(@RequestParam("filename")
+                                                                                    String filename) {
     String key = s3Service.generateFileKey(filename);
     String uploadUrl = s3Service.generatePresignedUploadUrl(key, Duration.ofMinutes(10));
-    return ResponseEntity.ok(new ApiResponse<>(200,"Chat presigned upload URL generated",Map.of("uploadUrl", uploadUrl, "key", key)));
+    return ResponseEntity.ok(new ApiResponse<>(200, "Chat presigned upload URL generated",
+      Map.of("uploadUrl", uploadUrl, "key", key)));
   }
 
   @PostMapping("/presigned/download")

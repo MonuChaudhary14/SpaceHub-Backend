@@ -35,7 +35,7 @@ public class ChatPollService implements IChatPollService {
     this.chatRoomService = chatRoomService;
   }
 
-  public ChatPoll createPoll(String roomCode, String email , Map<String, Object> body) {
+  public ChatPoll createPoll(String roomCode, String email, Map<String, Object> body) {
 
     ChatRoom room = chatRoomService.findByRoomCode(UUID.fromString(roomCode)).orElseThrow(() -> new RuntimeException("Room not found"));
 
