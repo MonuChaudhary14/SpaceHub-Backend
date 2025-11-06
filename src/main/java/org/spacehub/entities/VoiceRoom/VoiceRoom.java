@@ -8,7 +8,6 @@ import org.spacehub.entities.ChatRoom.ChatRoom;
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.Instant;
-import java.util.UUID;
 
 @Entity
 @Getter
