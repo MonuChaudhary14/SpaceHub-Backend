@@ -68,7 +68,7 @@ public class VoiceRoomService {
     }
 
     @Transactional(readOnly = true)
-    public VoiceRoom getVoiceRoomById(UUID id) {
+    public VoiceRoom getVoiceRoomById(Long id) {
         return voiceRoomRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Voice room not found with ID: " + id));
     }

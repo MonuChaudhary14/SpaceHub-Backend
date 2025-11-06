@@ -55,7 +55,7 @@ public class VoiceRoomController {
 
   @PostMapping("/join")
   public ResponseEntity<?> joinVoiceRoom(
-          @RequestParam UUID voiceRoomId,
+          @RequestParam Long voiceRoomId,
           @RequestParam String displayName
   ) {
     try {

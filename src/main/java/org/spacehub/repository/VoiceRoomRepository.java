@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface VoiceRoomRepository extends JpaRepository<VoiceRoom, UUID> {
+public interface VoiceRoomRepository extends JpaRepository<VoiceRoom, Long> {
     Optional<VoiceRoom> findByJanusRoomId(Integer janusRoomId);
     Optional<VoiceRoom> findByNameAndChatRoom(String name, ChatRoom chatRoom);
     List<VoiceRoom> findByChatRoom(ChatRoom chatRoom);

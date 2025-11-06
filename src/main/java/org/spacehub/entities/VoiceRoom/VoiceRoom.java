@@ -23,7 +23,7 @@ public class VoiceRoom implements Serializable {
 
   @Id
   @GeneratedValue(strategy = GenerationType.AUTO)
-  private UUID id;
+  private Long id;
 
   @Column(nullable = false, unique = true)
   private Integer janusRoomId;
