@@ -73,4 +73,10 @@ public class VoiceRoomService {
                 .orElseThrow(() -> new RuntimeException("Voice room not found with ID: " + id));
     }
 
+    @Transactional(readOnly = true)
+    public VoiceRoom getVoiceRoomByJanusId(Integer janusRoomId) {
+        return voiceRoomRepository.findByJanusRoomId(janusRoomId)
+                .orElseThrow(() -> new RuntimeException("Voice room not found with Janus ID: " + janusRoomId));
+    }
+
 }

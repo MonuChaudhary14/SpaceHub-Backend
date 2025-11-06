@@ -9,6 +9,7 @@ import org.spacehub.repository.ChatRoom.ChatRoomRepository;
 import org.spacehub.service.JanusService;
 import org.spacehub.service.VoiceRoomService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -55,11 +56,11 @@ public class VoiceRoomController {
 
   @PostMapping("/join")
   public ResponseEntity<?> joinVoiceRoom(
-          @RequestParam Long voiceRoomId,
+          @RequestParam Integer voiceRoomId,
           @RequestParam String displayName
   ) {
     try {
-      VoiceRoom voiceRoom = voiceRoomService.getVoiceRoomById(voiceRoomId);
+      VoiceRoom voiceRoom = voiceRoomService.getVoiceRoomByJanusId(voiceRoomId);
       String sessionId = janusService.createSession();
       String handleId = janusService.attachAudioBridgePlugin(sessionId);
 
