@@ -37,6 +37,7 @@ public class VoiceRoomService {
             .name(name)
             .createdBy(createdBy)
             .chatRoom(chatRoom)
+            .active(true)
             .build();
 
     voiceRoomRepository.save(voiceRoom);

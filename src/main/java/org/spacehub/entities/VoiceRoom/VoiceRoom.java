@@ -39,4 +39,7 @@ public class VoiceRoom implements Serializable {
   @JoinColumn(name = "chat_room_id")
   @JsonBackReference
   private ChatRoom chatRoom;
+
+  @Column(nullable = false)
+  private boolean active;
 }
