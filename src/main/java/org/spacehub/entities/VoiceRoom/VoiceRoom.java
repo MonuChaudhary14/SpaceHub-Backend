@@ -42,4 +42,7 @@ public class VoiceRoom implements Serializable {
 
   @Column(nullable = false)
   private boolean active;
+
+  @Column(name = "room_code", nullable = false)
+  private String roomCode;
 }

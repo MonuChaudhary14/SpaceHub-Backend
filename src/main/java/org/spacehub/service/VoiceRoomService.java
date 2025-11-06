@@ -38,6 +38,7 @@ public class VoiceRoomService {
             .createdBy(createdBy)
             .chatRoom(chatRoom)
             .active(true)
+            .roomCode(String.valueOf(janusRoomId))
             .build();
 
     voiceRoomRepository.save(voiceRoom);
