@@ -2,6 +2,7 @@ package org.spacehub.entities.VoiceRoom;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.LocalGroup.LocalGroup;
 import java.io.Serial;
 import java.io.Serializable;
@@ -30,5 +31,9 @@ public class VoiceRoom implements Serializable{
 
   @OneToOne(mappedBy = "voiceRoom",  cascade = CascadeType.ALL)
   private LocalGroup localGroup;
+
+  @ManyToOne
+  @JoinColumn(name = "chat_room_id")
+  private ChatRoom chatRoom;
 
 }

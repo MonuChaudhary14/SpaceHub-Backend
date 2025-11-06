@@ -22,6 +22,10 @@ public class ChatMessage {
   private Long timestamp;
 
   @ManyToOne
+  @JoinColumn(name = "new_chat_room_id")
+  private NewChatRoom newChatRoom;
+
+  @ManyToOne
   @JoinColumn(name = "room_id")
   private ChatRoom room;
 
