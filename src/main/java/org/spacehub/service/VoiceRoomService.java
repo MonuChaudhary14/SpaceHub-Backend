@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spacehub.entities.ChatRoom.ChatRoom;
-import org.spacehub.entities.VoiceRoom;
+import org.spacehub.entities.VoiceRoom.VoiceRoom;
 import org.spacehub.repository.VoiceRoomRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

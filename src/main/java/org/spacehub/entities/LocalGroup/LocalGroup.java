@@ -7,7 +7,7 @@ import lombok.Setter;
 import lombok.ToString;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.User.User;
-import org.spacehub.entities.VoiceRoom;
+import org.spacehub.entities.VoiceRoom.VoiceRoom;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;

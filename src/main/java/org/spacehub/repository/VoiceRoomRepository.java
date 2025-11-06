@@ -1,6 +1,6 @@
 package org.spacehub.repository;
 
-import org.spacehub.entities.VoiceRoom;
+import org.spacehub.entities.VoiceRoom.VoiceRoom;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.springframework.data.jpa.repository.JpaRepository;
 

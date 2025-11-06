@@ -1,4 +1,4 @@
-package org.spacehub.entities;
+package org.spacehub.entities.VoiceRoom;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;

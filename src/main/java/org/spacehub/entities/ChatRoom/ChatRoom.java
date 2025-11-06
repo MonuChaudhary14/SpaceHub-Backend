@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
 import org.spacehub.entities.Community.Community;
-import org.spacehub.entities.VoiceRoom;
+import org.spacehub.entities.VoiceRoom.VoiceRoom;
 
 import java.io.Serial;
 import java.io.Serializable;
