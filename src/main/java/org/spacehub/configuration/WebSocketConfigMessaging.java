@@ -1,70 +1,31 @@
 package org.spacehub.configuration;
 
-//import org.spacehub.service.LocationService;
+import org.spacehub.handler.ChatWebSocketHandlerMessaging;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.server.ServerHttpRequest;
-import org.springframework.lang.NonNull;
-import org.springframework.messaging.simp.config.MessageBrokerRegistry;
-import org.springframework.web.socket.WebSocketHandler;
-import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
-import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
-import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
-import org.springframework.web.socket.server.support.DefaultHandshakeHandler;
-import org.springframework.web.util.UriComponentsBuilder;
-import java.security.Principal;
-import java.util.Map;
+import org.springframework.web.socket.config.annotation.EnableWebSocket;
+import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 
 @Configuration
-@EnableWebSocketMessageBroker
-public class WebSocketConfigMessaging implements WebSocketMessageBrokerConfigurer {
+@EnableWebSocket
+public class WebSocketConfigMessaging implements WebSocketConfigurer {
 
-//  private final LocationService locationService;
-//
-//  public WebSocketConfigMessaging(LocationService locationService) {
-//    this.locationService = locationService;
-//  }
+  private final ChatWebSocketHandlerMessaging chatWebSocketHandler;
 
-  @Override
-  public void configureMessageBroker(MessageBrokerRegistry config) {
-    config.enableSimpleBroker("/queue", "/topic");
-    config.setApplicationDestinationPrefixes("/app");
-    config.setUserDestinationPrefix("/user");
+  public WebSocketConfigMessaging(ChatWebSocketHandlerMessaging chatWebSocketHandler) {
+    this.chatWebSocketHandler = chatWebSocketHandler;
   }
 
   @Override
-  public void registerStompEndpoints(StompEndpointRegistry registry) {
-    registry.addEndpoint("/ws-messages")
-      .setAllowedOriginPatterns(
-        "*",
-        "null",
-        "https://codewithketan.me",
-        "https://www.spacehubx.me",
-        "https://space-hub-frontend.vercel.app",
-        "http://localhost:5500",
-        "http://127.0.0.1:5500",
-        "http://localhost:8080"
-      )
-      .setHandshakeHandler(new DefaultHandshakeHandler() {
-        @Override
-        protected Principal determineUser(
-          @NonNull ServerHttpRequest request,
-          @NonNull WebSocketHandler wsHandler,
-          @NonNull Map<String, Object> attributes
-        ) {
-          var params = UriComponentsBuilder.fromUri(request.getURI())
-            .build()
-            .getQueryParams();
-
-//          String username = params.getFirst("username");
-//          String latStr = params.getFirst("lat");
-//          String lonStr = params.getFirst("lon");
-          String email = params.getFirst("email");
-          if (email == null || email.isEmpty()) {
-            return null;
-          }
-          return () -> email;
-        }
-      })
-      .withSockJS();
+  public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
+    registry.addHandler(chatWebSocketHandlerMessaging, "/ws/chat")
+            .setAllowedOriginPatterns(
+                    "*",
+                    "https://codewithketan.me",
+                    "https://www.spacehubx.me",
+                    "https://space-hub-frontend.vercel.app",
+                    "http://localhost:5500",
+                    "http://127.0.0.1:5500",
+                    "http://localhost:8080"
+            );
   }
 }

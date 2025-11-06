@@ -26,22 +26,15 @@ public class MessageController {
     return service.getChat(user1, user2);
   }
 
-  @MessageMapping("/chat")
+  @MessageMapping("/chat.send")
   public void sendMessage(Message message, Principal principal) {
     message.setSenderId(principal.getName());
-    Message savedMessage = service.saveMessage(message);
 
-    messagingTemplate.convertAndSendToUser(
-      savedMessage.getReceiverId(),
-      "/queue/messages",
-      savedMessage
-    );
+    Message saved = service.saveMessage(message);
 
-    messagingTemplate.convertAndSendToUser(
-      savedMessage.getSenderId(),
-      "/queue/messages",
-      savedMessage
-    );
+    messagingTemplate.convertAndSendToUser(saved.getReceiverId(), "/queue/messages", saved);
+
+    messagingTemplate.convertAndSendToUser(saved.getSenderId(), "/queue/messages", saved);
   }
 
 }
