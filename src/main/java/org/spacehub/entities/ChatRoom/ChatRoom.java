@@ -1,6 +1,7 @@
 package org.spacehub.entities.ChatRoom;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 import org.spacehub.entities.Community.Community;
@@ -30,6 +31,10 @@ public class ChatRoom implements Serializable {
 
   @Column(unique = true, nullable = false)
   private UUID roomCode;
+
+  @OneToMany(mappedBy = "chatRoom", cascade = CascadeType.ALL, orphanRemoval = true)
+  @JsonManagedReference
+  private List<NewChatRoom> newChatRooms = new ArrayList<>();
 
   @ManyToOne
   @JoinColumn(name = "community_id")

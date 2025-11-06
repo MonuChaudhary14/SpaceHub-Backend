@@ -5,10 +5,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.spacehub.entities.ChatRoom.ChatMessage;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.ChatRoom.ChatRoomUser;
+import org.spacehub.entities.ChatRoom.NewChatRoom;
 import org.spacehub.entities.Community.Role;
 import org.spacehub.service.chatRoom.ChatMessageQueue;
 import org.spacehub.service.ChatRoomService;
 import org.spacehub.service.ChatRoomUserService;
+import org.spacehub.service.chatRoom.NewChatRoomService;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
@@ -31,15 +33,19 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
   private final Map<WebSocketSession, String> sessionRoom = new ConcurrentHashMap<>();
   private final Map<WebSocketSession, String> userSessions = new ConcurrentHashMap<>();
   private static final Logger logger = LoggerFactory.getLogger(ChatWebSocketHandler.class);
+
   private final ChatRoomService chatRoomService;
+  private final NewChatRoomService newChatRoomService;
   private final ChatMessageQueue chatMessageQueue;
   private final ChatRoomUserService chatRoomUserService;
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   public ChatWebSocketHandler(ChatRoomService chatRoomService,
+                              NewChatRoomService newChatRoomService,
                               ChatMessageQueue chatMessageQueue,
                               ChatRoomUserService chatRoomUserService) {
     this.chatRoomService = chatRoomService;
+    this.newChatRoomService = newChatRoomService;
     this.chatMessageQueue = chatMessageQueue;
     this.chatRoomUserService = chatRoomUserService;
   }
@@ -50,74 +56,75 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
       String rawQuery = session.getUri() != null ? session.getUri().getQuery() : null;
       Map<String, String> params = parseQuery(rawQuery);
 
-      String roomCodeStr = params.get("roomCode");
+      String newRoomCodeStr = params.get("roomCode");
       String email = params.get("email");
 
-      if (roomCodeStr == null || email == null) {
+      if (newRoomCodeStr == null || email == null) {
         logger.warn("Connection attempt missing roomCode or email. query={}", rawQuery);
         session.close(CloseStatus.BAD_DATA.withReason("roomCode and email required"));
         return;
       }
 
-      UUID roomUuid;
+      UUID newRoomUuid;
       try {
-        roomUuid = UUID.fromString(roomCodeStr);
-      } catch (IllegalArgumentException ex) {
-        logger.warn("Invalid roomCode format: {}", roomCodeStr);
+        newRoomUuid = UUID.fromString(newRoomCodeStr);
+      }
+      catch (IllegalArgumentException ex) {
+        logger.warn("Invalid roomCode format: {}", newRoomCodeStr);
         session.close(CloseStatus.BAD_DATA.withReason("Invalid roomCode"));
         return;
       }
 
-      Optional<ChatRoom> optionalRoom = chatRoomService.findByRoomCode(roomUuid);
-      if (optionalRoom.isEmpty()) {
-        logger.warn("Room not found for code {}", roomUuid);
-        session.close(new CloseStatus(4041, "Room not found"));
+      Optional<NewChatRoom> optionalNewChatRoom = newChatRoomService.getEntityByCode(newRoomUuid);
+      if (optionalNewChatRoom.isEmpty()) {
+        logger.warn("NewChatRoom not found for code {}", newRoomUuid);
+        session.close(new CloseStatus(4041, "Chat room not found"));
         return;
       }
 
-      ChatRoom room = optionalRoom.get();
+      NewChatRoom newChatRoom = optionalNewChatRoom.get();
+      ChatRoom parentGroup = newChatRoom.getChatRoom();
 
       List<ChatRoomUser> members = Collections.emptyList();
       try {
-        members = chatRoomUserService.getMembersByRoomCode(roomUuid);
+        members = chatRoomUserService.getMembersByRoomCode(parentGroup.getRoomCode());
       }
       catch (Exception e) {
-        logger.error("Error fetching members for room {}: {}", roomUuid, e.getMessage());
+        logger.error("Error fetching members for room {}: {}", parentGroup.getRoomCode(), e.getMessage());
       }
 
-      boolean isMember = members.stream().anyMatch(m -> m.getEmail() != null && m.getEmail().equalsIgnoreCase(email));
+      boolean isMember = members.stream()
+              .anyMatch(m -> m.getEmail() != null && m.getEmail().equalsIgnoreCase(email));
 
       if (!isMember) {
         try {
-          chatRoomUserService.addUserToRoom(room, email, Role.MEMBER);
-          logger.info("Auto-added user {} to room {}", email, roomUuid);
+          chatRoomUserService.addUserToRoom(parentGroup, email, Role.MEMBER);
+          logger.info("Auto-added user {} to parent ChatRoom {}", email, parentGroup.getRoomCode());
         }
         catch (Exception e) {
-          logger.error("Failed to add user {} to room {}: {}", email, roomUuid, e.getMessage());
+          logger.error("Failed to add user {} to ChatRoom {}: {}", email, parentGroup.getRoomCode(), e.getMessage());
           session.close(CloseStatus.SERVER_ERROR.withReason("Failed to add member"));
           return;
         }
       }
 
-      addSessionToRoom(session, roomUuid.toString(), email);
+      addSessionToRoom(session, newRoomUuid.toString(), email);
 
       try {
-        sendExistingMessages(session, room);
+        sendExistingMessages(session, newChatRoom);
       }
       catch (Exception e) {
-        logger.warn("Failed to send history to {} for room {}: {}", email, roomUuid, e.getMessage());
+        logger.warn("Failed to send history to {} for room {}: {}", email, newRoomUuid, e.getMessage());
       }
 
-      broadcastSystemMessage(roomUuid.toString(), email + " joined the room");
+      broadcastSystemMessage(newRoomUuid.toString(), email + " joined the chat");
+      logger.info("WebSocket connected: user={} newChatRoom={}", email, newRoomUuid);
 
-      logger.info("WebSocket connected: user={} room={}", email, roomUuid);
-    }
-    catch (Exception top) {
+    } catch (Exception top) {
       logger.error("Error in afterConnectionEstablished", top);
       try {
         session.close(CloseStatus.SERVER_ERROR.withReason("Internal server error while operating."));
-      }
-      catch (IOException ignored) {}
+      } catch (IOException ignored) {}
     }
   }
 
@@ -132,41 +139,28 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             "timestamp", message.getTimestamp()
     );
 
-    String json;
     try {
-      json = objectMapper.writeValueAsString(payload);
+      String json = objectMapper.writeValueAsString(payload);
+      for (WebSocketSession s : sessions) {
+        if (s.isOpen()) s.sendMessage(new TextMessage(json));
+      }
     }
     catch (Exception e) {
-      logger.error("Error serializing message payload", e);
-      return;
-    }
-
-    sessions.removeIf(s -> !s.isOpen());
-
-    for (WebSocketSession session : sessions) {
-      if (session.isOpen()) {
-        try {
-          session.sendMessage(new TextMessage(json));
-        } catch (Exception e) {
-          logger.error("Error sending message", e);
-        }
-      }
+      logger.error("Error sending message to room {}", roomCode, e);
     }
   }
 
   private Map<String, String> parseQuery(String query) {
     Map<String, String> params = new HashMap<>();
-    if (query == null || query.isEmpty()) {
-      return params;
-    }
+    if (query == null || query.isEmpty()) return params;
     try {
-      String[] pairs = query.split("&");
-      for (String pair : pairs) {
+      for (String pair : query.split("&")) {
         String[] keyValue = pair.split("=", 2);
         if (keyValue.length == 2) {
-          String key = URLDecoder.decode(keyValue[0], StandardCharsets.UTF_8);
-          String value = URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8);
-          params.put(key, value);
+          params.put(
+                  URLDecoder.decode(keyValue[0], StandardCharsets.UTF_8),
+                  URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8)
+          );
         }
       }
     }
@@ -192,8 +186,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     userSessions.put(session, email);
   }
 
-  private void sendExistingMessages(WebSocketSession session, ChatRoom room) {
-    List<ChatMessage> messages = chatMessageQueue.getMessagesForRoom(room);
+  private void sendExistingMessages(WebSocketSession session, NewChatRoom newChatRoom) {
+    List<ChatMessage> messages = chatMessageQueue.getMessagesForNewChatRoom(newChatRoom);
 
     for (ChatMessage message : messages) {
       Map<String, Object> payload = new HashMap<>();
@@ -201,9 +195,9 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
       payload.put("message", message.getMessage());
       payload.put("timestamp", message.getTimestamp());
       try {
-        String json = objectMapper.writeValueAsString(payload);
-        session.sendMessage(new TextMessage(json));
-      } catch (Exception e) {
+        session.sendMessage(new TextMessage(objectMapper.writeValueAsString(payload)));
+      }
+      catch (Exception e) {
         logger.error("Error sending message history", e);
       }
     }
@@ -217,14 +211,12 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
       Set<WebSocketSession> sessions = rooms.get(roomCode);
       if (sessions != null) {
         sessions.remove(session);
-        if (sessions.isEmpty()) {
-          rooms.remove(roomCode);
-        }
+        if (sessions.isEmpty()) rooms.remove(roomCode);
       }
-      broadcastSystemMessage(roomCode, email + " left the room");
+      broadcastSystemMessage(roomCode, email + " left the chat");
     }
 
-    logger.info("User {} disconnected from room {} (session: {})", email, roomCode, session.getId());
+    logger.info("User {} disconnected from NewChatRoom {} (session: {})", email, roomCode, session.getId());
   }
 
   @Override
@@ -243,20 +235,21 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
       String type = node.has("type") ? node.get("type").asText() : "MESSAGE";
 
       if ("FILE".equalsIgnoreCase(type)) {
-        String fileName = node.get("fileName").asText();
-        String fileUrl = node.get("fileUrl").asText();
-        String contentType = node.get("contentType").asText();
-
         Map<String, Object> filePayload = Map.of(
                 "type", "FILE",
                 "senderEmail", senderEmail,
-                "fileName", fileName,
-                "fileUrl", fileUrl,
-                "contentType", contentType,
+                "fileName", node.get("fileName").asText(),
+                "fileUrl", node.get("fileUrl").asText(),
+                "contentType", node.get("contentType").asText(),
                 "timestamp", System.currentTimeMillis()
         );
-
         broadcastJsonToRoom(roomCode, filePayload);
+        return;
+      }
+
+      Optional<NewChatRoom> optionalNewRoom = newChatRoomService.getEntityByCode(UUID.fromString(roomCode));
+      if (optionalNewRoom.isEmpty()) {
+        logger.warn("NewChatRoom not found for code {}", roomCode);
         return;
       }
 
@@ -267,6 +260,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
               .message(messageText)
               .timestamp(System.currentTimeMillis())
               .roomCode(roomCode)
+              .newChatRoom(optionalNewRoom.get())
               .build();
 
       chatMessageQueue.enqueue(message);
@@ -277,6 +271,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
       logger.error("Error processing WebSocket message", e);
     }
   }
+
 
   private void broadcastJsonToRoom(String roomCode, Map<String, Object> payload) {
     Set<WebSocketSession> sessions = rooms.getOrDefault(roomCode, ConcurrentHashMap.newKeySet());

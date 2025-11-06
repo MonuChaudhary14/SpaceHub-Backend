@@ -2,6 +2,7 @@ package org.spacehub.service.chatRoom;
 
 import org.spacehub.entities.ChatRoom.ChatMessage;
 import org.spacehub.entities.ChatRoom.ChatRoom;
+import org.spacehub.entities.ChatRoom.NewChatRoom;
 import org.spacehub.repository.ChatRoom.ChatMessageRepository;
 import org.spacehub.service.chatRoom.chatroomInterfaces.IChatMessageService;
 import org.springframework.cache.annotation.CacheEvict;
@@ -27,6 +28,10 @@ public class ChatMessageService implements IChatMessageService {
   @Cacheable(value = "chatMessages", key = "#room.id")
   public List<ChatMessage> getMessagesForRoom(ChatRoom room) {
     return chatMessageRepository.findByRoomOrderByTimestampAsc(room);
+  }
+
+  public List<ChatMessage> getMessagesForNewChatRoom(NewChatRoom newChatRoom) {
+    return chatMessageRepository.findByNewChatRoomOrderByTimestampAsc(newChatRoom);
   }
 
 }

@@ -2,6 +2,7 @@ package org.spacehub.service.chatRoom;
 
 import org.spacehub.entities.ChatRoom.ChatMessage;
 import org.spacehub.entities.ChatRoom.ChatRoom;
+import org.spacehub.entities.ChatRoom.NewChatRoom;
 import org.spacehub.handler.ChatWebSocketHandler;
 import org.spacehub.service.chatRoom.chatroomInterfaces.IChatMessageQueue;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,6 +66,10 @@ public class ChatMessageQueue implements IChatMessageQueue {
 
   public List<ChatMessage> getMessagesForRoom(ChatRoom room) {
     return chatMessageService.getMessagesForRoom(room);
+  }
+
+  public List<ChatMessage> getMessagesForNewChatRoom(NewChatRoom newChatRoom) {
+    return chatMessageService.getMessagesForNewChatRoom(newChatRoom);
   }
 
 }
