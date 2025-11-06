@@ -40,7 +40,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import java.time.Duration;
-import java.util.LinkedHashMap;
+import java.util.Collections;
 import java.util.stream.Collectors;
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -818,44 +818,73 @@ public class CommunityService implements ICommunityService {
     return email == null || email.isBlank();
   }
 
-  private List<Map<String, Object>> buildCommunityListForUser(String reqEmailLower) {
-    List<Community> allCommunities = communityRepository.findAll();
-    Map<UUID, Map<String, Object>> dedup = new LinkedHashMap<>();
+  private List<Map<String, Object>> buildCommunityListForUser(String normalizedEmail) {
+    Optional<User> userOpt = userRepository.findByEmail(normalizedEmail);
+    if (userOpt.isEmpty()) return Collections.emptyList();
+    User user = userOpt.get();
 
-    for (Community c : allCommunities) {
-      if (isUserInCommunity(c, reqEmailLower)) {
-        dedup.put(c.getId(), buildCommunityMap(c));
+    List<Community> all = communityRepository.findAll();
+    List<Map<String, Object>> out = new ArrayList<>();
+
+    for (Community c : all) {
+      boolean isCreator = c.getCreatedBy() != null && c.getCreatedBy().getId().equals(user.getId());
+
+      List<CommunityUser> communityUsers = communityUserRepository.findByCommunityId(c.getId());
+      Optional<CommunityUser> myCommunityUser = communityUsers.stream()
+        .filter(cu -> cu.getUser() != null && cu.getUser().getId().equals(user.getId()))
+        .findFirst();
+
+      if (!isCreator && myCommunityUser.isEmpty()) {
+        continue;
       }
+
+      Map<String, Object> m = new HashMap<>();
+      m.put("communityId", c.getId());
+      m.put("name", c.getName());
+      m.put("description", c.getDescription());
+
+      String role;
+      if (isCreator) {
+        role = "ADMIN";
+      } else role = myCommunityUser.map(communityUser -> communityUser.getRole().name()).
+        orElse("MEMBER");
+
+      m.put("role", role);
+
+      String key = c.getImageUrl();
+      if (key != null && !key.isBlank()) {
+        try {
+          String presigned = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1));
+          m.put("imageUrl", presigned);
+          m.put("imageKey", key);
+        } catch (Exception e) {
+          m.put("imageUrl", null);
+          m.put("imageKey", key);
+        }
+      } else {
+        m.put("imageUrl", null);
+        m.put("imageKey", null);
+      }
+
+      String bannerKey = c.getBannerUrl();
+      if (bannerKey != null && !bannerKey.isBlank()) {
+        try {
+          String presigned = s3Service.generatePresignedDownloadUrl(bannerKey, Duration.ofHours(1));
+          m.put("bannerUrl", presigned);
+          m.put("bannerKey", bannerKey);
+        } catch (Exception e) {
+          m.put("bannerUrl", null);
+          m.put("bannerKey", bannerKey);
+        }
+      } else {
+        m.put("bannerUrl", null);
+        m.put("bannerKey", null);
+      }
+
+      out.add(m);
     }
 
-    return new ArrayList<>(dedup.values());
-  }
-
-  private boolean isUserInCommunity(Community c, String reqEmailLower) {
-    boolean matchesCreator = c.getCreatedBy() != null &&
-      c.getCreatedBy().getEmail() != null &&
-      c.getCreatedBy().getEmail().equalsIgnoreCase(reqEmailLower);
-
-    boolean matchesMember = c.getCommunityUsers() != null &&
-      c.getCommunityUsers().stream()
-        .anyMatch(cu -> cu.getUser() != null &&
-          cu.getUser().getEmail() != null &&
-          cu.getUser().getEmail().equalsIgnoreCase(reqEmailLower));
-
-    return matchesCreator || matchesMember;
-  }
-
-  private Map<String, Object> buildCommunityMap(Community c) {
-    Map<String, Object> m = new HashMap<>();
-    m.put("communityId", c.getId());
-    m.put("name", c.getName());
-    m.put("description", c.getDescription());
-
-    m.put("imageUrl", generatePresignedUrlSafely(c.getImageUrl()));
-    m.put("imageKey", c.getImageUrl());
-    m.put("bannerUrl", generatePresignedUrlSafely(c.getBannerUrl()));
-
-    return m;
+    return out;
   }
 
   private String generatePresignedUrlSafely(String key) {
