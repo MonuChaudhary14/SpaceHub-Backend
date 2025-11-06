@@ -85,7 +85,12 @@ public class VoiceRoomWebSocketController {
   public void handleOffer(Map<String, String> payload) {
     String userId = payload.get("userId");
     String sdp = payload.get("sdp");
-    if (userId == null || sdp == null) return;
+    String roomId = payload.get("roomId");
+
+    if (userId == null || sdp == null || roomId == null) {
+      logger.warn("Invalid offer payload: {}", payload);
+      return;
+    }
 
     String sessionId = userSessionMap.get(userId);
     String handleId = userHandleMap.get(userId);
@@ -94,7 +99,8 @@ public class VoiceRoomWebSocketController {
       logger.warn("Offer from unregistered user {}", userId);
       return;
     }
-    janusService.sendOffer(sessionId, handleId, sdp);
+
+    janusService.sendOffer(sessionId, handleId, sdp, userId, roomId, messagingTemplate);
   }
 
   @MessageMapping("/ice")

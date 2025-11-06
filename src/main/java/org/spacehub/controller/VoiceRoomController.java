@@ -1,6 +1,7 @@
 package org.spacehub.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.spacehub.DTO.VoiceRoomDTO;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.VoiceRoom.VoiceRoom;
 import org.spacehub.repository.ChatRoom.ChatRoomRepository;
@@ -28,25 +29,26 @@ public class VoiceRoomController {
 
   @PostMapping("/create")
   public ResponseEntity<?> createVoiceRoom(
-          @RequestParam UUID chatRoomId,
-          @RequestParam String roomName,
-          @RequestParam String createdBy) {
+    @RequestParam UUID chatRoomId,
+    @RequestParam String roomName,
+    @RequestParam String createdBy) {
 
     try {
       ChatRoom chatRoom = chatRoomRepository.findById(chatRoomId)
-              .orElseThrow(() -> new RuntimeException("ChatRoom not found with ID: " + chatRoomId));
+        .orElseThrow(() -> new RuntimeException("ChatRoom not found with ID: " + chatRoomId));
 
       VoiceRoom voiceRoom = voiceRoomService.createVoiceRoom(chatRoom, roomName, createdBy);
 
+      VoiceRoomDTO voiceRoomDTO = new VoiceRoomDTO(voiceRoom);
+
       return ResponseEntity.ok(Map.of(
-              "message", "Voice room created successfully",
-              "voiceRoom", voiceRoom
+        "message", "Voice room created successfully",
+        "voiceRoom", voiceRoomDTO
       ));
-    }
-    catch (Exception e) {
+    } catch (Exception e) {
       logger.error("Error creating voice room: {}", e.getMessage(), e);
       return ResponseEntity.status(500)
-              .body(Map.of("error", "Failed to create voice room", "message", e.getMessage()));
+        .body(Map.of("error", "Failed to create voice room", "message", e.getMessage()));
     }
   }
 
