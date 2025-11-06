@@ -28,13 +28,13 @@ public class MessageController {
 
   @MessageMapping("/chat.send")
   public void sendMessage(Message message, Principal principal) {
-    message.setSenderId(principal.getName());
+    message.setSenderEmail(principal.getName());
 
     Message saved = service.saveMessage(message);
 
-    messagingTemplate.convertAndSendToUser(saved.getReceiverId(), "/queue/messages", saved);
+    messagingTemplate.convertAndSendToUser(saved.getReceiverEmail(), "/queue/messages", saved);
 
-    messagingTemplate.convertAndSendToUser(saved.getSenderId(), "/queue/messages", saved);
+    messagingTemplate.convertAndSendToUser(saved.getSenderEmail(), "/queue/messages", saved);
   }
 
 }

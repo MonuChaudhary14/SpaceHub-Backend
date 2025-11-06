@@ -18,7 +18,7 @@ public class WebSocketConfigMessaging implements WebSocketConfigurer {
 
   @Override
   public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-    registry.addHandler(chatWebSocketHandler, "/ws/chat")
+    registry.addHandler(chatWebSocketHandler, "/ws/direct-chat")
             .setAllowedOriginPatterns(
                     "*",
                     "https://codewithketan.me",

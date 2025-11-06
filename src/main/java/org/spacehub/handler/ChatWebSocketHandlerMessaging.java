@@ -2,63 +2,78 @@ package org.spacehub.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.spacehub.entities.DirectMessaging.Message;
-import org.spacehub.service.Interface.IMessageService;
+import org.spacehub.service.MessageQueueService;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.io.IOException;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
 
-    private final IMessageService messageService;
+    private final MessageQueueService messageQueueService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private final Map<String, WebSocketSession> activeUsers = new ConcurrentHashMap<>();
 
-    public ChatWebSocketHandlerMessaging(IMessageService messageService) {
-        this.messageService = messageService;
+    public ChatWebSocketHandlerMessaging(MessageQueueService messageQueueService) {
+        this.messageQueueService = messageQueueService;
     }
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        String email = extractEmailFromQuery(session);
-        if (email != null) {
-            activeUsers.put(email, session);
-            System.out.println("User connected: " + email);
-            sendSystemMessage(session, "Connected as " + email);
-        }
-        else {
-            session.close(CloseStatus.BAD_DATA);
-        }
+        System.out.println("WebSocket connection from " + session.getRemoteAddress());
+        sendSystemMessage(session, "Connected to Direct Messaging WebSocket");
     }
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
-        Message chatMessage = objectMapper.readValue(message.getPayload(), Message.class);
+        try {
+            Map<String, Object> data = objectMapper.readValue(message.getPayload(), Map.class);
 
-        messageService.saveMessage(chatMessage);
+            String senderEmail = (String) data.get("senderEmail");
+            String receiverEmail = (String) data.get("receiverEmail");
+            String content = (String) data.get("content");
 
-        WebSocketSession receiverSession = activeUsers.get(chatMessage.getReceiverId());
-        if (receiverSession != null && receiverSession.isOpen()) {
-            receiverSession.sendMessage(new TextMessage(objectMapper.writeValueAsString(chatMessage)));
+            if (senderEmail == null || receiverEmail == null || content == null) {
+                sendSystemMessage(session, "Missing senderEmail, receiverEmail, or content");
+                return;
+            }
+
+            activeUsers.putIfAbsent(senderEmail, session);
+
+            Message chatMessage = Message.builder()
+                    .senderEmail(senderEmail)
+                    .receiverEmail(receiverEmail)
+                    .content(content)
+                    .timestamp(LocalDateTime.now())
+                    .build();
+
+            messageQueueService.enqueue(chatMessage);
+
+            WebSocketSession receiverSession = activeUsers.get(receiverEmail);
+            if (receiverSession != null && receiverSession.isOpen()) {
+                receiverSession.sendMessage(new TextMessage(objectMapper.writeValueAsString(chatMessage)));
+            }
+
+            session.sendMessage(new TextMessage(objectMapper.writeValueAsString(chatMessage)));
+
         }
-
-        session.sendMessage(new TextMessage(objectMapper.writeValueAsString(chatMessage)));
+        catch (Exception e) {
+            e.printStackTrace();
+            sendSystemMessage(session,"Error: " + e.getMessage());
+        }
     }
 
     @Override
-    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
-        String email = extractEmailFromQuery(session);
-        if (email != null) {
-            activeUsers.remove(email);
-            System.out.println("User disconnected: " + email);
-        }
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
+        activeUsers.entrySet().removeIf(entry -> entry.getValue().equals(session));
+        System.out.println("Connection closed: " + status);
     }
 
     @Override
@@ -67,16 +82,12 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
         session.close(CloseStatus.SERVER_ERROR);
     }
 
-    private String extractEmailFromQuery(WebSocketSession session) {
-        String query = session.getUri().getQuery();
-        if (query != null && query.contains("email=")) {
-            return URLDecoder.decode(query.split("email=")[1], StandardCharsets.UTF_8);
-        }
-        return null;
-    }
-
     private void sendSystemMessage(WebSocketSession session, String content) throws IOException {
         session.sendMessage(new TextMessage(objectMapper.writeValueAsString(Map.of("system", content))));
+    }
+
+    public Set<String> getActiveUserEmails() {
+        return activeUsers.keySet();
     }
 
 }

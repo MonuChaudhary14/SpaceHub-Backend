@@ -6,8 +6,8 @@ import java.util.List;
 public interface IMessageService {
 
   Message saveMessage(Message message);
-
   List<Message> getChat(String user1, String user2);
+  void saveMessageBatch(List<Message> messages);
 
 }
 
