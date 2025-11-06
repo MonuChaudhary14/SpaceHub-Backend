@@ -33,7 +33,7 @@ public class Filters extends OncePerRequestFilter {
   protected boolean shouldNotFilter(HttpServletRequest request) {
     String path = request.getRequestURI();
     return path.startsWith("/chat") || path.startsWith("/ws") || path.startsWith("/files/") || path.startsWith("/swagger-ui/") ||
-            path.startsWith("/v3/api-docs/") || path.startsWith("/api/v1/voice-room/");
+            path.startsWith("/v3/api-docs/") || path.startsWith("/api/v1/voice-room");
   }
 
 

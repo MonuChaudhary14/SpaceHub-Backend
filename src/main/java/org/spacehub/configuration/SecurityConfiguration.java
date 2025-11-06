@@ -67,6 +67,7 @@ public class SecurityConfiguration {
                                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                                 .requestMatchers(
                                         "/ws-messages/**",
+                                        "/api/v1/voice-room/**",
                                         "/api/v1/**",
                                         "/api/**",
                                         "/ws/**",
