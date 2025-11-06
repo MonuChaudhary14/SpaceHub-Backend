@@ -40,7 +40,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import java.time.Duration;
-import java.util.*;
+
+import java.util.Collections;
+
 import java.util.stream.Collectors;
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -811,44 +813,78 @@ public class CommunityService implements ICommunityService {
     return email == null || email.isBlank();
   }
 
-  private List<Map<String, Object>> buildCommunityListForUser(String reqEmailLower) {
-    List<Community> allCommunities = communityRepository.findAll();
-    Map<UUID, Map<String, Object>> dedup = new LinkedHashMap<>();
-
-    for (Community c : allCommunities) {
-      if (isUserInCommunity(c, reqEmailLower)) {
-        dedup.put(c.getId(), buildCommunityMap(c));
-      }
+  private List<Map<String, Object>> buildCommunityListForUser(String normalizedEmail) {
+    Optional<User> userOpt = userRepository.findByEmail(normalizedEmail);
+    if (userOpt.isEmpty()) {
+      return Collections.emptyList();
     }
 
-    return new ArrayList<>(dedup.values());
+    User user = userOpt.get();
+    List<Community> all = communityRepository.findAll();
+    List<Map<String, Object>> out = new ArrayList<>();
+
+    for (Community c : all) {
+      if (!isUserInCommunity(c, user)) {
+        continue;
+      }
+      out.add(buildCommunityMap(c, user));
+    }
+
+    return out;
   }
 
-  private boolean isUserInCommunity(Community c, String reqEmailLower) {
-    boolean matchesCreator = c.getCreatedBy() != null &&
-      c.getCreatedBy().getEmail() != null &&
-      c.getCreatedBy().getEmail().equalsIgnoreCase(reqEmailLower);
+  private boolean isUserInCommunity(Community c, User user) {
+    boolean isCreator = c.getCreatedBy() != null && c.getCreatedBy().getId().equals(user.getId());
+    if (isCreator) return true;
 
-    boolean matchesMember = c.getCommunityUsers() != null &&
-      c.getCommunityUsers().stream()
-        .anyMatch(cu -> cu.getUser() != null &&
-          cu.getUser().getEmail() != null &&
-          cu.getUser().getEmail().equalsIgnoreCase(reqEmailLower));
-
-    return matchesCreator || matchesMember;
+    List<CommunityUser> members = communityUserRepository.findByCommunityId(c.getId());
+    return members.stream()
+      .anyMatch(cu -> cu.getUser() != null && cu.getUser().getId().equals(user.getId()));
   }
 
-  private Map<String, Object> buildCommunityMap(Community c) {
+  private Map<String, Object> buildCommunityMap(Community c, User user) {
     Map<String, Object> m = new HashMap<>();
+
     m.put("communityId", c.getId());
     m.put("name", c.getName());
     m.put("description", c.getDescription());
+    m.put("role", getUserRole(c, user));
 
-    m.put("imageUrl", generatePresignedUrlSafely(c.getImageUrl()));
-    m.put("imageKey", c.getImageUrl());
-    m.put("bannerUrl", generatePresignedUrlSafely(c.getBannerUrl()));
+    setImageInfo(m, "image", c.getImageUrl());
+    setImageInfo(m, "banner", c.getBannerUrl());
 
     return m;
+  }
+
+  private String getUserRole(Community c, User user) {
+    if (c.getCreatedBy() != null && c.getCreatedBy().getId().equals(user.getId())) {
+      return "ADMIN";
+    }
+
+    return communityUserRepository.findByCommunityId(c.getId()).stream()
+      .filter(cu -> cu.getUser() != null && cu.getUser().getId().equals(user.getId()))
+      .map(cu -> cu.getRole().name())
+      .findFirst()
+      .orElse("MEMBER");
+  }
+
+  private void setImageInfo(Map<String, Object> map, String type, String key) {
+    String urlKey = type + "Url";
+    String keyName = type + "Key";
+
+    if (key == null || key.isBlank()) {
+      map.put(urlKey, null);
+      map.put(keyName, null);
+      return;
+    }
+
+    try {
+      String presigned = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1));
+      map.put(urlKey, presigned);
+    } catch (Exception e) {
+      map.put(urlKey, null);
+    }
+    map.put(keyName, key);
   }
 
   private String generatePresignedUrlSafely(String key) {

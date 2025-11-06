@@ -1,13 +1,12 @@
 package org.spacehub.entities.DirectMessaging;
 
 import jakarta.persistence.*;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-
 import java.time.LocalDateTime;
 
-@Getter
 @Entity
+@Data
 @Table(name = "messages")
 @NoArgsConstructor
 public class Message {
