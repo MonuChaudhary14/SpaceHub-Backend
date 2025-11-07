@@ -14,20 +14,20 @@ public class NewChatRoomController {
   private final NewChatRoomService newChatRoomService;
 
   public NewChatRoomController(NewChatRoomService newChatRoomService) {
-      this.newChatRoomService = newChatRoomService;
+    this.newChatRoomService = newChatRoomService;
   }
 
   @PostMapping("/create")
   public ApiResponse<NewChatRoom> createNewChatRoom(
-          @RequestParam String chatRoomCode,
-          @RequestParam String name
+    @RequestParam("roomCode") String roomCode,
+    @RequestParam("name") String name
   ) {
-    return newChatRoomService.createNewChatRoom(chatRoomCode, name);
+    return newChatRoomService.createNewChatRoom(roomCode, name);
   }
 
   @GetMapping("/list")
-  public ApiResponse<List<NewChatRoom>> getAllNewChatRooms(@RequestParam String chatRoomCode) {
-    return newChatRoomService.getAllNewChatRooms(chatRoomCode);
+  public ApiResponse<List<NewChatRoom>> getAllNewChatRooms(@RequestParam("roomCode") String roomCode) {
+    return newChatRoomService.getAllNewChatRooms(roomCode);
   }
 
   @GetMapping("/{newChatRoomCode}")

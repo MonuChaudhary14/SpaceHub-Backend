@@ -19,5 +19,7 @@ public interface IFriendService {
 
   String unblockUser(String userEmail, String blockedUserEmail);
 
+  String removeFriend(String userEmail, String friendEmail);
+
 }
 

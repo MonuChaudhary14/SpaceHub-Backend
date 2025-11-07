@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import org.spacehub.entities.User.User;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @NoArgsConstructor
@@ -14,8 +15,8 @@ import java.time.LocalDateTime;
 public class Friends {
 
   @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+  @GeneratedValue(strategy = GenerationType.AUTO)
+  private UUID id;
 
   @ManyToOne
   @JoinColumn(name = "user_id", nullable = false)

@@ -1,6 +1,8 @@
 package org.spacehub.controller;
 
-import org.spacehub.DTO.*;
+import org.spacehub.DTO.FriendRequest;
+import org.spacehub.DTO.RespondFriendRequest;
+import org.spacehub.DTO.BlockUnblock;
 import org.spacehub.DTO.User.UserEmail;
 import org.spacehub.DTO.User.UserOutput;
 import org.spacehub.entities.ApiResponse.ApiResponse;
@@ -94,6 +96,16 @@ public class FriendController {
       return ResponseEntity.ok(new ApiResponse<>(200, "Outgoing requests fetched successfully", outgoing));
     }
     catch (Exception e) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Error: " + e.getMessage()));
+    }
+  }
+
+  @PostMapping("/remove")
+  public ResponseEntity<ApiResponse<String>> removeFriend(@RequestBody BlockUnblock request) {
+    try {
+      String response = friendService.removeFriend(request.getUserEmail(), request.getFriendEmail());
+      return ResponseEntity.ok(new ApiResponse<>(200, response));
+    } catch (Exception e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Error: " + e.getMessage()));
     }
   }

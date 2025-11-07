@@ -1,6 +1,5 @@
 package org.spacehub.service.chatRoom;
 
-
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.ChatRoom.NewChatRoom;
@@ -23,8 +22,8 @@ public class NewChatRoomService {
     this.newChatRoomRepository = newChatRoomRepository;
   }
 
-  public ApiResponse<NewChatRoom> createNewChatRoom(String chatRoomCode, String name) {
-    Optional<ChatRoom> optionalChatRoom = chatRoomRepository.findByRoomCode(UUID.fromString(chatRoomCode));
+  public ApiResponse<NewChatRoom> createNewChatRoom(String roomCode, String name) {
+    Optional<ChatRoom> optionalChatRoom = chatRoomRepository.findByRoomCode(UUID.fromString(roomCode));
     if (optionalChatRoom.isEmpty()) {
       return new ApiResponse<>(404, "Group not found", null);
     }
@@ -32,11 +31,11 @@ public class NewChatRoomService {
     ChatRoom chatRoom = optionalChatRoom.get();
 
     NewChatRoom newChatRoom = NewChatRoom.builder()
-            .name(name)
-            .roomCode(UUID.randomUUID())
-            .createdAt(System.currentTimeMillis())
-            .chatRoom(chatRoom)
-            .build();
+      .name(name)
+      .roomCode(UUID.randomUUID())
+      .createdAt(System.currentTimeMillis())
+      .chatRoom(chatRoom)
+      .build();
 
     newChatRoomRepository.save(newChatRoom);
     chatRoom.getNewChatRooms().add(newChatRoom);
@@ -45,8 +44,8 @@ public class NewChatRoomService {
     return new ApiResponse<>(200, "New chat room created successfully", newChatRoom);
   }
 
-  public ApiResponse<List<NewChatRoom>> getAllNewChatRooms(String chatRoomCode) {
-    Optional<ChatRoom> optionalChatRoom = chatRoomRepository.findByRoomCode(UUID.fromString(chatRoomCode));
+  public ApiResponse<List<NewChatRoom>> getAllNewChatRooms(String roomCode) {
+    Optional<ChatRoom> optionalChatRoom = chatRoomRepository.findByRoomCode(UUID.fromString(roomCode));
     if (optionalChatRoom.isEmpty()) {
       return new ApiResponse<>(404, "ChatRoom not found", null);
     }
@@ -58,7 +57,7 @@ public class NewChatRoomService {
   public ApiResponse<NewChatRoom> getNewChatRoomByCode(String newChatRoomCode) {
     Optional<NewChatRoom> newChatRoom = newChatRoomRepository.findByRoomCode(UUID.fromString(newChatRoomCode));
     return newChatRoom.map(room -> new ApiResponse<>(200, "Fetched new chat room", room))
-            .orElseGet(() -> new ApiResponse<>(404, "NewChatRoom not found", null));
+      .orElseGet(() -> new ApiResponse<>(404, "NewChatRoom not found", null));
   }
 
   public Optional<NewChatRoom> getEntityByCode(UUID roomCode) {
