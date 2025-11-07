@@ -27,7 +27,7 @@ public class LocalGroupInvite {
     private String inviterEmail;
 
     @Column(unique = true, nullable = false)
-    private String inviteLink;
+    private String inviteCode;
 
     private int maxUses;
 

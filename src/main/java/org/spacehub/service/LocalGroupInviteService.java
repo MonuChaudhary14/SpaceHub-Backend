@@ -51,17 +51,17 @@ public class LocalGroupInviteService implements ILocalGroupInviteService {
             .localGroup(optionalGroup.get())
             .inviterEmail(request.getInviterEmail())
             .maxUses(request.getMaxUses())
-             .inviteLink(generateInviteCode())
+            .inviteCode(generateInviteCode())
             .expiresAt(LocalDateTime.now().plusHours(request.getExpiresInHours()))
             .createdAt(LocalDateTime.now())
             .build();
 
     inviteRepository.save(invite);
 
-    String inviteLink = String.format("https://codewithketan.me.localgroup/invite/%s/%s", groupId, invite.getInviteLink());
+    String inviteLink = String.format("https://codewithketan.me.localgroup/invite/%s/%s", groupId, invite.getInviteCode());
 
     LocalGroupInviteResponseDTO response = LocalGroupInviteResponseDTO.builder()
-            .inviteCode(invite.getInviteLink())
+            .inviteCode(invite.getInviteCode())
             .inviteLink(inviteLink)
             .groupId(groupId)
             .inviterEmail(invite.getInviterEmail())
@@ -180,8 +180,8 @@ public class LocalGroupInviteService implements ILocalGroupInviteService {
     List<LocalGroupInviteResponseDTO> invites = inviteRepository.findAll().stream()
             .filter(invite -> invite.getLocalGroup().getId().equals(groupId))
             .map(invite -> LocalGroupInviteResponseDTO.builder()
-                    .inviteCode(invite.getInviteLink())
-                    .inviteLink("https://codewithketan.me.localgroup/invite/" + groupId + "/" + invite.getInviteLink())
+                    .inviteCode(invite.getInviteCode())
+                    .inviteLink("https://codewithketan.me.localgroup/invite/" + groupId + "/" + invite.getInviteCode())
                     .groupId(groupId)
                     .inviterEmail(invite.getInviterEmail())
                     .maxUses(invite.getMaxUses())
