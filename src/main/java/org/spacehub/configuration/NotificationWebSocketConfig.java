@@ -10,22 +10,22 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 @EnableWebSocket
 public class NotificationWebSocketConfig implements WebSocketConfigurer{
 
-    private final NotificationWebSocketHandler notificationWebSocketHandler;
+  private final NotificationWebSocketHandler notificationWebSocketHandler;
 
-    public NotificationWebSocketConfig(NotificationWebSocketHandler notificationWebSocketHandler) {
-        this.notificationWebSocketHandler = notificationWebSocketHandler;
-    }
+  public NotificationWebSocketConfig(NotificationWebSocketHandler notificationWebSocketHandler) {
+    this.notificationWebSocketHandler = notificationWebSocketHandler;
+  }
 
-    @Override
-    public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(notificationWebSocketHandler, "/notification")
-                .setAllowedOrigins(
-                        "http://localhost:5173",
-                        "https://codewithketan.me",
-                        "https://space-hub-frontend.vercel.app",
-                        "https://www.spacehubx.me",
-                        "https://audio-room-tawny.vercel.app"
-                );
-    }
+  @Override
+  public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
+    registry.addHandler(notificationWebSocketHandler, "/notification")
+            .setAllowedOrigins(
+                    "http://localhost:5173",
+                    "https://codewithketan.me",
+                    "https://space-hub-frontend.vercel.app",
+                    "https://www.spacehubx.me",
+                    "https://audio-room-tawny.vercel.app"
+      );
+  }
 
 }
