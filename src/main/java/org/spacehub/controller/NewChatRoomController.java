@@ -11,27 +11,28 @@ import java.util.List;
 @RequestMapping("/api/v1/new-chatroom")
 public class NewChatRoomController {
 
-    private final NewChatRoomService newChatRoomService;
+  private final NewChatRoomService newChatRoomService;
 
-    public NewChatRoomController(NewChatRoomService newChatRoomService) {
-        this.newChatRoomService = newChatRoomService;
-    }
+  public NewChatRoomController(NewChatRoomService newChatRoomService) {
+      this.newChatRoomService = newChatRoomService;
+  }
 
-    @PostMapping("/create")
-    public ApiResponse<NewChatRoom> createNewChatRoom(
-            @RequestParam String chatRoomCode,
-            @RequestParam String name
-    ) {
-        return newChatRoomService.createNewChatRoom(chatRoomCode, name);
-    }
+  @PostMapping("/create")
+  public ApiResponse<NewChatRoom> createNewChatRoom(
+          @RequestParam String chatRoomCode,
+          @RequestParam String name
+  ) {
+    return newChatRoomService.createNewChatRoom(chatRoomCode, name);
+  }
 
-    @GetMapping("/list")
-    public ApiResponse<List<NewChatRoom>> getAllNewChatRooms(@RequestParam String chatRoomCode) {
-        return newChatRoomService.getAllNewChatRooms(chatRoomCode);
-    }
+  @GetMapping("/list")
+  public ApiResponse<List<NewChatRoom>> getAllNewChatRooms(@RequestParam String chatRoomCode) {
+    return newChatRoomService.getAllNewChatRooms(chatRoomCode);
+  }
 
-    @GetMapping("/{newChatRoomCode}")
-    public ApiResponse<NewChatRoom> getNewChatRoomByCode(@PathVariable String newChatRoomCode) {
-        return newChatRoomService.getNewChatRoomByCode(newChatRoomCode);
-    }
+  @GetMapping("/{newChatRoomCode}")
+  public ApiResponse<NewChatRoom> getNewChatRoomByCode(@PathVariable String newChatRoomCode) {
+    return newChatRoomService.getNewChatRoomByCode(newChatRoomCode);
+  }
+
 }

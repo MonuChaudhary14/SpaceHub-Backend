@@ -5,8 +5,6 @@ import org.spacehub.entities.ChatRoom.ChatRoomUser;
 import org.spacehub.entities.Community.Role;
 import org.spacehub.repository.ChatRoom.ChatRoomUserRepository;
 import org.spacehub.service.Interface.IChatRoomUserService;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -22,7 +20,6 @@ public class ChatRoomUserService implements IChatRoomUserService {
     this.chatRoomUserRepository = chatRoomUserRepository;
   }
 
-  @CacheEvict(value = "roomMembers", key = "#room.id")
   public void addUserToRoom(ChatRoom room, String email, Role role) {
     if (getUserInRoom(room, email).isEmpty()) {
       ChatRoomUser roomUser = new ChatRoomUser();
@@ -33,22 +30,18 @@ public class ChatRoomUserService implements IChatRoomUserService {
     }
   }
 
-  @CacheEvict(value = "roomMembers", key = "#room.id")
   public void removeUserFromRoom(ChatRoom room, String email) {
     chatRoomUserRepository.deleteByRoomAndEmail(room, email);
   }
 
-  @Cacheable(value = "roomMembers", key = "#room.id")
   public List<ChatRoomUser> getMembers(ChatRoom room) {
     return chatRoomUserRepository.findByRoom(room);
   }
 
-  @Cacheable(value = "roomUser", key = "#room.id + '_' + #email")
   public Optional<ChatRoomUser> getUserInRoom(ChatRoom room, String email) {
     return chatRoomUserRepository.findByRoomAndEmail(room, email);
   }
 
-  @CacheEvict(value = "roomMembers", key = "#user.room.id")
   public void saveUser(ChatRoomUser user) {
     chatRoomUserRepository.save(user);
   }

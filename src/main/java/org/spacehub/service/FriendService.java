@@ -8,8 +8,6 @@ import org.spacehub.entities.User.User;
 import org.spacehub.repository.FriendsRepository;
 import org.spacehub.repository.UserRepository;
 import org.spacehub.service.Interface.IFriendService;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -31,7 +29,6 @@ public class FriendService implements IFriendService {
     this.notificationService = notificationService;
   }
 
-  @CacheEvict(value = {"outgoingRequests"}, allEntries = true)
   public String sendFriendRequest(String userEmail, String friendEmail) {
 
     if (userEmail.equalsIgnoreCase(friendEmail)) {
@@ -66,7 +63,6 @@ public class FriendService implements IFriendService {
     return "Friend request sent successfully.";
   }
 
-  @CacheEvict(value = {"incomingRequests"}, allEntries = true)
   public String respondFriendRequest(String userEmail, String requesterEmail, boolean accept) {
     if (userEmail.equalsIgnoreCase(requesterEmail)) {
       return "Invalid operation.";
@@ -121,7 +117,6 @@ public class FriendService implements IFriendService {
     }
   }
 
-  @Cacheable(value = "friends", key = "#userEmail")
   public List<UserOutput> getFriends(String userEmail) {
     User user = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new RuntimeException("User not found"));
@@ -150,7 +145,6 @@ public class FriendService implements IFriendService {
     return friendsList;
   }
 
-  @CacheEvict(value = {"friends", "incomingRequests"}, allEntries = true)
   public String blockFriend(String userEmail, String friendEmail) {
 
     if (userEmail.equalsIgnoreCase(friendEmail)) {
@@ -179,7 +173,6 @@ public class FriendService implements IFriendService {
     return "User blocked successfully.";
   }
 
-  @Cacheable(value = "incomingRequests", key = "#userEmail")
   public List<UserOutput> getIncomingPendingRequests(String userEmail) {
     User user = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new RuntimeException("User not found"));
@@ -196,7 +189,6 @@ public class FriendService implements IFriendService {
             .collect(Collectors.toList());
   }
 
-  @Cacheable(value = "outgoingRequests", key = "#userEmail")
   public List<UserOutput> getOutgoingPendingRequests(String userEmail) {
     User user = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new RuntimeException("User not found"));
@@ -213,7 +205,6 @@ public class FriendService implements IFriendService {
             .collect(Collectors.toList());
   }
 
-  @CacheEvict(value = {"friends", "outgoingRequests"}, allEntries = true)
   public String unblockUser(String userEmail, String blockedUserEmail) {
     if (userEmail.equalsIgnoreCase(blockedUserEmail)) {
       return "You cannot unblock yourself.";

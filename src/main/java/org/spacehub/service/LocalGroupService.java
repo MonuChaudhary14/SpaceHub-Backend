@@ -206,7 +206,9 @@ public class LocalGroupService implements ILocalGroupService {
   }
 
   private void validateImage(MultipartFile file) {
-    if (file.isEmpty()) throw new RuntimeException("File is empty");
+    if (file.isEmpty()) {
+      throw new RuntimeException("File is empty");
+    }
 
     if (file.getSize() > 2 * 1024 * 1024)
       throw new RuntimeException("File size exceeds 2 MB");
