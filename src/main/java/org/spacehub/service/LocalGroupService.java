@@ -202,8 +202,23 @@ public class LocalGroupService implements ILocalGroupService {
     }
     List<String> memberEmails = g.getMembers().stream().map(User::getEmail).collect(Collectors.toList());
     r.setMemberEmails(memberEmails);
+
+    String key = g.getImageUrl();
+    if (key != null && !key.isBlank()) {
+      try {
+        String presigned = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1));
+        r.setImageUrl(presigned);
+      } catch (Exception ignored) {
+        r.setImageUrl(null);
+      }
+      r.setImageKey(key);
+    } else {
+      r.setImageUrl(null);
+      r.setImageKey(null);
+    }
     return r;
   }
+
 
   private void validateImage(MultipartFile file) {
     if (file.isEmpty()) {
