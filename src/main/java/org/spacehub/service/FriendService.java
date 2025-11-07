@@ -129,7 +129,8 @@ public class FriendService implements IFriendService {
                     friend.getFriend().getId(),
                     friend.getFriend().getFirstName(),
                     friend.getFriend().getLastName(),
-                    friend.getFriend().getEmail()
+                    friend.getFriend().getEmail(),
+                    friend.getFriend().getAvatarUrl()
             ))
             .collect(Collectors.toList());
 
@@ -138,7 +139,8 @@ public class FriendService implements IFriendService {
                     friend.getUser().getId(),
                     friend.getUser().getFirstName(),
                     friend.getUser().getLastName(),
-                    friend.getUser().getEmail()
+                    friend.getUser().getEmail(),
+                    friend.getUser().getAvatarUrl()
             ))
             .toList());
 
@@ -184,7 +186,8 @@ public class FriendService implements IFriendService {
                     f.getUser().getId(),
                     f.getUser().getFirstName(),
                     f.getUser().getLastName(),
-                    f.getUser().getEmail()
+                    f.getUser().getEmail(),
+                    f.getUser().getAvatarUrl()
             ))
             .collect(Collectors.toList());
   }
@@ -200,7 +203,8 @@ public class FriendService implements IFriendService {
                     f.getFriend().getId(),
                     f.getFriend().getFirstName(),
                     f.getFriend().getLastName(),
-                    f.getFriend().getEmail()
+                    f.getFriend().getEmail(),
+                    f.getUser().getAvatarUrl()
             ))
             .collect(Collectors.toList());
   }
