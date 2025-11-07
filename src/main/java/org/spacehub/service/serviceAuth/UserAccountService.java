@@ -160,9 +160,14 @@ public class UserAccountService implements IUserAccountService {
       return new ApiResponse<>(400, "Only registration OTP can be validated here.", null);
     }
 
+    String providedSessionToken = request.getSessionToken();
+    String savedSessionToken = redisService.getValue("REGISTRATION_SESSION_" + email);
+    if (savedSessionToken == null || !savedSessionToken.equals(providedSessionToken)) {
+      return new ApiResponse<>(403, "Invalid or expired registration session token", null);
+    }
+
     if (otpService.isBlocked(email, type)) {
-      return new ApiResponse<>(429, "Too many invalid OTP attempts. Try again later.",
-        null);
+      return new ApiResponse<>(429, "Too many invalid OTP attempts. Try again later.", null);
     }
 
     if (otpService.isUsed(email, type)) {
