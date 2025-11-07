@@ -43,6 +43,8 @@ public class LocalGroupInvite {
     @PrePersist
     public void onCreate() {
         createdAt = LocalDateTime.now();
+        expiresAt = createdAt.plusHours(72);
+        maxUses = 100;
     }
 
 }
