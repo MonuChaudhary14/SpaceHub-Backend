@@ -287,22 +287,19 @@ public class UserAccountService implements IUserAccountService {
     return new ApiResponse<>(200, "Logout successful", null);
   }
 
-  private ApiResponse<?> handleRegistrationOTP(String email) {
+  private ApiResponse<TokenResponse> handleRegistrationOTP(String email) {
     try {
       RegistrationRequest tempRequest = otpService.getTempOtp(email);
       if (tempRequest == null) {
         return new ApiResponse<>(400, "Registration session expired or not found", null);
       }
 
-      User existingUser = null;
       try {
-        existingUser = userService.getUserByEmail(email);
-      }
-      catch (Exception ignored) {
-      }
-
-      if (existingUser != null) {
-        return new ApiResponse<>(400, "User already registered", null);
+        User existingUser = userService.getUserByEmail(email);
+        if (existingUser != null) {
+          return new ApiResponse<>(400, "User already registered", null);
+        }
+      } catch (Exception ignored) {
       }
 
       User newUser = new User();
@@ -321,13 +318,19 @@ public class UserAccountService implements IUserAccountService {
       otpService.deleteOTP(email, OtpType.REGISTRATION);
       otpService.deleteRegistrationSessionToken(email);
 
-      return new ApiResponse<>(200, "Registration verified successfully", null);
+      TokenResponse tokens = verificationService.generateTokens(newUser);
+      if (tokens == null) {
+        return new ApiResponse<>(500, "Failed to generate tokens", null);
+      }
+
+      return new ApiResponse<>(200, "Registration verified successfully", tokens);
 
     } catch (Exception e) {
       return new ApiResponse<>(500, "Registration verification failed: " + e.getMessage(),
         null);
     }
   }
+
 
   public ApiResponse<String> resendOTP(String email, String sessionToken) {
     if (email == null || sessionToken == null) {
