@@ -6,6 +6,7 @@ import org.spacehub.service.chatRoom.NewChatRoomService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/new-chatroom")
@@ -33,6 +34,11 @@ public class NewChatRoomController {
   @GetMapping("/{newChatRoomCode}")
   public ApiResponse<NewChatRoom> getNewChatRoomByCode(@PathVariable String newChatRoomCode) {
     return newChatRoomService.getNewChatRoomByCode(newChatRoomCode);
+  }
+
+  @GetMapping("/list/summary")
+  public ApiResponse<List<Map<String, Object>>> getAllNewChatRoomsSummary(@RequestParam("roomCode") String roomCode) {
+    return newChatRoomService.getAllNewChatRoomsSummary(roomCode);
   }
 
 }

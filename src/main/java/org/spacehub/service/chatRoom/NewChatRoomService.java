@@ -7,9 +7,12 @@ import org.spacehub.repository.ChatRoom.ChatRoomRepository;
 import org.spacehub.repository.ChatRoom.NewChatRoomRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class NewChatRoomService {
@@ -63,5 +66,30 @@ public class NewChatRoomService {
   public Optional<NewChatRoom> getEntityByCode(UUID roomCode) {
     return newChatRoomRepository.findByRoomCode(roomCode);
   }
+
+  public ApiResponse<List<Map<String, Object>>> getAllNewChatRoomsSummary(String roomCode) {
+    try {
+      Optional<ChatRoom> optionalChatRoom = chatRoomRepository.findByRoomCode(UUID.fromString(roomCode));
+      if (optionalChatRoom.isEmpty()) {
+        return new ApiResponse<>(404, "ChatRoom not found", null);
+      }
+
+      List<NewChatRoom> list = newChatRoomRepository.findByChatRoom(optionalChatRoom.get());
+
+      List<Map<String, Object>> out = list.stream().map(ncr -> {
+        Map<String, Object> m = new HashMap<>();
+        m.put("chatRoomCode", ncr.getRoomCode().toString());
+        m.put("name", ncr.getName());
+        return m;
+      }).collect(Collectors.toList());
+
+      return new ApiResponse<>(200, "Fetched new chat rooms summary", out);
+    } catch (IllegalArgumentException e) {
+      return new ApiResponse<>(400, "Invalid roomCode", null);
+    } catch (Exception e) {
+      return new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null);
+    }
+  }
+
 
 }
