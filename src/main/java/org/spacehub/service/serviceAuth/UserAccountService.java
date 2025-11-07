@@ -149,47 +149,68 @@ public class UserAccountService implements IUserAccountService {
 
   public ApiResponse<?> validateOTP(OTPRequest request) {
 
-    if (request.getEmail() == null || request.getOtp() == null || request.getType() == null) {
-      return new ApiResponse<>(400, "Email, OTP, and OTP type are required.", null);
+    ApiResponse<?> validationError = validateOTPRequest(request);
+    if (validationError != null) {
+      return validationError;
     }
 
     String email = emailValidator.normalize(request.getEmail());
     OtpType type = request.getType();
 
-    if (type != OtpType.REGISTRATION) {
-      return new ApiResponse<>(400, "Only registration OTP can be validated here.", null);
+    ApiResponse<?> sessionCheck = verifySessionToken(email, request.getSessionToken());
+    if (sessionCheck != null) {
+      return sessionCheck;
     }
 
-    String providedSessionToken = request.getSessionToken();
-    String savedSessionToken = redisService.getValue("REGISTRATION_SESSION_" + email);
-    if (savedSessionToken == null || !savedSessionToken.equals(providedSessionToken)) {
-      return new ApiResponse<>(403, "Invalid or expired registration session token", null);
-    }
-
-    if (otpService.isBlocked(email, type)) {
-      return new ApiResponse<>(429, "Too many invalid OTP attempts. Try again later.", null);
-    }
-
-    if (otpService.isUsed(email, type)) {
-      return new ApiResponse<>(400, "OTP has already been used", null);
+    ApiResponse<?> otpStatusCheck = checkOtpStatus(email, type);
+    if (otpStatusCheck != null) {
+      return otpStatusCheck;
     }
 
     boolean valid = otpService.validateOTP(email, request.getOtp(), type);
     if (!valid) {
-      long attempts = otpService.incrementOtpAttempts(email, type);
-      if (attempts >= 3) {
-        otpService.blockOtp(email, type);
-        return new ApiResponse<>(429, "Too many invalid attempts. Please request a new OTP.",
-          null);
-      }
-
-      return new ApiResponse<>(400, "Invalid or expired OTP. Attempts left: " + (3 - attempts),
-        null);
+      return handleInvalidOtp(email, type);
     }
 
     otpService.markAsUsed(email, request.getOtp(), type);
-
     return handleRegistrationOTP(email);
+  }
+
+  private ApiResponse<?> validateOTPRequest(OTPRequest request) {
+    if (request.getEmail() == null || request.getOtp() == null || request.getType() == null) {
+      return new ApiResponse<>(400, "Email, OTP, and OTP type are required.", null);
+    }
+    if (request.getType() != OtpType.REGISTRATION) {
+      return new ApiResponse<>(400, "Only registration OTP can be validated here.", null);
+    }
+    return null;
+  }
+
+  private ApiResponse<?> verifySessionToken(String email, String providedToken) {
+    String savedToken = redisService.getValue("REGISTRATION_SESSION_" + email);
+    if (savedToken == null || !savedToken.equals(providedToken)) {
+      return new ApiResponse<>(403, "Invalid or expired registration session token", null);
+    }
+    return null;
+  }
+
+  private ApiResponse<?> checkOtpStatus(String email, OtpType type) {
+    if (otpService.isBlocked(email, type)) {
+      return new ApiResponse<>(429, "Too many invalid OTP attempts. Try again later.", null);
+    }
+    if (otpService.isUsed(email, type)) {
+      return new ApiResponse<>(400, "OTP has already been used", null);
+    }
+    return null;
+  }
+
+  private ApiResponse<?> handleInvalidOtp(String email, OtpType type) {
+    long attempts = otpService.incrementOtpAttempts(email, type);
+    if (attempts >= 3) {
+      otpService.blockOtp(email, type);
+      return new ApiResponse<>(429, "Too many invalid attempts. Please request a new OTP.", null);
+    }
+    return new ApiResponse<>(400, "Invalid or expired OTP. Attempts left: " + (3 - attempts), null);
   }
 
   public ApiResponse<String> forgotPassword(String email) {
