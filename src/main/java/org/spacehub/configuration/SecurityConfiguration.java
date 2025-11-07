@@ -78,6 +78,7 @@ public class SecurityConfiguration {
                                         "/chat",
                                         "/chat/**",
                                         "/files/**",
+                                        "/notification/**",
                                         "/wss/**"
 //                      "/api/v1/login",
 //                      "/api/v1/registration",

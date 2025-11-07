@@ -2,6 +2,7 @@ package org.spacehub.service;
 
 import lombok.RequiredArgsConstructor;
 import org.spacehub.entities.Notification.NotificationType;
+import org.spacehub.handler.NotificationWebSocketHandler;
 import org.spacehub.service.Interface.INotificationService;
 import org.spacehub.DTO.Notification.NotificationRequestDTO;
 import org.spacehub.DTO.Notification.NotificationResponseDTO;
@@ -28,7 +29,7 @@ public class NotificationService implements INotificationService {
   private final NotificationRepository notificationRepository;
   private final UserRepository userRepository;
   private final CommunityRepository communityRepository;
-  private final SimpMessagingTemplate messagingTemplate;
+  private final NotificationWebSocketHandler notificationWebSocketHandler;
 
   @Override
   public void createNotification(NotificationRequestDTO request) {
@@ -90,7 +91,7 @@ public class NotificationService implements INotificationService {
 
     notificationRepository.save(notification);
     NotificationResponseDTO dto = mapToDTO(notification);
-    messagingTemplate.convertAndSend("/topic/notifications/" + request.getEmail(), dto);
+    notificationWebSocketHandler.sendNotification(request.getEmail(), dto);
   }
 
 
