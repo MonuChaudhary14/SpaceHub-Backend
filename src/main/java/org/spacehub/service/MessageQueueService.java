@@ -48,5 +48,4 @@ public class MessageQueueService {
             queue.addAll(batch);
         }
     }
-
 }

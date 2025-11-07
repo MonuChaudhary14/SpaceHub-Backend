@@ -13,28 +13,25 @@ import java.util.List;
 @RequestMapping("/api/v1/messages")
 public class MessageController {
 
-  private final IMessageService service;
-  private final SimpMessagingTemplate messagingTemplate;
+  private final IMessageService messageService;
 
-  public MessageController(IMessageService service, SimpMessagingTemplate messagingTemplate) {
-    this.service = service;
-    this.messagingTemplate = messagingTemplate;
+  public MessageController(IMessageService messageService) {
+    this.messageService = messageService;
   }
 
   @GetMapping("/chat")
   public List<Message> getChat(@RequestParam String user1, @RequestParam String user2) {
-    return service.getChat(user1, user2);
+    return messageService.getChat(user1, user2);
   }
 
-  @MessageMapping("/chat.send")
-  public void sendMessage(Message message, Principal principal) {
-    message.setSenderEmail(principal.getName());
+  @GetMapping("/user")
+  public List<Message> getAllMessagesForUser(@RequestParam String email) {
+    return messageService.getAllMessagesForUser(email);
+  }
 
-    Message saved = service.saveMessage(message);
-
-    messagingTemplate.convertAndSendToUser(saved.getReceiverEmail(), "/queue/messages", saved);
-
-    messagingTemplate.convertAndSendToUser(saved.getSenderEmail(), "/queue/messages", saved);
+  @GetMapping("/partners")
+  public List<String> getAllChatPartners(@RequestParam String email) {
+    return messageService.getAllChatPartners(email);
   }
 
 }
