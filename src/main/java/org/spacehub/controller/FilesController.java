@@ -62,4 +62,25 @@ public class FilesController {
     s3Service.deleteFile(key);
     return ResponseEntity.ok(new ApiResponse<>(200, "File deleted successfully", key));
   }
+
+  @PostMapping("/upload-and-get-url")
+  public ResponseEntity<ApiResponse<Map<String, String>>> uploadFileAndGetUrl(
+          @RequestParam("file") MultipartFile file) throws IOException {
+
+    String key = s3Service.generateFileKey(file.getOriginalFilename());
+
+    s3Service.uploadFile(key, file.getInputStream(), file.getSize());
+
+    String fileUrl = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(24));
+
+    Map<String, String> response = Map.of(
+            "fileName", file.getOriginalFilename(),
+            "fileKey", key,
+            "fileUrl", fileUrl,
+            "contentType", file.getContentType()
+    );
+
+    return ResponseEntity.ok(new ApiResponse<>(200, "File uploaded successfully", response));
+  }
+
 }

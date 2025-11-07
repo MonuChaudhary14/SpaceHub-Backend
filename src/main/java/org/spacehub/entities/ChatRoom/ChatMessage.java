@@ -21,6 +21,10 @@ public class ChatMessage {
 
   private Long timestamp;
 
+  private String fileName;
+  private String fileUrl;
+  private String contentType;
+
   @ManyToOne
   @JoinColumn(name = "new_chat_room_id")
   private NewChatRoom newChatRoom;
