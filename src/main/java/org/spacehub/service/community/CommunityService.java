@@ -27,8 +27,6 @@ import org.spacehub.DTO.Community.CommunityBlockRequest;
 import org.spacehub.DTO.Community.UpdateCommunityDTO;
 import org.spacehub.service.S3Service;
 import org.spacehub.service.community.CommunityInterfaces.ICommunityService;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.CachePut;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -73,7 +71,6 @@ public class CommunityService implements ICommunityService {
     this.s3Service = s3Service;
   }
 
-  @CacheEvict(value = {"communities"}, allEntries = true)
   public ResponseEntity<ApiResponse<Map<String, Object>>> createCommunity(
     String name, String description, String createdByEmail, MultipartFile imageFile) {
 
@@ -161,64 +158,34 @@ public class CommunityService implements ICommunityService {
     communityRepository.save(community);
   }
 
-  @CacheEvict(value = {"communities"}, key = "#deleteCommunity.name")
   public ResponseEntity<ApiResponse<Void>> deleteCommunityByName(@RequestBody DeleteCommunityDTO deleteCommunity) {
+    try {
+      Community community = findCommunityByName(deleteCommunity.getName());
+      User user = findUserByEmail(deleteCommunity.getUserEmail());
 
-    String name = deleteCommunity.getName();
-    String userEmail = deleteCommunity.getUserEmail();
-
-    Community community = communityRepository.findByName(name);
-    if (community == null) {
-      return ResponseEntity.badRequest().body(
-        new ApiResponse<>(400, "Community not found", null)
-      );
-    }
-
-    Optional<User> userOptional = userRepository.findByEmail(userEmail);
-    if (userOptional.isEmpty()) {
-      return ResponseEntity.badRequest().body(
-        new ApiResponse<>(400, "User not found", null)
-      );
-    }
-
-    User user = userOptional.get();
-
-    if (!community.getCreatedBy().getId().equals(user.getId())) {
-      return ResponseEntity.status(403).body(
-        new ApiResponse<>(403, "You are not authorized to delete this community", null)
-      );
-    }
-
-    communityRepository.delete(community);
-
-    return ResponseEntity.ok(
-      new ApiResponse<>(200, "Community deleted successfully", null)
-    );
-  }
-
-  @CachePut(value = "communities", key = "#joinCommunity.communityName")
-  public ResponseEntity<ApiResponse<?>> requestToJoinCommunity(@RequestBody JoinCommunity joinCommunity) {
-
-    if (joinCommunity.getCommunityName() == null || joinCommunity.getCommunityName().isEmpty() ||
-      joinCommunity.getUserEmail() == null || joinCommunity.getUserEmail().isEmpty()) {
-
-      return ResponseEntity.badRequest().body(
-        new ApiResponse<>(400, "Check the fields")
-      );
-    }
-
-    Community community = communityRepository.findByName(joinCommunity.getCommunityName());
-
-    if (community != null) {
-      Optional<User> optionalUser = userRepository.findByEmail(joinCommunity.getUserEmail());
-
-      if (optionalUser.isEmpty()) {
-        return ResponseEntity.badRequest().body(
-          new ApiResponse<>(400, "User not found")
+      if (!community.getCreatedBy().getId().equals(user.getId())) {
+        return ResponseEntity.status(403).body(
+          new ApiResponse<>(403, "You are not authorized to delete this community", null)
         );
       }
 
-      User user = optionalUser.get();
+      communityRepository.delete(community);
+      return ResponseEntity.ok(
+        new ApiResponse<>(200, "Community deleted successfully", null)
+      );
+
+    } catch (IllegalArgumentException e) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
+    } catch (Exception e) {
+      return ResponseEntity.internalServerError()
+        .body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
+    }
+  }
+
+  public ResponseEntity<ApiResponse<?>> requestToJoinCommunity(@RequestBody JoinCommunity joinCommunity) {
+    try {
+      Community community = findCommunityByName(joinCommunity.getCommunityName());
+      User user = findUserByEmail(joinCommunity.getUserEmail());
 
       boolean isAlreadyMember = community.getCommunityUsers().stream()
         .anyMatch(cu -> cu.getUser().getId().equals(user.getId()));
@@ -235,56 +202,41 @@ public class CommunityService implements ICommunityService {
       return ResponseEntity.ok().body(
         new ApiResponse<>(200, "Request send to community")
       );
-    } else {
-      return ResponseEntity.badRequest().body(
-        new ApiResponse<>(400, "Community not found")
-      );
+
+    } catch (IllegalArgumentException e) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
+    } catch (Exception e) {
+      return ResponseEntity.internalServerError()
+        .body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
     }
   }
 
-  @CacheEvict(value = "communities", key = "#cancelJoinRequest.communityName")
   public ResponseEntity<ApiResponse<?>> cancelRequestCommunity(@RequestBody CancelJoinRequest cancelJoinRequest) {
+    try {
+      Community community = findCommunityByName(cancelJoinRequest.getCommunityName());
+      User user = findUserByEmail(cancelJoinRequest.getUserEmail());
 
-    String communityName = cancelJoinRequest.getCommunityName();
-    String userEmail = cancelJoinRequest.getUserEmail();
+      if (!community.getPendingRequests().contains(user)) {
+        return ResponseEntity.status(403).body(
+          new ApiResponse<>(403, "No join request found for this user in the community", null)
+        );
+      }
 
-    if (communityName == null || communityName.isBlank() || userEmail == null || userEmail.isBlank()) {
-      return ResponseEntity.badRequest().body(
-        new ApiResponse<>(400, "Both communityName and userEmail are required", null)
+      community.getPendingRequests().remove(user);
+      communityRepository.save(community);
+
+      return ResponseEntity.ok(
+        new ApiResponse<>(200, "Cancelled the join request successfully", null)
       );
+
+    } catch (IllegalArgumentException e) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
+    } catch (Exception e) {
+      return ResponseEntity.internalServerError()
+        .body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
     }
-
-    Community community = communityRepository.findByName(communityName);
-    if (community == null) {
-      return ResponseEntity.badRequest().body(
-        new ApiResponse<>(400, "Community not found", null)
-      );
-    }
-
-    Optional<User> optionalUser = userRepository.findByEmail(userEmail);
-    if (optionalUser.isEmpty()) {
-      return ResponseEntity.badRequest().body(
-        new ApiResponse<>(400, "User not found", null)
-      );
-    }
-
-    User user = optionalUser.get();
-
-    if (!community.getPendingRequests().contains(user)) {
-      return ResponseEntity.status(403).body(
-        new ApiResponse<>(403, "No join request found for this user in the community", null)
-      );
-    }
-
-    community.getPendingRequests().remove(user);
-    communityRepository.save(community);
-
-    return ResponseEntity.ok(
-      new ApiResponse<>(200, "Cancelled the join request successfully", null)
-    );
   }
 
-  @CacheEvict(value = "communities", key = "#acceptRequest.communityName")
   public ResponseEntity<ApiResponse<?>> acceptRequest(AcceptRequest acceptRequest) {
     if (isEmpty(acceptRequest.getUserEmail(), acceptRequest.getCommunityName(), acceptRequest.getCreatorEmail())) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Check the fields"));
@@ -347,7 +299,6 @@ public class CommunityService implements ICommunityService {
     return false;
   }
 
-  @CacheEvict(value = "communities", key = "#leaveCommunity.communityName")
   public ResponseEntity<?> leaveCommunity(LeaveCommunity leaveCommunity) {
     if (isInvalidLeaveRequest(leaveCommunity)) {
       return badRequest("Check the fields");
@@ -402,7 +353,6 @@ public class CommunityService implements ICommunityService {
       null));
   }
 
-  @CacheEvict(value = "communities", key = "#rejectRequest.communityName")
   public ResponseEntity<?> rejectRequest(RejectRequest rejectRequest) {
 
     ResponseEntity<ApiResponse<Object>> validationResponse = validateRejectRequest(rejectRequest);
@@ -500,7 +450,6 @@ public class CommunityService implements ICommunityService {
     );
   }
 
-  @CacheEvict(value = "communities", allEntries = true)
   public ResponseEntity<ApiResponse<String>> removeMemberFromCommunity(CommunityMemberRequest request) {
 
     if (request.getCommunityId() == null || request.getUserEmail() == null ||
@@ -1214,7 +1163,6 @@ public class CommunityService implements ICommunityService {
     }
   }
 
-  @CacheEvict(value = "communities", allEntries = true)
   @Override
   public ResponseEntity<?> uploadCommunityBanner(
     UUID communityId,
@@ -1275,7 +1223,9 @@ public class CommunityService implements ICommunityService {
 
   private void uploadCommunityAvatar(Community community, MultipartFile file, String safeName,
                                      Map<String, Object> body) throws IOException {
-    if (file == null || file.isEmpty()) return;
+    if (file == null || file.isEmpty()) {
+      return;
+    }
 
     String avatarKey = uploadAndReturnKey(file, "communities/" + safeName + "/avatar/");
     community.setImageUrl(avatarKey);
@@ -1285,7 +1235,9 @@ public class CommunityService implements ICommunityService {
 
   private void uploadCommunityBanner(Community community, MultipartFile file, String safeName,
                                      Map<String, Object> body) throws IOException {
-    if (file == null || file.isEmpty()) return;
+    if (file == null || file.isEmpty()) {
+      return;
+    }
 
     String bannerKey = uploadAndReturnKey(file, "communities/" + safeName + "/banner/");
     community.setBannerUrl(bannerKey);
@@ -1294,7 +1246,9 @@ public class CommunityService implements ICommunityService {
   }
 
   private void uploadUserAvatar(User requester, MultipartFile file, Map<String, Object> body) throws IOException {
-    if (file == null || file.isEmpty()) return;
+    if (file == null || file.isEmpty()) {
+      return;
+    }
 
     String userKey = uploadAndReturnKey(file, "users/" + requester.getId() + "/avatar/");
     requester.setAvatarUrl(userKey);

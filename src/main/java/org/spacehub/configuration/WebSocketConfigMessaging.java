@@ -27,6 +27,6 @@ public class WebSocketConfigMessaging implements WebSocketConfigurer {
                     "http://localhost:5500",
                     "http://127.0.0.1:5500",
                     "http://localhost:8080"
-            );
+      );
   }
 }

@@ -22,50 +22,34 @@ public class JanusService {
   private String janusUrl;
 
   private final RestTemplate restTemplate = new RestTemplate();
-  private final ExecutorService pollExecutor = Executors.newCachedThreadPool();
   private final ConcurrentMap<String, Future<?>> pollingTasks = new ConcurrentHashMap<>();
+
+  ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
   public void startEventPolling(String sessionId, Consumer<JsonNode> onEvent) {
     if (pollingTasks.containsKey(sessionId)) {
-      logger.warn("Polling for session {} already active.", sessionId);
       return;
     }
 
-    String sessionUrl = String.format("%s/%s", janusUrl, sessionId);
-
-    Future<?> future = pollExecutor.submit(() -> {
-      logger.info("Started Janus poll for session={}", sessionId);
-      while (!Thread.currentThread().isInterrupted()) {
-        try {
-          ResponseEntity<JsonNode> resp = restTemplate.getForEntity(sessionUrl, JsonNode.class);
-          JsonNode body = resp.getBody();
-
-          if (body != null && !body.isNull()) {
-            if (body.isArray()) {
-              for (JsonNode event : body) {
-                onEvent.accept(event);
-              }
-            } else {
-              onEvent.accept(body);
-            }
+    Runnable pollTask = () -> {
+      try {
+        ResponseEntity<JsonNode> resp = restTemplate.getForEntity(janusUrl + "/" + sessionId, JsonNode.class);
+        JsonNode body = resp.getBody();
+        if (body != null && !body.isNull()) {
+          if (body.isArray()) {
+            body.forEach(onEvent);
           }
-        } catch (Exception e) {
-          if (Thread.currentThread().isInterrupted()) {
-            break;
-          }
-          logger.error("Error polling Janus for session {}: {}", sessionId, e.getMessage());
-          try {
-            Thread.sleep(500);
-          } catch (InterruptedException ie) {
-            Thread.currentThread().interrupt();
-          }
+          else onEvent.accept(body);
         }
+      } catch (Exception e) {
+        logger.error("Error polling Janus: {}", e.getMessage());
       }
-      logger.info("Stopping Janus poll for session={}", sessionId);
-    });
+    };
 
+    ScheduledFuture<?> future = scheduler.scheduleAtFixedRate(pollTask, 0, 500, TimeUnit.MILLISECONDS);
     pollingTasks.put(sessionId, future);
   }
+
 
   public void stopEventPolling(String sessionId) {
     Future<?> f = pollingTasks.remove(sessionId);
@@ -158,4 +142,5 @@ public class JanusService {
     String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
     restTemplate.postForEntity(handleUrl, request, JsonNode.class);
   }
+
 }
