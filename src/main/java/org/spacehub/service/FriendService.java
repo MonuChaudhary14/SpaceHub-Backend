@@ -227,4 +227,35 @@ public class FriendService implements IFriendService {
       return "No blocked user found.";
     }
   }
+
+  public String removeFriend(String userEmail, String friendEmail) {
+    if (userEmail == null || friendEmail == null) {
+      throw new RuntimeException("Both userEmail and friendEmail are required");
+    }
+
+    if (userEmail.equalsIgnoreCase(friendEmail)) {
+      return "Invalid operation: cannot remove yourself.";
+    }
+
+    User user = userRepository.findByEmail(userEmail)
+      .orElseThrow(() -> new RuntimeException("User not found"));
+    User friend = userRepository.findByEmail(friendEmail)
+      .orElseThrow(() -> new RuntimeException("Friend not found"));
+
+    Optional<Friends> rel = friendsRepository.findByUserAndFriend(user, friend);
+
+    if (rel.isEmpty()) {
+      rel = friendsRepository.findByUserAndFriend(friend, user);
+    }
+
+    if (rel.isEmpty()) {
+      return "No friend relationship found between the users.";
+    }
+
+    Friends relationship = rel.get();
+    friendsRepository.delete(relationship);
+
+    return "Friend removed successfully.";
+  }
+
 }
