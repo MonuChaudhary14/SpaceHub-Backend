@@ -6,7 +6,6 @@ import org.spacehub.DTO.LocalGroup.LocalGroupInviteRequestDTO;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.DTO.LocalGroup.LocalGroupInviteResponseDTO;
 import org.spacehub.service.Interface.ILocalGroupInviteService;
-import org.spacehub.service.LocalGroupInviteService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -32,4 +33,6 @@ public interface CommunityRepository extends JpaRepository<Community, UUID> {
 
   @Query("SELECT c FROM Community c JOIN c.pendingRequests p WHERE p = :user")
   List<Community> findAllWithPendingUser(@Param("user") User user);
+
+  Optional<Community> findByNameIgnoreCase(String name);
 }

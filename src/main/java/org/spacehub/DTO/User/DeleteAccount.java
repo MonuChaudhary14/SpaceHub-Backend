@@ -5,7 +5,7 @@ import lombok.Data;
 @Data
 public class DeleteAccount {
 
-    private String email;
-    private String currentPassword;
+  private String email;
+  private String currentPassword;
 
 }

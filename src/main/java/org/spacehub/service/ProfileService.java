@@ -44,7 +44,8 @@ public class ProfileService implements IProfileService {
                         CommunityRepository communityRepository,
                         CommunityUserRepository communityUserRepository,
                         LocalGroupRepository localGroupRepository, NotificationRepository notificationRepository,
-                        RefreshTokenRepository refreshTokenRepository, ScheduledMessageRepository scheduledMessageRepository) {
+                        RefreshTokenRepository refreshTokenRepository,
+                        ScheduledMessageRepository scheduledMessageRepository) {
     this.userRepository = userRepository;
     this.s3Service = s3Service;
     this.communityRepository = communityRepository;
