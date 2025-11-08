@@ -158,34 +158,28 @@ public class FriendService implements IFriendService {
     return friendsList;
   }
 
-
   public String blockFriend(String userEmail, String friendEmail) {
-
     if (userEmail.equalsIgnoreCase(friendEmail)) {
       return "You cannot block yourself.";
     }
 
-    User user = userRepository.findByEmail(userEmail)
-            .orElseThrow(() -> new RuntimeException("User not found"));
-    User friend = userRepository.findByEmail(friendEmail)
-            .orElseThrow(() -> new RuntimeException("Friend not found"));
+    User user = getUserByEmail(userEmail, "User not found");
+    User friend = getUserByEmail(friendEmail, "Friend not found");
 
-    Optional<Friends> existing = friendsRepository.findByUserAndFriend(user, friend);
-    if (existing.isEmpty()) {
-      existing = friendsRepository.findByUserAndFriend(friend, user);
-    }
-
-    Friends relationship = existing.orElseGet(() -> {
-      Friends newFriend = new Friends();
-      newFriend.setUser(user);
-      newFriend.setFriend(friend);
-      return newFriend;
-    });
+    Friends relationship = findRelationshipBetween(user, friend)
+      .orElseGet(() -> {
+        Friends newFriend = new Friends();
+        newFriend.setUser(user);
+        newFriend.setFriend(friend);
+        return newFriend;
+      });
 
     relationship.setStatus("blocked");
     friendsRepository.save(relationship);
+
     return "User blocked successfully.";
   }
+
 
   public List<UserOutput> getIncomingPendingRequests(String userEmail) {
     User user = userRepository.findByEmail(userEmail)
@@ -249,26 +243,19 @@ public class FriendService implements IFriendService {
       return "Invalid operation: cannot remove yourself.";
     }
 
-    User user = userRepository.findByEmail(userEmail)
-      .orElseThrow(() -> new RuntimeException("User not found"));
-    User friend = userRepository.findByEmail(friendEmail)
-      .orElseThrow(() -> new RuntimeException("Friend not found"));
+    User user = getUserByEmail(userEmail, "User not found");
+    User friend = getUserByEmail(friendEmail, "Friend not found");
 
-    Optional<Friends> rel = friendsRepository.findByUserAndFriend(user, friend);
-
-    if (rel.isEmpty()) {
-      rel = friendsRepository.findByUserAndFriend(friend, user);
-    }
+    Optional<Friends> rel = findRelationshipBetween(user, friend);
 
     if (rel.isEmpty()) {
       return "No friend relationship found between the users.";
     }
 
-    Friends relationship = rel.get();
-    friendsRepository.delete(relationship);
-
+    friendsRepository.delete(rel.get());
     return "Friend removed successfully.";
   }
+
 
   private String buildPresignedUrlSafely(String key) {
     if (key == null || key.isBlank()) return null;
@@ -277,6 +264,19 @@ public class FriendService implements IFriendService {
     } catch (Exception ignored) {
       return null;
     }
+  }
+
+  private User getUserByEmail(String email, String errorMessage) {
+    return userRepository.findByEmail(email)
+      .orElseThrow(() -> new RuntimeException(errorMessage));
+  }
+
+  private Optional<Friends> findRelationshipBetween(User user, User friend) {
+    Optional<Friends> relationship = friendsRepository.findByUserAndFriend(user, friend);
+    if (relationship.isEmpty()) {
+      relationship = friendsRepository.findByUserAndFriend(friend, user);
+    }
+    return relationship;
   }
 
 }

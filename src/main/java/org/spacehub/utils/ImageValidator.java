@@ -4,7 +4,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 public class ImageValidator {
 
-  private static final long MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
+  private static final long MAX_FILE_SIZE = 2 * 1024 * 1024;
 
   private ImageValidator() {
   }
