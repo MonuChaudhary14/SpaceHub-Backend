@@ -10,6 +10,7 @@ import org.spacehub.repository.UserRepository;
 import org.spacehub.service.Interface.IFriendService;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -21,12 +22,14 @@ public class FriendService implements IFriendService {
   private final FriendsRepository friendsRepository;
   private final UserRepository userRepository;
   private final NotificationService notificationService;
+  private final S3Service s3Service;
 
   public FriendService(FriendsRepository friendsRepository, UserRepository userRepository,
-                       NotificationService notificationService) {
+                       NotificationService notificationService, S3Service s3Service) {
     this.friendsRepository = friendsRepository;
     this.userRepository = userRepository;
     this.notificationService = notificationService;
+    this.s3Service = s3Service;
   }
 
   public String sendFriendRequest(String userEmail, String friendEmail) {
@@ -119,33 +122,42 @@ public class FriendService implements IFriendService {
 
   public List<UserOutput> getFriends(String userEmail) {
     User user = userRepository.findByEmail(userEmail)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+      .orElseThrow(() -> new RuntimeException("User not found"));
 
     List<Friends> sent = friendsRepository.findByUserAndStatus(user, "accepted");
     List<Friends> received = friendsRepository.findByFriendAndStatus(user, "accepted");
 
     List<UserOutput> friendsList = sent.stream()
-            .map(friend -> new UserOutput(
-                    friend.getFriend().getId(),
-                    friend.getFriend().getFirstName(),
-                    friend.getFriend().getLastName(),
-                    friend.getFriend().getEmail(),
-                    friend.getFriend().getAvatarUrl()
-            ))
-            .collect(Collectors.toList());
+      .map(friend -> {
+        User f = friend.getFriend();
+        String preview = buildPresignedUrlSafely(f.getAvatarUrl());
+        return new UserOutput(
+          f.getId(),
+          f.getFirstName(),
+          f.getLastName(),
+          f.getEmail(),
+          preview
+        );
+      })
+      .collect(Collectors.toList());
 
     friendsList.addAll(received.stream()
-            .map(friend -> new UserOutput(
-                    friend.getUser().getId(),
-                    friend.getUser().getFirstName(),
-                    friend.getUser().getLastName(),
-                    friend.getUser().getEmail(),
-                    friend.getUser().getAvatarUrl()
-            ))
-            .toList());
+      .map(friend -> {
+        User f = friend.getUser();
+        String preview = buildPresignedUrlSafely(f.getAvatarUrl());
+        return new UserOutput(
+          f.getId(),
+          f.getFirstName(),
+          f.getLastName(),
+          f.getEmail(),
+          preview
+        );
+      })
+      .toList());
 
     return friendsList;
   }
+
 
   public String blockFriend(String userEmail, String friendEmail) {
 
@@ -256,6 +268,15 @@ public class FriendService implements IFriendService {
     friendsRepository.delete(relationship);
 
     return "Friend removed successfully.";
+  }
+
+  private String buildPresignedUrlSafely(String key) {
+    if (key == null || key.isBlank()) return null;
+    try {
+      return s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(2));
+    } catch (Exception ignored) {
+      return null;
+    }
   }
 
 }
