@@ -735,9 +735,16 @@ public class CommunityService implements ICommunityService {
       }
 
       List<Map<String, Object>> userCommunities = buildCommunityListForUser(normalizedEmail);
+
+      for (Map<String, Object> community : userCommunities) {
+        UUID communityId = (UUID) community.get("communityId");
+        long memberCount = communityUserRepository.countByCommunityId(communityId);
+        community.put("memberCount", memberCount);
+      }
+
       return ResponseEntity.ok(
-        new ApiResponse<>(200, "User's communities fetched", Map.of("communities",
-          userCommunities))
+              new ApiResponse<>(200, "User's communities fetched with member counts",
+                      Map.of("communities", userCommunities))
       );
 
     } catch (Exception e) {
