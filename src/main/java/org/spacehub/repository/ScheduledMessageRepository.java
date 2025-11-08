@@ -1,6 +1,7 @@
 package org.spacehub.repository;
 
 import org.spacehub.entities.ScheduledMessage.ScheduledMessage;
+import org.spacehub.entities.User.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -12,4 +13,5 @@ public interface ScheduledMessageRepository extends JpaRepository<ScheduledMessa
 
   List<ScheduledMessage> findBySentFalseAndScheduledTimeBefore(LocalDateTime time);
 
+  void deleteAllBySenderEmail(String senderEmail);
 }

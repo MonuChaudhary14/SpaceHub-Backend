@@ -1,5 +1,7 @@
 package org.spacehub.repository.localgroup;
 
+import io.lettuce.core.dynamic.annotation.Param;
+import org.spacehub.entities.User.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,4 +16,8 @@ public interface LocalGroupRepository extends JpaRepository<LocalGroup, UUID> {
     String name, String description, Pageable pageable);
   @Query("SELECT lg FROM LocalGroup lg LEFT JOIN FETCH lg.createdBy LEFT JOIN FETCH lg.members")
   List<LocalGroup> findAllWithCreatorAndMembers();
+  List<LocalGroup> findAllByCreatedBy(User user);
+
+  @Query("SELECT g FROM LocalGroup g JOIN g.members m WHERE m = :user AND g.createdBy != :user")
+  List<LocalGroup> findAllWhereUserIsMember(@Param("user") User user);
 }
