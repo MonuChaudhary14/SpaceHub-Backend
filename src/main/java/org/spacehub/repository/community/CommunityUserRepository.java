@@ -23,4 +23,6 @@ public interface CommunityUserRepository extends JpaRepository<CommunityUser, UU
   @Query("SELECT COUNT(cu) FROM CommunityUser cu WHERE cu.community.communityId = :communityId")
   long countByCommunityId(@Param("communityId") UUID communityId);
 
+  void deleteByCommunityId(UUID communityId);
+
 }

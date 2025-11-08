@@ -163,22 +163,34 @@ public class CommunityService implements ICommunityService {
     communityRepository.save(community);
   }
 
-  public ResponseEntity<ApiResponse<Void>> deleteCommunityByName(
-    @RequestBody DeleteCommunityDTO deleteCommunity) {
+  public ResponseEntity<ApiResponse<Void>> deleteCommunityByName(DeleteCommunityDTO deleteCommunity) {
     try {
-      Community community = findCommunityByName(deleteCommunity.getName());
-      User user = findUserByEmail(deleteCommunity.getUserEmail());
+      Community community = communityRepository.findByNameIgnoreCase(deleteCommunity.getName())
+        .orElseThrow(() -> new IllegalArgumentException("Community not found"));
+      User user = userRepository.findByEmail(deleteCommunity.getUserEmail())
+        .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-      if (!community.getCreatedBy().getId().equals(user.getId())) {
-        return ResponseEntity.status(403).body(
-          new ApiResponse<>(403, "You are not authorized to delete this community", null)
-        );
+      if (!Objects.equals(community.getCreatedBy().getId(), user.getId())) {
+        return ResponseEntity.status(403).body(new ApiResponse<>(403,
+          "You are not authorized to delete this community", null));
       }
 
+      if (community.getCommunityUsers() != null && !community.getCommunityUsers().isEmpty()) {
+        communityUserRepository.deleteByCommunityId(community.getId());
+        community.getCommunityUsers().clear();
+      }
+
+      if (community.getMembers() != null && !community.getMembers().isEmpty()) {
+        community.getMembers().clear();
+      }
+      if (community.getPendingRequests() != null && !community.getPendingRequests().isEmpty()) {
+        community.getPendingRequests().clear();
+      }
+
+      communityRepository.save(community);
       communityRepository.delete(community);
-      return ResponseEntity.ok(
-        new ApiResponse<>(200, "Community deleted successfully", null)
-      );
+
+      return ResponseEntity.ok(new ApiResponse<>(200, "Community deleted successfully", null));
 
     } catch (IllegalArgumentException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
