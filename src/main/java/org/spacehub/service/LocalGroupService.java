@@ -11,6 +11,7 @@ import org.spacehub.entities.User.User;
 import org.spacehub.repository.UserRepository;
 import org.spacehub.repository.localgroup.LocalGroupRepository;
 import org.spacehub.service.Interface.ILocalGroupService;
+import org.spacehub.utils.S3UrlHelper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +32,7 @@ public class LocalGroupService implements ILocalGroupService {
   private final LocalGroupRepository localGroupRepository;
   private final UserRepository userRepository;
   private final S3Service s3Service;
+  private final S3UrlHelper s3UrlHelper;
 
   public static class ResourceNotFoundException extends RuntimeException {
     public ResourceNotFoundException(String message) {
@@ -39,10 +41,11 @@ public class LocalGroupService implements ILocalGroupService {
   }
 
   public LocalGroupService(LocalGroupRepository localGroupRepository, UserRepository userRepository,
-                           S3Service s3Service) {
+                           S3Service s3Service, S3UrlHelper s3UrlHelper) {
     this.localGroupRepository = localGroupRepository;
     this.userRepository = userRepository;
     this.s3Service = s3Service;
+    this.s3UrlHelper = s3UrlHelper;
   }
 
   public ResponseEntity<ApiResponse<LocalGroupResponse>> createLocalGroup(
@@ -261,19 +264,9 @@ public class LocalGroupService implements ILocalGroupService {
       m.put("createdAt", g.getCreatedAt());
       m.put("updatedAt", g.getUpdatedAt());
 
-      String key = g.getImageUrl();
-      if (key != null && !key.isBlank()) {
-        try {
-          String presigned = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1));
-          m.put("imageUrl", presigned);
-          m.put("imageKey", key);
-        } catch (Exception e) {
-          m.put("imageUrl", null);
-          m.put("imageKey", key);
-        }
-      } else {
-        m.put("imageUrl", null);
-      }
+      Map<String, Object> img = s3UrlHelper.generatePresignedUrl(g.getImageUrl(), Duration.ofHours(1));
+      m.put("imageUrl", img.get("url"));
+      m.put("imageKey", img.get("key"));
 
       if (finalRequester != null) {
         boolean isMember = g.getMembers().stream()
