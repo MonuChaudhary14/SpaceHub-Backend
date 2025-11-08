@@ -10,14 +10,18 @@ import org.spacehub.DTO.DTO_auth.ResendOtpRequest;
 import org.spacehub.DTO.DTO_auth.ResetPasswordRequest;
 import org.spacehub.DTO.DTO_auth.TokenResponse;
 import org.spacehub.DTO.DTO_auth.ValidateForgotOtpRequest;
+import org.spacehub.DTO.User.UserSearchDTO;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.Auth.RegistrationRequest;
 import org.spacehub.service.serviceAuth.authInterfaces.IUserAccountService;
 import org.spacehub.service.serviceAuth.authInterfaces.IUserService;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.security.Principal;
 import java.util.Map;
 
 @RestController
@@ -93,13 +97,12 @@ public class UserController {
   }
 
   @GetMapping("/search")
-  public ResponseEntity<?> searchForUsers(
-    @RequestParam("q") String query,
-    @RequestParam(value = "page", defaultValue = "0") int page,
-    @RequestParam(value = "size", defaultValue = "20") int size
-  ) {
-    Pageable pageable = PageRequest.of(page, size);
-    return userService.searchUsers(query, pageable);
+  public ResponseEntity<ApiResponse<Page<UserSearchDTO>>> searchUsers(
+          @RequestParam("query") String query,
+          Pageable pageable,
+          Principal principal){
+    String currentUserEmail = principal.getName();
+    return userService.searchUsers(query, currentUserEmail, pageable);
   }
 
 }

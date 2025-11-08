@@ -46,14 +46,14 @@ public class UserService implements UserDetailsService, IUserService {
     return userRepository.existsByEmail(email);
   }
 
-  public ResponseEntity<ApiResponse<Page<UserSearchDTO>>> searchUsers(String query, Pageable pageable) {
+  public ResponseEntity<ApiResponse<Page<UserSearchDTO>>> searchUsers(String query, String currentUserEmail, Pageable pageable) {
     if (query == null || query.isBlank()) {
       return ResponseEntity.badRequest()
-        .body(new ApiResponse<>(400, "Search query is required", Page.empty(pageable)));
+              .body(new ApiResponse<>(400, "Search query is required", Page.empty(pageable)));
     }
 
     try {
-      Page<User> userPage = userRepository.findByUsernameContainingIgnoreCase(query, pageable);
+      Page<User> userPage = userRepository.findByUsernameContainingIgnoreCaseAndEmailNot(query, currentUserEmail, pageable);
 
       Page<UserSearchDTO> dtoPage = userPage.map(user -> {
         String avatarUrl = null;
@@ -61,20 +61,20 @@ public class UserService implements UserDetailsService, IUserService {
           avatarUrl = s3Service.generatePresignedDownloadUrl(user.getAvatarUrl(), Duration.ofHours(2));
         }
         return new UserSearchDTO(
-          user.getId(),
-          user.getUsername(),
-          user.getEmail(),
-          avatarUrl
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                avatarUrl
         );
       });
 
       return ResponseEntity.ok(
-        new ApiResponse<>(200, "Users retrieved successfully", dtoPage)
-      );
+              new ApiResponse<>(200, "Users retrieved successfully", dtoPage));
 
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return ResponseEntity.internalServerError()
-        .body(new ApiResponse<>(500, "An error occurred: " + e.getMessage(), null));
+              .body(new ApiResponse<>(500, "An error occurred: " + e.getMessage(), null));
     }
   }
 

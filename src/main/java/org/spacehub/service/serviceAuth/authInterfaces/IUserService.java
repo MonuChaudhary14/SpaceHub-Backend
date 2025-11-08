@@ -19,7 +19,7 @@ public interface IUserService {
 
   boolean existsByEmail(String email);
 
-  ResponseEntity<ApiResponse<Page<UserSearchDTO>>> searchUsers(String query, Pageable pageable);
+  ResponseEntity<ApiResponse<Page<UserSearchDTO>>> searchUsers(String query, String currentUserEmail, Pageable pageable);
 
 }
 
