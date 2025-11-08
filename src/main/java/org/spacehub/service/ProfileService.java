@@ -65,7 +65,6 @@ public class ProfileService implements IProfileService {
       Optional.ofNullable(dto.getUsername()).ifPresent(user::setUsername);
       Optional.ofNullable(dto.getDateOfBirth()).ifPresent(d -> user.setDateOfBirth(LocalDate.parse(d)));
 
-      // password change
       if (dto.getCurrentPassword() != null && dto.getNewPassword() != null &&
               !dto.getCurrentPassword().isBlank() && !dto.getNewPassword().isBlank()) {
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
@@ -75,7 +74,6 @@ public class ProfileService implements IProfileService {
         user.setPasswordVersion(Optional.ofNullable(user.getPasswordVersion()).orElse(0) + 1);
       }
 
-      // email change
       if (dto.getNewEmail() != null && !dto.getNewEmail().isBlank()) {
         String newEmail = dto.getNewEmail().trim().toLowerCase();
         if (!newEmail.equals(user.getEmail())) {
