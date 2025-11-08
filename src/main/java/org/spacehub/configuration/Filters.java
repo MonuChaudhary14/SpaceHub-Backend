@@ -32,22 +32,10 @@ public class Filters extends OncePerRequestFilter {
   @Override
   protected boolean shouldNotFilter(HttpServletRequest request) {
     String path = request.getRequestURI();
-
-    return path.startsWith("/api/v1/login")
-            || path.startsWith("/api/v1/registration")
-            || path.startsWith("/api/v1/validateregisterotp")
-            || path.startsWith("/api/v1/forgotpassword")
-            || path.startsWith("/api/v1/validateforgototp")
-            || path.startsWith("/api/v1/resetpassword")
-            || path.startsWith("/api/v1/resendotp")
-            || path.startsWith("/api/v1/resendforgototp")
-            || path.startsWith("/api/v1/files/")
-            || path.startsWith("/ws")
-            || path.startsWith("/wss")
-            || path.startsWith("/notification")
-            || path.startsWith("/swagger-ui")
-            || path.startsWith("/v3/api-docs");
+    return path.startsWith("/chat") || path.startsWith("/ws") || path.startsWith("/files/") || path.startsWith("/swagger-ui/") ||
+            path.startsWith("/v3/api-docs/") || path.startsWith("/api/v1/voice-room")|| path.startsWith("/notification") || path.startsWith("/api/v1/dashboard") || path.startsWith("/api/v1/new-chatroom");
   }
+
 
   @Override
   protected void doFilterInternal(
