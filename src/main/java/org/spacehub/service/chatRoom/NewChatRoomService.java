@@ -5,6 +5,7 @@ import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.ChatRoom.NewChatRoom;
 import org.spacehub.repository.ChatRoom.ChatRoomRepository;
 import org.spacehub.repository.ChatRoom.NewChatRoomRepository;
+import org.spacehub.service.chatRoom.chatroomInterfaces.INewChatRoomService;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -15,7 +16,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
-public class NewChatRoomService {
+public class NewChatRoomService implements INewChatRoomService {
 
   private final ChatRoomRepository chatRoomRepository;
   private final NewChatRoomRepository newChatRoomRepository;

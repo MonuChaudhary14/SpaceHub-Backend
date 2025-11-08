@@ -1,6 +1,7 @@
 package org.spacehub.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
@@ -12,61 +13,62 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class NotificationWebSocketHandler extends TextWebSocketHandler{
 
-    private final Map<String, WebSocketSession> userSessions = new ConcurrentHashMap<>();
+  private final Map<String, WebSocketSession> userSessions = new ConcurrentHashMap<>();
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+  private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @Override
-    public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        String email = getEmailFromSession(session);
-        if (email != null) {
-            userSessions.put(email, session);
-            System.out.println("Connected: " + email);
-        }
-        else {
-            session.close(CloseStatus.BAD_DATA);
-        }
+  @Override
+  public void afterConnectionEstablished(@NonNull WebSocketSession session) throws Exception {
+    String email = getEmailFromSession(session);
+    if (email != null) {
+      userSessions.put(email, session);
+      System.out.println("Connected: " + email);
     }
-
-    @Override
-    public void handleTextMessage(WebSocketSession session, TextMessage message) throws IOException {
-        System.out.println("Message from client: " + message.getPayload());
+    else {
+      session.close(CloseStatus.BAD_DATA);
     }
+  }
 
-    @Override
-    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
-        String email = getEmailFromSession(session);
-        if (email != null) {
-            userSessions.remove(email);
-            System.out.println("Disconnected: " + email);
-        }
-    }
+  @Override
+  public void handleTextMessage(@NonNull WebSocketSession session, TextMessage message) {
+    System.out.println("Message from client: " + message.getPayload());
+  }
 
-    private String getEmailFromSession(WebSocketSession session) {
-        String query = session.getUri() != null ? session.getUri().getQuery() : null;
-        if (query == null) return null;
-        for (String param : query.split("&")) {
-            if (param.startsWith("email=")) {
-                return param.split("=")[1];
-            }
-        }
-        return null;
+  @Override
+  public void afterConnectionClosed(@NonNull WebSocketSession session, @NonNull CloseStatus status) {
+    String email = getEmailFromSession(session);
+    if (email != null) {
+      userSessions.remove(email);
+      System.out.println("Disconnected: " + email);
     }
+  }
 
-    public void sendNotification(String email, Object notificationData) {
-        WebSocketSession session = userSessions.get(email);
-        if (session != null && session.isOpen()) {
-            try {
-                String json = objectMapper.writeValueAsString(notificationData);
-                session.sendMessage(new TextMessage(json));
-                System.out.println("Sent notification to " + email);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        else {
-            System.out.println("No active WebSocket session for: " + email);
-        }
+  private String getEmailFromSession(WebSocketSession session) {
+    String query = session.getUri() != null ? session.getUri().getQuery() : null;
+    if (query == null) {
+      return null;
     }
+    for (String param : query.split("&")) {
+      if (param.startsWith("email=")) {
+        return param.split("=")[1];
+      }
+    }
+    return null;
+  }
+
+  public void sendNotification(String email, Object notificationData) {
+    WebSocketSession session = userSessions.get(email);
+    if (session != null && session.isOpen()) {
+      try {
+        String json = objectMapper.writeValueAsString(notificationData);
+        session.sendMessage(new TextMessage(json));
+        System.out.println("Sent notification to " + email);
+      } catch (IOException ignored) {
+      }
+    }
+    else {
+      System.out.println("No active WebSocket session for: " + email);
+    }
+  }
 
 }
