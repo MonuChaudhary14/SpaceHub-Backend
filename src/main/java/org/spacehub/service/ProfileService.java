@@ -10,17 +10,18 @@ import org.spacehub.repository.community.CommunityRepository;
 import org.spacehub.repository.community.CommunityUserRepository;
 import org.spacehub.repository.localgroup.LocalGroupRepository;
 import org.spacehub.service.Interface.IProfileService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+
 import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.Optional;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.transaction.annotation.Transactional;
 
-@Transactional
 @Service
+@Transactional
 public class ProfileService implements IProfileService {
 
   private final UserRepository userRepository;
@@ -28,10 +29,12 @@ public class ProfileService implements IProfileService {
   private final CommunityRepository communityRepository;
   private final CommunityUserRepository communityUserRepository;
   private final LocalGroupRepository localGroupRepository;
-  private static final Logger logger = LoggerFactory.getLogger(ProfileService.class);
+  private static final Logger log = LoggerFactory.getLogger(ProfileService.class);
 
-  public ProfileService(UserRepository userRepository, S3Service s3Service, CommunityRepository communityRepository,
-                        CommunityUserRepository communityUserRepository, LocalGroupRepository localGroupRepository) {
+  public ProfileService(UserRepository userRepository, S3Service s3Service,
+                        CommunityRepository communityRepository,
+                        CommunityUserRepository communityUserRepository,
+                        LocalGroupRepository localGroupRepository) {
     this.userRepository = userRepository;
     this.s3Service = s3Service;
     this.communityRepository = communityRepository;
@@ -39,35 +42,133 @@ public class ProfileService implements IProfileService {
     this.localGroupRepository = localGroupRepository;
   }
 
+  @Override
   public UserProfileResponse getProfileByEmail(String email) {
-    User user = userRepository.findByEmail(email)
-      .orElseThrow(() -> new RuntimeException("User not found"));
-
-    UserProfileResponse resp = new UserProfileResponse();
-    resp.setFirstName(user.getFirstName());
-    resp.setLastName(user.getLastName());
-    resp.setUsername(user.getUsername());
-    resp.setEmail(user.getEmail());
-    resp.setBio(user.getBio());
-    resp.setDateOfBirth(user.getDateOfBirth());
-
-    String avatarKey = user.getAvatarUrl();
-    resp.setAvatarKey(avatarKey);
-
-    if (avatarKey != null && !avatarKey.isBlank()) {
-      resp.setAvatarPreviewUrl(s3Service.generatePresignedDownloadUrl(avatarKey, Duration.ofMinutes(15)));
-    }
-
-    return resp;
+    if (email == null || email.isBlank()) throw new IllegalArgumentException("Email is required");
+    User user = userRepository.findByEmail(email.trim().toLowerCase())
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    return buildResponse(user);
   }
 
+  @Override
   public UserProfileResponse updateProfileByEmail(String email, UserProfileDTO dto) {
-    User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+    if (email == null || email.isBlank()) throw new IllegalArgumentException("Email is required");
+    if (dto == null) throw new IllegalArgumentException("Profile data is missing");
 
-    applyUserProfileUpdates(user, dto);
-    userRepository.save(user);
+    User user = userRepository.findByEmail(email.trim().toLowerCase())
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
+    try {
+      Optional.ofNullable(dto.getFirstName()).ifPresent(user::setFirstName);
+      Optional.ofNullable(dto.getLastName()).ifPresent(user::setLastName);
+      Optional.ofNullable(dto.getBio()).ifPresent(user::setBio);
+      Optional.ofNullable(dto.getUsername()).ifPresent(user::setUsername);
+      Optional.ofNullable(dto.getDateOfBirth()).ifPresent(d -> user.setDateOfBirth(LocalDate.parse(d)));
+
+      // password change
+      if (dto.getCurrentPassword() != null && dto.getNewPassword() != null &&
+              !dto.getCurrentPassword().isBlank() && !dto.getNewPassword().isBlank()) {
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        if (!encoder.matches(dto.getCurrentPassword(), user.getPassword()))
+          throw new IllegalArgumentException("Current password is incorrect");
+        user.setPassword(encoder.encode(dto.getNewPassword()));
+        user.setPasswordVersion(Optional.ofNullable(user.getPasswordVersion()).orElse(0) + 1);
+      }
+
+      // email change
+      if (dto.getNewEmail() != null && !dto.getNewEmail().isBlank()) {
+        String newEmail = dto.getNewEmail().trim().toLowerCase();
+        if (!newEmail.equals(user.getEmail())) {
+          if (userRepository.existsByEmail(newEmail))
+            throw new IllegalArgumentException("Email already in use");
+          user.setEmail(newEmail);
+        }
+      }
+
+      userRepository.save(user);
+      return buildResponse(user);
+    } catch (Exception e) {
+      log.error("Failed to update profile for {}: {}", email, e.getMessage());
+      throw e;
+    }
+  }
+
+  @Override
+  public UserProfileResponse uploadAvatarByEmail(String email, MultipartFile file) throws IOException {
+    if (email == null || email.isBlank()) throw new IllegalArgumentException("Email is required");
+    validateImage(file);
+
+    User user = userRepository.findByEmail(email.trim().toLowerCase())
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+    String key = "avatars/" + System.currentTimeMillis() + "_" + file.getOriginalFilename();
+    try {
+      s3Service.uploadFile(key, file.getInputStream(), file.getSize());
+      user.setAvatarUrl(key);
+      userRepository.save(user);
+      return buildResponse(user);
+    } catch (Exception e) {
+      log.error("Avatar upload failed for {}: {}", email, e.getMessage());
+      throw new RuntimeException("Avatar upload failed, please try again.");
+    }
+  }
+
+  @Override
+  public UserProfileResponse uploadCoverPhotoByEmail(String email, MultipartFile file) throws IOException {
+    if (email == null || email.isBlank()) throw new IllegalArgumentException("Email is required");
+    validateImage(file);
+
+    User user = userRepository.findByEmail(email.trim().toLowerCase())
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+    String key = "covers/" + System.currentTimeMillis() + "_" + file.getOriginalFilename();
+    try {
+      s3Service.uploadFile(key, file.getInputStream(), file.getSize());
+      user.setCoverPhotoUrl(key);
+      userRepository.save(user);
+      return buildResponse(user);
+    } catch (Exception e) {
+      log.error("Cover photo upload failed for {}: {}", email, e.getMessage());
+      throw new RuntimeException("Cover photo upload failed, please try again.");
+    }
+  }
+
+  @Override
+  public void deleteAccount(String email, String currentPassword) {
+    if (email == null || email.isBlank()) throw new IllegalArgumentException("Email is required");
+    if (currentPassword == null || currentPassword.isBlank())
+      throw new IllegalArgumentException("Current password is required");
+
+    User user = userRepository.findByEmail(email.trim().toLowerCase())
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+    BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+    if (!encoder.matches(currentPassword, user.getPassword()))
+      throw new SecurityException("Incorrect password");
+
+    try {
+      removeUserFromCommunities(user);
+      removeUserFromGroups(user);
+      communityUserRepository.deleteByUserId(user.getId());
+      safeDelete(user.getAvatarUrl());
+      safeDelete(user.getCoverPhotoUrl());
+      userRepository.delete(user);
+      log.info("Account deleted for {}", email);
+    } catch (Exception e) {
+      log.error("Failed to delete account for {}: {}", email, e.getMessage());
+      throw new RuntimeException("Account deletion failed, please try again later.");
+    }
+  }
+
+  private void validateImage(MultipartFile file) {
+    if (file.isEmpty()) throw new IllegalArgumentException("File cannot be empty");
+    if (file.getSize() > 2 * 1024 * 1024)
+      throw new IllegalArgumentException("File size exceeds 2 MB");
+    if (file.getContentType() == null || !file.getContentType().startsWith("image/"))
+      throw new IllegalArgumentException("Only image files are allowed");
+  }
+
+  private UserProfileResponse buildResponse(User user) {
     UserProfileResponse resp = new UserProfileResponse();
     resp.setFirstName(user.getFirstName());
     resp.setLastName(user.getLastName());
@@ -76,222 +177,19 @@ public class ProfileService implements IProfileService {
     resp.setBio(user.getBio());
     resp.setDateOfBirth(user.getDateOfBirth());
     resp.setAvatarKey(user.getAvatarUrl());
-
     if (user.getAvatarUrl() != null && !user.getAvatarUrl().isBlank()) {
-      resp.setAvatarPreviewUrl(
-              s3Service.generatePresignedDownloadUrl(user.getAvatarUrl(), Duration.ofMinutes(15))
-      );
+      resp.setAvatarPreviewUrl(s3Service.generatePresignedDownloadUrl(user.getAvatarUrl(), Duration.ofMinutes(15)));
     }
-
     return resp;
-  }
-
-  private void applyUserProfileUpdates(User user, UserProfileDTO dto) {
-    if (dto == null) return;
-
-    Optional.ofNullable(dto.getFirstName()).ifPresent(user::setFirstName);
-    Optional.ofNullable(dto.getLastName()).ifPresent(user::setLastName);
-    Optional.ofNullable(dto.getBio()).ifPresent(user::setBio);
-    Optional.ofNullable(dto.getDateOfBirth()).ifPresent(date -> user.setDateOfBirth(LocalDate.parse(date)));
-    Optional.ofNullable(dto.getUsername()).ifPresent(user::setUsername);
-
-    if (dto.getCurrentPassword() != null && dto.getNewPassword() != null &&
-            !dto.getCurrentPassword().isBlank() && !dto.getNewPassword().isBlank()) {
-
-      BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-
-      if (!encoder.matches(dto.getCurrentPassword(), user.getPassword())) {
-        throw new IllegalArgumentException("Current password is incorrect");
-      }
-
-      user.setPassword(encoder.encode(dto.getNewPassword()));
-      user.setPasswordVersion(Optional.ofNullable(user.getPasswordVersion()).orElse(0) + 1);
-    }
-
-    if (dto.getNewEmail() != null && !dto.getNewEmail().isBlank()) {
-      String normalizedEmail = dto.getNewEmail().trim().toLowerCase();
-      if (!normalizedEmail.equals(user.getEmail())) {
-        if (userRepository.existsByEmail(normalizedEmail)) {
-          throw new IllegalArgumentException("Email already in use");
-        }
-        user.setEmail(normalizedEmail);
-      }
-    }
-  }
-
-
-  public User uploadAvatarByEmail(String email, MultipartFile file) throws IOException {
-    validateImage(file);
-
-    User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new RuntimeException("User not found"));
-
-    String key = "avatars/" + System.currentTimeMillis() + "_" + file.getOriginalFilename();
-    s3Service.uploadFile(key, file.getInputStream(), file.getSize());
-
-    user.setAvatarUrl(key);
-    return userRepository.save(user);
-  }
-
-  public User uploadCoverPhotoByEmail(String email, MultipartFile file) throws IOException {
-    validateImage(file);
-
-    User user = userRepository.findByEmail(email)
-      .orElseThrow(() -> new RuntimeException("User not found"));
-
-    String key = "covers/" + file.getOriginalFilename();
-    s3Service.uploadFile(key, file.getInputStream(), file.getSize());
-
-    user.setCoverPhotoUrl(key);
-    return userRepository.save(user);
-  }
-
-  private void validateImage(MultipartFile file) {
-    if (file.isEmpty()) throw new RuntimeException("File is empty");
-    if (file.getSize() > 2 * 1024 * 1024) throw new RuntimeException("File size exceeds 2 MB");
-    String contentType = file.getContentType();
-    if (contentType == null || !contentType.startsWith("image/")) {
-      throw new RuntimeException("Only image files are allowed");
-    }
-  }
-
-  public User updateAccount(
-          String email,
-          MultipartFile avatarFile,
-          String newUsername,
-          String newEmail,
-          String currentPassword,
-          String newPassword
-  ) throws Exception {
-
-    validateEmail(email);
-    User user = findUserByEmail(email);
-
-    updateUsername(user, newUsername);
-    updateEmail(user, newEmail);
-    updatePassword(user, currentPassword, newPassword);
-    updateAvatar(user, avatarFile);
-
-    return userRepository.save(user);
-  }
-
-  private void validateEmail(String email) {
-    if (email == null || email.isBlank()) {
-      throw new IllegalArgumentException("Email (current) is required");
-    }
-  }
-
-  private User findUserByEmail(String email) {
-    String normalized = email.trim().toLowerCase();
-    return userRepository.findByEmail(normalized)
-            .orElseThrow(() -> new RuntimeException("User not found"));
-  }
-
-  private void updateUsername(User user, String newUsername) {
-    if (newUsername == null || newUsername.isBlank()) return;
-
-    String normalized = newUsername.trim();
-    if (!normalized.equals(user.getUsername())) {
-      if (userRepository.existsByUsername(normalized)) {
-        throw new IllegalArgumentException("Username already in use");
-      }
-      user.setUsername(normalized);
-    }
-  }
-
-  private void updateEmail(User user, String newEmail) {
-    if (newEmail == null || newEmail.isBlank()) return;
-
-    String normalized = newEmail.trim().toLowerCase();
-    if (!normalized.equals(user.getEmail())) {
-      if (userRepository.existsByEmail(normalized)) {
-        throw new IllegalArgumentException("Email already in use");
-      }
-      user.setEmail(normalized);
-    }
-  }
-
-  private void updatePassword(User user, String currentPassword, String newPassword) {
-    if (newPassword == null || newPassword.isBlank()) return;
-
-    if (currentPassword == null || currentPassword.isBlank()) {
-      throw new IllegalArgumentException("Current password is required to change password");
-    }
-
-    BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-    if (!encoder.matches(currentPassword, user.getPassword())) {
-      throw new IllegalArgumentException("Current password is incorrect");
-    }
-
-    user.setPassword(encoder.encode(newPassword));
-    user.setPasswordVersion(Optional.ofNullable(user.getPasswordVersion()).orElse(0) + 1);
-  }
-
-  private void updateAvatar(User user, MultipartFile avatarFile) throws IOException {
-    if (avatarFile == null || avatarFile.isEmpty()) return;
-
-    validateImage(avatarFile);
-    String fileName = System.currentTimeMillis() + "_" + avatarFile.getOriginalFilename();
-
-    String userIdentifier = user.getId() != null
-            ? user.getId().toString()
-            : user.getEmail().replaceAll("[^a-zA-Z0-9]", "_");
-
-    String key = String.format("avatars/%s/%s", userIdentifier, fileName);
-    s3Service.uploadFile(key, avatarFile.getInputStream(), avatarFile.getSize());
-    user.setAvatarUrl(key);
-  }
-
-
-  public void deleteAccount(String email, String currentPassword) {
-    validateInputs(email, currentPassword);
-
-    User user = getUserByEmail(email);
-    verifyPassword(user, currentPassword);
-
-    removeUserFromCommunities(user);
-    removeUserFromGroups(user);
-
-    communityUserRepository.deleteByUserId(user.getId());
-
-    safeDelete(user.getAvatarUrl());
-    safeDelete(user.getCoverPhotoUrl());
-
-    userRepository.delete(user);
-  }
-
-  private void validateInputs(String email, String currentPassword) {
-    if (email == null || email.isBlank()) {
-      throw new IllegalArgumentException("Email is required");
-    }
-    if (currentPassword == null || currentPassword.isBlank()) {
-      throw new IllegalArgumentException("Current password is required to delete account");
-    }
-  }
-
-  private User getUserByEmail(String email) {
-    return userRepository.findByEmail(email.trim().toLowerCase())
-            .orElseThrow(() -> new IllegalArgumentException("User not found"));
-  }
-
-  private void verifyPassword(User user, String currentPassword) {
-    BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-    if (!encoder.matches(currentPassword, user.getPassword())) {
-      throw new SecurityException("Current password is incorrect");
-    }
   }
 
   private void removeUserFromCommunities(User user) {
     communityRepository.findAll().forEach(c -> {
       boolean changed = c.getPendingRequests() != null &&
-              c.getPendingRequests().removeIf(u -> u != null && u.getId() != null && u.getId().equals(user.getId()));
-
+              c.getPendingRequests().removeIf(u -> u != null && user.getId().equals(u.getId()));
       if (c.getCommunityUsers() != null &&
-              c.getCommunityUsers().removeIf(cu -> cu.getUser() != null &&
-                      cu.getUser().getId().equals(user.getId()))) {
+              c.getCommunityUsers().removeIf(cu -> cu.getUser() != null && user.getId().equals(cu.getUser().getId())))
         changed = true;
-      }
-
       if (changed) communityRepository.save(c);
     });
   }
@@ -299,9 +197,8 @@ public class ProfileService implements IProfileService {
   private void removeUserFromGroups(User user) {
     localGroupRepository.findAll().forEach(g -> {
       if (g.getMembers() != null &&
-              g.getMembers().removeIf(m -> m != null && m.getId() != null && m.getId().equals(user.getId()))) {
+              g.getMembers().removeIf(m -> m != null && user.getId().equals(m.getId())))
         localGroupRepository.save(g);
-      }
     });
   }
 
@@ -309,10 +206,8 @@ public class ProfileService implements IProfileService {
     if (fileUrl == null) return;
     try {
       s3Service.deleteFile(fileUrl);
-      logger.info("Deleted file from S3: {}", fileUrl);
     } catch (Exception e) {
-      logger.error("Failed to delete file from S3: {}", fileUrl, e);
+      log.error("Failed to delete file: {}", fileUrl);
     }
   }
-
 }
