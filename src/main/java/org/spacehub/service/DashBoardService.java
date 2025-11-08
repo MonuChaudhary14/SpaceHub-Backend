@@ -11,6 +11,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -126,6 +127,7 @@ public class DashBoardService implements IDashBoardService {
         presignedUrl = s3Service.generatePresignedDownloadUrl(avatarUrl, Duration.ofHours(2));
       }
 
+      assert presignedUrl != null;
       Map<String, Object> data = Map.of(
               "username", user.getUsername(),
               "profileImage", presignedUrl
