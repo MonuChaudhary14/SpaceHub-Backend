@@ -109,7 +109,7 @@ public class DashBoardService implements IDashBoardService {
     }
 
     try {
-      User user = userRepository.findByEmail(email.trim().toLowerCase())
+      User user = userRepository.findByEmail(email)
               .orElseThrow(() -> new RuntimeException("User not found"));
 
       String avatarUrl = user.getAvatarUrl();
