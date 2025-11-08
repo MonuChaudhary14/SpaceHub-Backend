@@ -11,6 +11,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -117,30 +118,35 @@ public class DashBoardService implements IDashBoardService {
     }
 
     try {
-      User user = userRepository.findByEmail(email)
-              .orElseThrow(() -> new RuntimeException("User not found"));
+      String normalized = email.trim().toLowerCase();
 
-      String avatarUrl = user.getAvatarUrl();
-      String presignedUrl = null;
-
-      if (avatarUrl != null && !avatarUrl.isBlank()) {
-        presignedUrl = s3Service.generatePresignedDownloadUrl(avatarUrl, Duration.ofHours(2));
+      Optional<User> optionalUser = userRepository.findByEmail(normalized);
+      if (optionalUser.isEmpty()) {
+        return new ApiResponse<>(404, "User not found with email: " + normalized, null);
       }
 
-      assert presignedUrl != null;
-      Map<String, Object> data = Map.of(
-              "username", user.getUsername(),
-              "profileImage", presignedUrl
-      );
+      User user = optionalUser.get();
+
+      String avatarKey = user.getAvatarUrl();
+      String presignedUrl = null;
+
+      if (avatarKey != null && !avatarKey.isBlank()) {
+        try {
+          presignedUrl = s3Service.generatePresignedDownloadUrl(avatarKey, Duration.ofHours(2));
+        } catch (Exception ignored) {
+        }
+      }
+
+      Map<String, Object> data = new HashMap<>();
+      data.put("username", user.getUsername());
+      data.put("avatarKey", avatarKey);
+      data.put("profileImage", presignedUrl);
 
       return new ApiResponse<>(200, "User profile fetched successfully", data);
-    }
-    catch (RuntimeException e) {
-      return new ApiResponse<>(400, e.getMessage(), null);
-    }
-    catch (Exception e) {
+    } catch (Exception e) {
       return new ApiResponse<>(500, "An unexpected error occurred: " + e.getMessage(), null);
     }
   }
+
 
 }
