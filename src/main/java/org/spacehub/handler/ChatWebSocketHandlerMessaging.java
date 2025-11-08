@@ -106,7 +106,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
 
     messageQueueService.enqueue(mess);
     messageService.saveMessage(mess);
-    sendToReceiver(receiverEmail, mess);
+    sendToBoth(senderEmail, receiverEmail, mess);
   }
 
   private void sendToReceiver(String receiverEmail, Message message) throws IOException {
@@ -133,19 +133,19 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
     return payload;
   }
 
-//  private void sendToBoth(String senderEmail, String receiverEmail, Message message) throws IOException {
-//    String json = objectMapper.writeValueAsString(message);
-//
-////    WebSocketSession senderSession = activeUsers.get(senderEmail);
-////    if (senderSession != null && senderSession.isOpen()) {
-////      senderSession.sendMessage(new TextMessage(json));
-////    }
-//
-//    WebSocketSession receiverSession = activeUsers.get(receiverEmail);
-//    if (receiverSession != null && receiverSession.isOpen()) {
-//      receiverSession.sendMessage(new TextMessage(json));
-//    }
-//  }
+  private void sendToBoth(String senderEmail, String receiverEmail, Message message) throws IOException {
+    String json = objectMapper.writeValueAsString(message);
+
+    WebSocketSession senderSession = activeUsers.get(senderEmail);
+    if (senderSession != null && senderSession.isOpen()) {
+      senderSession.sendMessage(new TextMessage(json));
+    }
+
+    WebSocketSession receiverSession = activeUsers.get(receiverEmail);
+    if (receiverSession != null && receiverSession.isOpen()) {
+      receiverSession.sendMessage(new TextMessage(json));
+    }
+  }
 
   @Override
   public void afterConnectionClosed(@NonNull WebSocketSession session, @NonNull CloseStatus status) {
