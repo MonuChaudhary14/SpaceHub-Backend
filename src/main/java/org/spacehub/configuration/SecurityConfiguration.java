@@ -66,33 +66,22 @@ public class SecurityConfiguration {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                                .requestMatchers(
-                                        "/ws-messages/**",
-                                        "/api/v1/voice-room/**",
-                                        "/api/v1/**",
-                                        "/api/**",
-                                        "/ws/**",
-                                        "/swagger-ui/**",
-                                        "/v3/api-docs/**",
-                                        "/v3/api-docs.yaml",
-                                        "/chat",
-                                        "/chat/**",
-                                        "/files/**",
-                                        "/notification/**",
-                                        "/wss/**"
-//                      "/api/v1/login",
-//                      "/api/v1/registration",
-//                      "/api/v1/validateregisterotp",
-//                      "/api/v1/forgotpassword",
-//                      "/api/v1/validateforgototp",
-//                      "/api/v1/resetpassword",
-//                      "/api/v1/resendotp",
-//                      "/api/v1/resendforgototp",
-//                      "/swagger-ui/**",
-//                      "/v3/api-docs/**"
+                        .requestMatchers(
+                                "/api/v1/login",
+                                "/api/v1/registration",
+                                "/api/v1/validateregisterotp",
+                                "/api/v1/forgotpassword",
+                                "/api/v1/validateforgototp",
+                                "/api/v1/resetpassword",
+                                "/api/v1/resendotp",
+                                "/api/v1/resendforgototp"
+                        ).permitAll()
 
-                                ).permitAll()
-                                .anyRequest().authenticated()
+                        .requestMatchers("/api/v1/files/**").permitAll()
+                        .requestMatchers("/ws/**", "/wss/**", "/ws-messages/**").permitAll()
+                        .requestMatchers("/notification/**").permitAll()
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/v3/api-docs.yaml").permitAll()
+                        .anyRequest().authenticated()
                 )
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
