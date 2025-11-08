@@ -1,5 +1,6 @@
 package org.spacehub.service.Interface;
 
+import org.spacehub.DTO.User.DeleteAccount;
 import org.spacehub.DTO.User.UserProfileDTO;
 import org.spacehub.DTO.User.UserProfileResponse;
 import org.springframework.web.multipart.MultipartFile;
@@ -15,5 +16,5 @@ public interface IProfileService {
 
   UserProfileResponse uploadCoverPhotoByEmail(String email, MultipartFile file) throws IOException;
 
-  void deleteAccount(String email, String currentPassword);
+  void deleteAccount(DeleteAccount request);
 }

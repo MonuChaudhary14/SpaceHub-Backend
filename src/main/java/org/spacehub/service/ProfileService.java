@@ -2,6 +2,7 @@ package org.spacehub.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.spacehub.DTO.User.DeleteAccount;
 import org.spacehub.DTO.User.UserProfileDTO;
 import org.spacehub.DTO.User.UserProfileResponse;
 import org.spacehub.entities.User.User;
@@ -110,28 +111,38 @@ public class ProfileService implements IProfileService {
     }
   }
 
-  @Override
-  public void deleteAccount(String email, String currentPassword) {
-    if (email == null || email.isBlank()) throw new IllegalArgumentException("Email is required");
-    if (currentPassword == null || currentPassword.isBlank())
+  public void deleteAccount(DeleteAccount request) {
+    String email = request.getEmail();
+    String currentPassword = request.getCurrentPassword();
+
+    if (email == null || email.isBlank()) {
+      throw new IllegalArgumentException("Email is required");
+    }
+    if (currentPassword == null || currentPassword.isBlank()) {
       throw new IllegalArgumentException("Current password is required");
+    }
 
     User user = userRepository.findByEmail(email.trim().toLowerCase())
             .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
     BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-    if (!encoder.matches(currentPassword, user.getPassword()))
+    if (!encoder.matches(currentPassword, user.getPassword())) {
       throw new SecurityException("Incorrect password");
+    }
 
     try {
       removeUserFromCommunities(user);
       removeUserFromGroups(user);
+
       communityUserRepository.deleteByUserId(user.getId());
       safeDelete(user.getAvatarUrl());
+
       safeDelete(user.getCoverPhotoUrl());
       userRepository.delete(user);
+
       log.info("Account deleted for {}", email);
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       log.error("Failed to delete account for {}: {}", email, e.getMessage());
       throw new RuntimeException("Account deletion failed, please try again later.");
     }

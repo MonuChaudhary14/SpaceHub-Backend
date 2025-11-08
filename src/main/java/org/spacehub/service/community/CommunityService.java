@@ -491,6 +491,11 @@ public class CommunityService implements ICommunityService {
           null));
       }
 
+      if (community.getMembers().contains(target)) {
+        community.getMembers().remove(target);
+        communityRepository.save(community);
+      }
+
       communityUserRepository.delete(communityUserOptional.get());
 
       return ResponseEntity.ok(new ApiResponse<>(200, "Member removed successfully", null));
