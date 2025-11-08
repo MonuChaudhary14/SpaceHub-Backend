@@ -16,35 +16,39 @@ import java.util.Objects;
 @ToString
 public class LocalGroupUser {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "local_group_id")
-    @ToString.Exclude
-    @JsonIgnore
-    private LocalGroup localGroup;
+  @ManyToOne
+  @JoinColumn(name = "local_group_id")
+  @ToString.Exclude
+  @JsonIgnore
+  private LocalGroup localGroup;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    @ToString.Exclude
-    private User user;
+  @ManyToOne
+  @JoinColumn(name = "user_id")
+  @ToString.Exclude
+  private User user;
 
-    private LocalDateTime joinDate = LocalDateTime.now();
+  private LocalDateTime joinDate = LocalDateTime.now();
 
-    private boolean isBanned = false;
-    private boolean isBlocked = false;
+  private boolean isBanned = false;
+  private boolean isBlocked = false;
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof LocalGroupUser that)) return false;
-        return Objects.equals(id, that.id);
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
     }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id);
+    if (!(o instanceof LocalGroupUser that)) {
+      return false;
     }
+    return Objects.equals(id, that.id);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id);
+  }
 }

@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.Optional;
@@ -52,36 +51,15 @@ public class ProfileService implements IProfileService {
 
   @Override
   public UserProfileResponse updateProfileByEmail(String email, UserProfileDTO dto) {
-    if (email == null || email.isBlank()) throw new IllegalArgumentException("Email is required");
-    if (dto == null) throw new IllegalArgumentException("Profile data is missing");
+    validateInput(email, dto);
 
     User user = userRepository.findByEmail(email.trim().toLowerCase())
-            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+      .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
     try {
-      Optional.ofNullable(dto.getFirstName()).ifPresent(user::setFirstName);
-      Optional.ofNullable(dto.getLastName()).ifPresent(user::setLastName);
-      Optional.ofNullable(dto.getBio()).ifPresent(user::setBio);
-      Optional.ofNullable(dto.getUsername()).ifPresent(user::setUsername);
-      Optional.ofNullable(dto.getDateOfBirth()).ifPresent(d -> user.setDateOfBirth(LocalDate.parse(d)));
-
-      if (dto.getCurrentPassword() != null && dto.getNewPassword() != null &&
-              !dto.getCurrentPassword().isBlank() && !dto.getNewPassword().isBlank()) {
-        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-        if (!encoder.matches(dto.getCurrentPassword(), user.getPassword()))
-          throw new IllegalArgumentException("Current password is incorrect");
-        user.setPassword(encoder.encode(dto.getNewPassword()));
-        user.setPasswordVersion(Optional.ofNullable(user.getPasswordVersion()).orElse(0) + 1);
-      }
-
-      if (dto.getNewEmail() != null && !dto.getNewEmail().isBlank()) {
-        String newEmail = dto.getNewEmail().trim().toLowerCase();
-        if (!newEmail.equals(user.getEmail())) {
-          if (userRepository.existsByEmail(newEmail))
-            throw new IllegalArgumentException("Email already in use");
-          user.setEmail(newEmail);
-        }
-      }
+      updateBasicDetails(user, dto);
+      updatePasswordIfNeeded(user, dto);
+      updateEmailIfNeeded(user, dto);
 
       userRepository.save(user);
       return buildResponse(user);
@@ -91,8 +69,9 @@ public class ProfileService implements IProfileService {
     }
   }
 
+
   @Override
-  public UserProfileResponse uploadAvatarByEmail(String email, MultipartFile file) throws IOException {
+  public UserProfileResponse uploadAvatarByEmail(String email, MultipartFile file) {
     if (email == null || email.isBlank()) throw new IllegalArgumentException("Email is required");
     validateImage(file);
 
@@ -112,7 +91,7 @@ public class ProfileService implements IProfileService {
   }
 
   @Override
-  public UserProfileResponse uploadCoverPhotoByEmail(String email, MultipartFile file) throws IOException {
+  public UserProfileResponse uploadCoverPhotoByEmail(String email, MultipartFile file) {
     if (email == null || email.isBlank()) throw new IllegalArgumentException("Email is required");
     validateImage(file);
 
@@ -176,7 +155,8 @@ public class ProfileService implements IProfileService {
     resp.setDateOfBirth(user.getDateOfBirth());
     resp.setAvatarKey(user.getAvatarUrl());
     if (user.getAvatarUrl() != null && !user.getAvatarUrl().isBlank()) {
-      resp.setAvatarPreviewUrl(s3Service.generatePresignedDownloadUrl(user.getAvatarUrl(), Duration.ofMinutes(15)));
+      resp.setAvatarPreviewUrl(s3Service.generatePresignedDownloadUrl(user.getAvatarUrl(),
+        Duration.ofMinutes(15)));
     }
     return resp;
   }
@@ -186,7 +166,8 @@ public class ProfileService implements IProfileService {
       boolean changed = c.getPendingRequests() != null &&
               c.getPendingRequests().removeIf(u -> u != null && user.getId().equals(u.getId()));
       if (c.getCommunityUsers() != null &&
-              c.getCommunityUsers().removeIf(cu -> cu.getUser() != null && user.getId().equals(cu.getUser().getId())))
+              c.getCommunityUsers().removeIf(cu -> cu.getUser() != null &&
+                user.getId().equals(cu.getUser().getId())))
         changed = true;
       if (changed) communityRepository.save(c);
     });
@@ -208,4 +189,59 @@ public class ProfileService implements IProfileService {
       log.error("Failed to delete file: {}", fileUrl);
     }
   }
+
+  private void validateInput(String email, UserProfileDTO dto) {
+    if (email == null || email.isBlank()) {
+      throw new IllegalArgumentException("Email is required");
+    }
+    if (dto == null) {
+      throw new IllegalArgumentException("Profile data is missing");
+    }
+  }
+
+  private void updateBasicDetails(User user, UserProfileDTO dto) {
+    Optional.ofNullable(dto.getFirstName()).ifPresent(user::setFirstName);
+    Optional.ofNullable(dto.getLastName()).ifPresent(user::setLastName);
+    Optional.ofNullable(dto.getBio()).ifPresent(user::setBio);
+    Optional.ofNullable(dto.getUsername()).ifPresent(user::setUsername);
+
+    Optional.ofNullable(dto.getDateOfBirth())
+      .ifPresent(d -> user.setDateOfBirth(LocalDate.parse(d)));
+  }
+
+  private void updatePasswordIfNeeded(User user, UserProfileDTO dto) {
+    String current = dto.getCurrentPassword();
+    String next = dto.getNewPassword();
+
+    if (current == null || next == null || current.isBlank() || next.isBlank()) {
+      return;
+    }
+
+    BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+    if (!encoder.matches(current, user.getPassword())) {
+      throw new IllegalArgumentException("Current password is incorrect");
+    }
+
+    user.setPassword(encoder.encode(next));
+    user.setPasswordVersion(Optional.ofNullable(user.getPasswordVersion()).orElse(0) + 1);
+  }
+
+  private void updateEmailIfNeeded(User user, UserProfileDTO dto) {
+    String newEmail = dto.getNewEmail();
+    if (newEmail == null || newEmail.isBlank()) {
+      return;
+    }
+
+    newEmail = newEmail.trim().toLowerCase();
+    if (newEmail.equals(user.getEmail())) {
+      return;
+    }
+
+    if (userRepository.existsByEmail(newEmail)) {
+      throw new IllegalArgumentException("Email already in use");
+    }
+
+    user.setEmail(newEmail);
+  }
+
 }

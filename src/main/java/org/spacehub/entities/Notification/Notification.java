@@ -17,42 +17,44 @@ import org.spacehub.entities.Community.Community;
 @Builder
 public class Notification {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.UUID)
+  private UUID id;
 
-    private String title;
+  private String title;
 
-    @Column(length = 1000)
-    private String message;
+  @Column(length = 1000)
+  private String message;
 
-    private NotificationType type;
+  private NotificationType type;
 
-    private boolean read = false;
+  private boolean read = false;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "sender_id")
-    private User sender;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "sender_id")
+  private User sender;
 
-    private LocalDateTime createdAt = LocalDateTime.now();
+  private LocalDateTime createdAt = LocalDateTime.now();
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private User recipient;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "user_id")
+  private User recipient;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "community_id")
-    private Community community;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "community_id")
+  private Community community;
 
-    private UUID referenceId;
+  private UUID referenceId;
 
-    private String scope;
+  private String scope;
 
-    private boolean actionable = false;
+  private boolean actionable = false;
 
-    @PrePersist
-    public void prePersist() {
-        if (this.createdAt == null) this.createdAt = LocalDateTime.now();
+  @PrePersist
+  public void prePersist() {
+    if (this.createdAt == null) {
+      this.createdAt = LocalDateTime.now();
     }
+  }
 
 }

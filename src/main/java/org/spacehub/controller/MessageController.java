@@ -2,11 +2,7 @@ package org.spacehub.controller;
 
 import org.spacehub.entities.DirectMessaging.Message;
 import org.spacehub.service.Interface.IMessageService;
-import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
-
-import java.security.Principal;
 import java.util.List;
 
 @RestController

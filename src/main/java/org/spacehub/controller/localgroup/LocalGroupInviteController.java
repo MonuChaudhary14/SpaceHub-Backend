@@ -18,30 +18,31 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class LocalGroupInviteController {
 
-    private final ILocalGroupInviteService inviteService;
+  private final ILocalGroupInviteService inviteService;
 
-    @PostMapping("/create/{groupId}")
-    public ResponseEntity<ApiResponse<LocalGroupInviteResponseDTO>> createInvite(@PathVariable UUID groupId, @RequestBody LocalGroupInviteRequestDTO request) {
-        ApiResponse<LocalGroupInviteResponseDTO> response = inviteService.createInvite(groupId, request);
-        return ResponseEntity.status(response.getStatus()).body(response);
-    }
+  @PostMapping("/create/{groupId}")
+  public ResponseEntity<ApiResponse<LocalGroupInviteResponseDTO>> createInvite(
+    @PathVariable UUID groupId, @RequestBody LocalGroupInviteRequestDTO request) {
+    ApiResponse<LocalGroupInviteResponseDTO> response = inviteService.createInvite(groupId, request);
+    return ResponseEntity.status(response.getStatus()).body(response);
+  }
 
-    @PostMapping("/accept")
-    public ResponseEntity<ApiResponse<?>> acceptInvite(@RequestBody LocalGroupInviteAcceptDTO request) {
-        ApiResponse<?> response = inviteService.acceptInvite(request);
-        return ResponseEntity.status(response.getStatus()).body(response);
-    }
+  @PostMapping("/accept")
+  public ResponseEntity<ApiResponse<?>> acceptInvite(@RequestBody LocalGroupInviteAcceptDTO request) {
+    ApiResponse<?> response = inviteService.acceptInvite(request);
+    return ResponseEntity.status(response.getStatus()).body(response);
+  }
 
-    @GetMapping("/list/{groupId}")
-    public ResponseEntity<ApiResponse<List<LocalGroupInviteResponseDTO>>> getGroupInvites(@PathVariable UUID groupId) {
-        ApiResponse<List<LocalGroupInviteResponseDTO>> response = inviteService.getGroupInvites(groupId);
-        return ResponseEntity.status(response.getStatus()).body(response);
-    }
+  @GetMapping("/list/{groupId}")
+  public ResponseEntity<ApiResponse<List<LocalGroupInviteResponseDTO>>> getGroupInvites(@PathVariable UUID groupId) {
+    ApiResponse<List<LocalGroupInviteResponseDTO>> response = inviteService.getGroupInvites(groupId);
+    return ResponseEntity.status(response.getStatus()).body(response);
+  }
 
-    @DeleteMapping("/revoke/{inviteCode}")
-    public ResponseEntity<ApiResponse<String>> revokeInvite(@PathVariable String inviteCode) {
-        ApiResponse<String> response = inviteService.revokeInvite(inviteCode);
-        return ResponseEntity.status(response.getStatus()).body(response);
-    }
+  @DeleteMapping("/revoke/{inviteCode}")
+  public ResponseEntity<ApiResponse<String>> revokeInvite(@PathVariable String inviteCode) {
+    ApiResponse<String> response = inviteService.revokeInvite(inviteCode);
+    return ResponseEntity.status(response.getStatus()).body(response);
+  }
 
 }

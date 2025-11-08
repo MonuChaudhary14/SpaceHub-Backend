@@ -14,13 +14,14 @@ import java.util.UUID;
 @Builder
 public class NotificationRequestDTO {
 
-    private String email;
-    private String title;
-    private String message;
-    private NotificationType type;
-    private String senderEmail;
-    private UUID communityId;
-    private UUID referenceId;
-    private String scope;
-    private boolean actionable;
+  private String email;
+  private String title;
+  private String message;
+  private NotificationType type;
+  private String senderEmail;
+  private UUID communityId;
+  private UUID referenceId;
+  private String scope;
+  private boolean actionable;
+
 }
