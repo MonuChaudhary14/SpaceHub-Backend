@@ -1,6 +1,7 @@
 package org.spacehub.service;
 
 import org.spacehub.entities.DirectMessaging.Message;
+import org.spacehub.service.Interface.IMessageQueueService;
 import org.spacehub.service.Interface.IMessageService;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -9,13 +10,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
-public class MessageQueueService {
+public class MessageQueueService implements IMessageQueueService {
 
   private final List<Message> queue = new ArrayList<>();
   private final IMessageService messageService;
 
   public MessageQueueService(IMessageService messageService) {
-      this.messageService = messageService;
+    this.messageService = messageService;
   }
 
   public synchronized void enqueue(Message message) {
@@ -30,12 +31,12 @@ public class MessageQueueService {
     }
   }
 
-  @Scheduled(cron = "0 * * * * *") // every minute
+  @Scheduled(cron = "0 * * * * *")
   public synchronized void sendEveryInterval() {
     flushQueue();
   }
 
-  private synchronized void flushQueue() {
+  public synchronized void flushQueue() {
     if (queue.isEmpty()) {
       return;
     }

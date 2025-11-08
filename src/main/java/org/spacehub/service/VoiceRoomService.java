@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.VoiceRoom.VoiceRoom;
 import org.spacehub.repository.VoiceRoomRepository;
+import org.spacehub.service.Interface.IVoiceRoomService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -13,7 +14,7 @@ import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
-public class VoiceRoomService {
+public class VoiceRoomService implements IVoiceRoomService {
 
   private static final Logger logger = LoggerFactory.getLogger(VoiceRoomService.class);
 
