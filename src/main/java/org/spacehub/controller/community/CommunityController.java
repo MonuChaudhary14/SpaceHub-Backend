@@ -1,4 +1,4 @@
-package org.spacehub.controller;
+package org.spacehub.controller.community;
 
 import org.spacehub.DTO.AcceptRequest;
 import org.spacehub.DTO.CancelJoinRequest;
