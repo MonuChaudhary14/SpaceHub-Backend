@@ -99,9 +99,9 @@ public class UserController {
   @GetMapping("/search")
   public ResponseEntity<ApiResponse<Page<UserSearchDTO>>> searchUsers(
           @RequestParam("query") String query,
-          Pageable pageable,
-          Principal principal){
-    String currentUserEmail = principal.getName();
+          @RequestParam("email") String currentUserEmail,
+          Pageable pageable
+  ) {
     return userService.searchUsers(query, currentUserEmail, pageable);
   }
 
