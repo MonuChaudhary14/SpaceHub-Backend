@@ -5,7 +5,12 @@ import org.slf4j.LoggerFactory;
 import org.spacehub.DTO.User.DeleteAccount;
 import org.spacehub.DTO.User.UserProfileDTO;
 import org.spacehub.DTO.User.UserProfileResponse;
+import org.spacehub.entities.Community.Community;
+import org.spacehub.entities.LocalGroup.LocalGroup;
 import org.spacehub.entities.User.User;
+import org.spacehub.repository.NotificationRepository;
+import org.spacehub.repository.RefreshTokenRepository;
+import org.spacehub.repository.ScheduledMessageRepository;
 import org.spacehub.repository.UserRepository;
 import org.spacehub.repository.community.CommunityRepository;
 import org.spacehub.repository.community.CommunityUserRepository;
@@ -18,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Duration;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -30,16 +36,23 @@ public class ProfileService implements IProfileService {
   private final CommunityUserRepository communityUserRepository;
   private final LocalGroupRepository localGroupRepository;
   private static final Logger log = LoggerFactory.getLogger(ProfileService.class);
+  private final NotificationRepository notificationRepository;
+  private final RefreshTokenRepository refreshTokenRepository;
+  private final ScheduledMessageRepository scheduledMessageRepository;
 
   public ProfileService(UserRepository userRepository, S3Service s3Service,
                         CommunityRepository communityRepository,
                         CommunityUserRepository communityUserRepository,
-                        LocalGroupRepository localGroupRepository) {
+                        LocalGroupRepository localGroupRepository, NotificationRepository notificationRepository,
+                        RefreshTokenRepository refreshTokenRepository, ScheduledMessageRepository scheduledMessageRepository) {
     this.userRepository = userRepository;
     this.s3Service = s3Service;
     this.communityRepository = communityRepository;
     this.communityUserRepository = communityUserRepository;
     this.localGroupRepository = localGroupRepository;
+    this.notificationRepository = notificationRepository;
+    this.refreshTokenRepository = refreshTokenRepository;
+    this.scheduledMessageRepository = scheduledMessageRepository;
   }
 
   @Override
@@ -111,6 +124,8 @@ public class ProfileService implements IProfileService {
     }
   }
 
+  @Override
+  @Transactional
   public void deleteAccount(DeleteAccount request) {
     String email = request.getEmail();
     String currentPassword = request.getCurrentPassword();
@@ -123,7 +138,7 @@ public class ProfileService implements IProfileService {
     }
 
     User user = userRepository.findByEmail(email.trim().toLowerCase())
-            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+      .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
     BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
     if (!encoder.matches(currentPassword, user.getPassword())) {
@@ -131,19 +146,26 @@ public class ProfileService implements IProfileService {
     }
 
     try {
+
+      notificationRepository.deleteAllBySender(user);
+      notificationRepository.deleteAllByRecipient(user);
+
+      refreshTokenRepository.deleteAllByUser(user);
+
+      scheduledMessageRepository.deleteAllBySenderEmail(user.getEmail());
+
       removeUserFromCommunities(user);
+
       removeUserFromGroups(user);
 
       communityUserRepository.deleteByUserId(user.getId());
-      safeDelete(user.getAvatarUrl());
 
+      safeDelete(user.getAvatarUrl());
       safeDelete(user.getCoverPhotoUrl());
+
       userRepository.delete(user);
 
-      log.info("Account deleted for {}", email);
-    }
-    catch (Exception e) {
-      log.error("Failed to delete account for {}: {}", email, e.getMessage());
+    } catch (Exception e) {
       throw new RuntimeException("Account deletion failed, please try again later.");
     }
   }
@@ -173,23 +195,39 @@ public class ProfileService implements IProfileService {
   }
 
   private void removeUserFromCommunities(User user) {
-    communityRepository.findAll().forEach(c -> {
-      boolean changed = c.getPendingRequests() != null &&
-              c.getPendingRequests().removeIf(u -> u != null && user.getId().equals(u.getId()));
-      if (c.getCommunityUsers() != null &&
-              c.getCommunityUsers().removeIf(cu -> cu.getUser() != null &&
-                user.getId().equals(cu.getUser().getId())))
-        changed = true;
-      if (changed) communityRepository.save(c);
-    });
+    List<Community> createdCommunities = communityRepository.findAllByCreatedByWithUsers(user);
+    for (Community c : createdCommunities) {
+      c.setCreatedBy(null);
+      c.getCommunityUsers().removeIf(cu -> cu.getUser().getId().equals(user.getId()));
+      communityRepository.save(c);
+    }
+
+    List<Community> pendingIn = communityRepository.findAllWithPendingUser(user);
+    for (Community c : pendingIn) {
+      c.getPendingRequests().remove(user);
+      communityRepository.save(c);
+    }
+
+    List<Community> memberIn = communityRepository.findAllWhereUserIsMember(user);
+    for (Community c : memberIn) {
+      c.getCommunityUsers().removeIf(cu -> cu.getUser().getId().equals(user.getId()));
+      communityRepository.save(c);
+    }
   }
 
   private void removeUserFromGroups(User user) {
-    localGroupRepository.findAll().forEach(g -> {
-      if (g.getMembers() != null &&
-              g.getMembers().removeIf(m -> m != null && user.getId().equals(m.getId())))
-        localGroupRepository.save(g);
-    });
+    List<LocalGroup> createdGroups = localGroupRepository.findAllByCreatedBy(user);
+    for (LocalGroup g : createdGroups) {
+      g.setCreatedBy(null);
+      g.getMembers().remove(user);
+      localGroupRepository.save(g);
+    }
+
+    List<LocalGroup> memberIn = localGroupRepository.findAllWhereUserIsMember(user);
+    for (LocalGroup g : memberIn) {
+      g.getMembers().remove(user);
+      localGroupRepository.save(g);
+    }
   }
 
   private void safeDelete(String fileUrl) {
