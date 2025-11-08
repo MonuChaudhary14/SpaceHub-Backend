@@ -22,8 +22,7 @@ public class CommunityUser {
   private UUID id;
 
   @ManyToOne
-  @JoinColumn(name = "community_id")
-  @ToString.Exclude
+  @JoinColumn(name = "community_id", referencedColumnName = "community_id")
   @JsonIgnore
   private Community community;
 
