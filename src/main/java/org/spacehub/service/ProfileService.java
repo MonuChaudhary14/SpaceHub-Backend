@@ -44,29 +44,18 @@ public class ProfileService implements IProfileService {
       .orElseThrow(() -> new RuntimeException("User not found"));
 
     UserProfileResponse resp = new UserProfileResponse();
-    resp.setId(user.getId());
     resp.setFirstName(user.getFirstName());
     resp.setLastName(user.getLastName());
     resp.setUsername(user.getUsername());
     resp.setEmail(user.getEmail());
     resp.setBio(user.getBio());
-    resp.setLocation(user.getLocation());
-    resp.setWebsite(user.getWebsite());
     resp.setDateOfBirth(user.getDateOfBirth());
-    resp.setIsPrivate(user.getIsPrivate());
-    resp.setCreatedAt(user.getCreatedAt());
-    resp.setUpdatedAt(user.getUpdatedAt());
 
     String avatarKey = user.getAvatarUrl();
-    String coverKey  = user.getCoverPhotoUrl();
     resp.setAvatarKey(avatarKey);
-    resp.setCoverKey(coverKey);
 
     if (avatarKey != null && !avatarKey.isBlank()) {
       resp.setAvatarPreviewUrl(s3Service.generatePresignedDownloadUrl(avatarKey, Duration.ofMinutes(15)));
-    }
-    if (coverKey != null && !coverKey.isBlank()) {
-      resp.setCoverPreviewUrl(s3Service.generatePresignedDownloadUrl(coverKey, Duration.ofMinutes(15)));
     }
 
     return resp;
@@ -87,11 +76,31 @@ public class ProfileService implements IProfileService {
     Optional.ofNullable(dto.getFirstName()).ifPresent(user::setFirstName);
     Optional.ofNullable(dto.getLastName()).ifPresent(user::setLastName);
     Optional.ofNullable(dto.getBio()).ifPresent(user::setBio);
-    Optional.ofNullable(dto.getLocation()).ifPresent(user::setLocation);
-    Optional.ofNullable(dto.getWebsite()).ifPresent(user::setWebsite);
     Optional.ofNullable(dto.getDateOfBirth()).ifPresent(date -> user.setDateOfBirth(LocalDate.parse(date)));
-    Optional.ofNullable(dto.getIsPrivate()).ifPresent(user::setIsPrivate);
     Optional.ofNullable(dto.getUsername()).ifPresent(user::setUsername);
+
+    if (dto.getCurrentPassword() != null && dto.getNewPassword() != null &&
+            !dto.getCurrentPassword().isBlank() && !dto.getNewPassword().isBlank()) {
+
+      BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+
+      if (!encoder.matches(dto.getCurrentPassword(), user.getPassword())) {
+        throw new IllegalArgumentException("Current password is incorrect");
+      }
+
+      user.setPassword(encoder.encode(dto.getNewPassword()));
+      user.setPasswordVersion(Optional.ofNullable(user.getPasswordVersion()).orElse(0) + 1);
+    }
+
+    if (dto.getNewEmail() != null && !dto.getNewEmail().isBlank()) {
+      String normalizedEmail = dto.getNewEmail().trim().toLowerCase();
+      if (!normalizedEmail.equals(user.getEmail())) {
+        if (userRepository.existsByEmail(normalizedEmail)) {
+          throw new IllegalArgumentException("Email already in use");
+        }
+        user.setEmail(normalizedEmail);
+      }
+    }
   }
 
 
@@ -99,9 +108,9 @@ public class ProfileService implements IProfileService {
     validateImage(file);
 
     User user = userRepository.findByEmail(email)
-      .orElseThrow(() -> new RuntimeException("User not found"));
+            .orElseThrow(() -> new RuntimeException("User not found"));
 
-    String key = "avatars/" + file.getOriginalFilename();
+    String key = "avatars/" + System.currentTimeMillis() + "_" + file.getOriginalFilename();
     s3Service.uploadFile(key, file.getInputStream(), file.getSize());
 
     user.setAvatarUrl(key);
@@ -122,12 +131,8 @@ public class ProfileService implements IProfileService {
   }
 
   private void validateImage(MultipartFile file) {
-    if (file.isEmpty()) {
-      throw new RuntimeException("File is empty");
-    }
-    if (file.getSize() > 2 * 1024 * 1024) {
-      throw new RuntimeException("File size exceeds 2 MB");
-    }
+    if (file.isEmpty()) throw new RuntimeException("File is empty");
+    if (file.getSize() > 2 * 1024 * 1024) throw new RuntimeException("File size exceeds 2 MB");
     String contentType = file.getContentType();
     if (contentType == null || !contentType.startsWith("image/")) {
       throw new RuntimeException("Only image files are allowed");
@@ -135,16 +140,15 @@ public class ProfileService implements IProfileService {
   }
 
   public User updateAccount(
-    String email,
-    MultipartFile avatarFile,
-    String newUsername,
-    String newEmail,
-    String currentPassword,
-    String newPassword
+          String email,
+          MultipartFile avatarFile,
+          String newUsername,
+          String newEmail,
+          String currentPassword,
+          String newPassword
   ) throws Exception {
 
     validateEmail(email);
-
     User user = findUserByEmail(email);
 
     updateUsername(user, newUsername);
@@ -157,14 +161,14 @@ public class ProfileService implements IProfileService {
 
   private void validateEmail(String email) {
     if (email == null || email.isBlank()) {
-      throw new IllegalArgumentException("email (current) is required");
+      throw new IllegalArgumentException("Email (current) is required");
     }
   }
 
   private User findUserByEmail(String email) {
     String normalized = email.trim().toLowerCase();
     return userRepository.findByEmail(normalized)
-      .orElseThrow(() -> new RuntimeException("User not found"));
+            .orElseThrow(() -> new RuntimeException("User not found"));
   }
 
   private void updateUsername(User user, String newUsername) {
@@ -214,8 +218,8 @@ public class ProfileService implements IProfileService {
     String fileName = System.currentTimeMillis() + "_" + avatarFile.getOriginalFilename();
 
     String userIdentifier = user.getId() != null
-      ? user.getId().toString()
-      : user.getEmail().replaceAll("[^a-zA-Z0-9]", "_");
+            ? user.getId().toString()
+            : user.getEmail().replaceAll("[^a-zA-Z0-9]", "_");
 
     String key = String.format("avatars/%s/%s", userIdentifier, fileName);
     s3Service.uploadFile(key, avatarFile.getInputStream(), avatarFile.getSize());
@@ -251,7 +255,7 @@ public class ProfileService implements IProfileService {
 
   private User getUserByEmail(String email) {
     return userRepository.findByEmail(email.trim().toLowerCase())
-      .orElseThrow(() -> new IllegalArgumentException("User not found"));
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
   }
 
   private void verifyPassword(User user, String currentPassword) {
@@ -264,11 +268,11 @@ public class ProfileService implements IProfileService {
   private void removeUserFromCommunities(User user) {
     communityRepository.findAll().forEach(c -> {
       boolean changed = c.getPendingRequests() != null &&
-        c.getPendingRequests().removeIf(u -> u != null && u.getId() != null && u.getId().equals(user.getId()));
+              c.getPendingRequests().removeIf(u -> u != null && u.getId() != null && u.getId().equals(user.getId()));
 
       if (c.getCommunityUsers() != null &&
-        c.getCommunityUsers().removeIf(cu -> cu.getUser() != null &&
-          cu.getUser().getId().equals(user.getId()))) {
+              c.getCommunityUsers().removeIf(cu -> cu.getUser() != null &&
+                      cu.getUser().getId().equals(user.getId()))) {
         changed = true;
       }
 
@@ -279,7 +283,7 @@ public class ProfileService implements IProfileService {
   private void removeUserFromGroups(User user) {
     localGroupRepository.findAll().forEach(g -> {
       if (g.getMembers() != null &&
-        g.getMembers().removeIf(m -> m != null && m.getId() != null && m.getId().equals(user.getId()))) {
+              g.getMembers().removeIf(m -> m != null && m.getId() != null && m.getId().equals(user.getId()))) {
         localGroupRepository.save(g);
       }
     });
