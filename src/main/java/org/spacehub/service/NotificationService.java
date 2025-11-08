@@ -13,7 +13,6 @@ import org.spacehub.repository.NotificationRepository;
 import org.spacehub.repository.UserRepository;
 import org.spacehub.repository.community.CommunityRepository;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
