@@ -4,6 +4,7 @@ import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.UserRepository;
 import org.spacehub.service.Interface.IDashBoardService;
+import org.spacehub.utils.ImageValidator;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -67,7 +68,7 @@ public class DashBoardService implements IDashBoardService {
     try {
       User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
 
-      validateImage(image);
+      ImageValidator.validate(image);
 
       String fileName = System.currentTimeMillis() + "_" + image.getOriginalFilename();
       String key = "avatars/" + email.replaceAll("[^a-zA-Z0-9]", "_") + "/" + fileName;
@@ -91,23 +92,6 @@ public class DashBoardService implements IDashBoardService {
     }
     catch (Exception e) {
       return new ApiResponse<>(500, "An unexpected error occurred: " + e.getMessage(), null);
-    }
-
-  }
-
-  private void validateImage(MultipartFile file) {
-
-    if (file.isEmpty()) {
-      throw new RuntimeException("File is empty");
-    }
-
-    if (file.getSize() > 2 * 1024 * 1024) {
-      throw new RuntimeException("File size exceeds 2 MB");
-    }
-
-    String contentType = file.getContentType();
-    if (contentType == null || !contentType.startsWith("image/")) {
-      throw new RuntimeException("Only image files are allowed");
     }
 
   }

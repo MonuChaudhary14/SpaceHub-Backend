@@ -27,6 +27,7 @@ import org.spacehub.DTO.Community.CommunityBlockRequest;
 import org.spacehub.DTO.Community.UpdateCommunityDTO;
 import org.spacehub.service.S3Service;
 import org.spacehub.service.community.CommunityInterfaces.ICommunityService;
+import org.spacehub.utils.ImageValidator;
 import org.spacehub.utils.S3UrlHelper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -82,7 +83,7 @@ public class CommunityService implements ICommunityService {
       validateCommunityInputs(name, description, createdByEmail, imageFile);
 
       User creator = getCreator(createdByEmail);
-      validateImage(imageFile);
+      ImageValidator.validate(imageFile);
 
       String imageKey = uploadCommunityImage(name, imageFile);
       String imageUrl = s3Service.generatePresignedDownloadUrl(imageKey, Duration.ofHours(2));
@@ -687,15 +688,19 @@ public class CommunityService implements ICommunityService {
   }
 
   private void validateImage(MultipartFile file) {
-    if (file.isEmpty()) throw new RuntimeException("File is empty");
+    if (file.isEmpty()) {
+      throw new RuntimeException("File is empty");
+    }
 
-    if (file.getSize() > 2 * 1024 * 1024)
+    if (file.getSize() > 2 * 1024 * 1024) {
       throw new RuntimeException("File size exceeds 2 MB");
+    }
 
     String contentType = file.getContentType();
 
-    if (contentType == null || !contentType.startsWith("image/"))
+    if (contentType == null || !contentType.startsWith("image/")) {
       throw new RuntimeException("Only image files are allowed");
+    }
   }
 
   @Override
@@ -1112,7 +1117,8 @@ public class CommunityService implements ICommunityService {
         return forbidden();
       }
 
-      validateImage(imageFile);
+      ImageValidator.validate(imageFile);
+
       String fileName = System.currentTimeMillis() + "_" + imageFile.getOriginalFilename();
       String key = "communities/" + community.getName().replaceAll("[^a-zA-Z0-9]", "_") +
         "/avatar/" + fileName;
