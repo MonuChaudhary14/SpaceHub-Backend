@@ -13,8 +13,8 @@ import java.util.UUID;
 @Repository
 public interface NewChatRoomRepository extends JpaRepository<NewChatRoom, UUID> {
 
-    List<NewChatRoom> findByChatRoom(ChatRoom chatRoom);
+  List<NewChatRoom> findByChatRoom(ChatRoom chatRoom);
 
-    Optional<NewChatRoom> findByRoomCode(UUID roomCode);
+  Optional<NewChatRoom> findByRoomCode(UUID roomCode);
 
 }

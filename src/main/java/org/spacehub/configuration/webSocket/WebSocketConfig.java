@@ -1,4 +1,4 @@
-package org.spacehub.configuration;
+package org.spacehub.configuration.webSocket;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.*;

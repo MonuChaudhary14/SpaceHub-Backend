@@ -1,4 +1,4 @@
-package org.spacehub.configuration;
+package org.spacehub.configuration.webSocket;
 
 import org.spacehub.handler.ChatWebSocketHandlerMessaging;
 import org.springframework.context.annotation.Configuration;

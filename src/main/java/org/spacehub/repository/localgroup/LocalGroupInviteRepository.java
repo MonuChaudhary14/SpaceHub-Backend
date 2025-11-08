@@ -8,6 +8,6 @@ import java.util.UUID;
 
 public interface LocalGroupInviteRepository extends JpaRepository<LocalGroupInvite, UUID> {
 
-    Optional<LocalGroupInvite> findByInviteCode(String inviteCode);
+  Optional<LocalGroupInvite> findByInviteCode(String inviteCode);
 
 }
