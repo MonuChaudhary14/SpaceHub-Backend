@@ -20,6 +20,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
@@ -120,8 +121,9 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     ChatMessage systemMessage = ChatMessage.builder()
             .senderEmail("system")
             .message(text)
-            .timestamp(System.currentTimeMillis())
+            .timestamp(Instant.now().toEpochMilli())
             .roomCode(roomCode)
+            .type("SYSTEM")
             .build();
     broadcastMessageToRoom(systemMessage);
   }
@@ -135,12 +137,16 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
   private void sendExistingMessages(WebSocketSession session, NewChatRoom newChatRoom) {
     List<ChatMessage> history = chatMessageQueue.getMessagesForNewChatRoom(newChatRoom);
 
-    for (ChatMessage m : history) {
-      try {
-        session.sendMessage(new TextMessage(objectMapper.writeValueAsString(buildMessagePayload(m))));
-      } catch (IOException e) {
-        logger.error("Error sending history", e);
-      }
+    try {
+      Map<String, Object> payload = new LinkedHashMap<>();
+      payload.put("type", "history");
+      payload.put("roomCode", newChatRoom.getRoomCode());
+      payload.put("messages", history.stream().map(this::buildMessagePayload).toList());
+
+      session.sendMessage(new TextMessage(objectMapper.writeValueAsString(payload)));
+    }
+    catch (IOException e) {
+      logger.error("Error sending chat history", e);
     }
   }
 
@@ -179,31 +185,30 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
       if (optRoom.isEmpty()) return;
       NewChatRoom chatRoom = optRoom.get();
 
+      ChatMessage message;
       if ("FILE".equalsIgnoreCase(type)) {
-        ChatMessage fileMsg = ChatMessage.builder()
+        message = ChatMessage.builder()
                 .senderEmail(senderEmail)
-                .message("[File]")
+                .message("[File] " + node.get("fileName").asText())
                 .fileName(node.get("fileName").asText())
                 .fileUrl(node.get("fileUrl").asText())
                 .contentType(node.get("contentType").asText())
-                .timestamp(System.currentTimeMillis())
+                .timestamp(Instant.now().toEpochMilli())
                 .roomCode(roomCode)
                 .newChatRoom(chatRoom)
+                .type("FILE")
                 .build();
-
-        chatMessageQueue.enqueue(fileMsg);
-        broadcastMessageToRoom(fileMsg);
-        return;
       }
-
-      String text = node.has("message") ? node.get("message").asText() : payload;
-      ChatMessage message = ChatMessage.builder()
-              .senderEmail(senderEmail)
-              .message(text)
-              .timestamp(System.currentTimeMillis())
-              .roomCode(roomCode)
-              .newChatRoom(chatRoom)
-              .build();
+      else {
+        message = ChatMessage.builder()
+                .senderEmail(senderEmail)
+                .message(node.has("message") ? node.get("message").asText() : payload)
+                .timestamp(Instant.now().toEpochMilli())
+                .roomCode(roomCode)
+                .newChatRoom(chatRoom)
+                .type("MESSAGE")
+                .build();
+      }
 
       chatMessageQueue.enqueue(message);
       broadcastMessageToRoom(message);
@@ -215,13 +220,13 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
   private Map<String, Object> buildMessagePayload(ChatMessage message) {
     Map<String, Object> payload = new LinkedHashMap<>();
-
-    payload.put("type", message.getFileUrl() != null ? "FILE" : "MESSAGE");
+    payload.put("type", message.getType());
     payload.put("senderEmail", message.getSenderEmail());
     payload.put("message", message.getMessage());
     payload.put("timestamp", message.getTimestamp());
+    payload.put("roomCode", message.getRoomCode());
 
-    if (message.getFileUrl() != null) {
+    if ("FILE".equalsIgnoreCase(message.getType())) {
       payload.put("fileName", message.getFileName());
       payload.put("fileUrl", message.getFileUrl());
       payload.put("contentType", message.getContentType());

@@ -25,13 +25,8 @@ public class Message {
   @Column(nullable = false, length = 1000)
   private String content;
 
-  @Column
   private String fileName;
-
-  @Column
   private String fileUrl;
-
-  @Column
   private String contentType;
 
   @Column(nullable = false)
