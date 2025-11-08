@@ -35,4 +35,10 @@ public class DashboardController {
     return ResponseEntity.status(response.getStatus()).body(response);
   }
 
+  @GetMapping("/profile-summary")
+  public ResponseEntity<ApiResponse<?>> getUserProfileSummary(@RequestParam("email") String email) {
+    ApiResponse<?> response = dashboardService.getUserProfileSummary(email);
+    return ResponseEntity.status(response.getStatus()).body(response);
+  }
+
 }

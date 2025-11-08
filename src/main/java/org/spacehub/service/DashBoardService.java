@@ -5,11 +5,15 @@ import org.spacehub.entities.User.User;
 import org.spacehub.repository.UserRepository;
 import org.spacehub.service.Interface.IDashBoardService;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.Map;
 
 @Service
 public class DashBoardService implements IDashBoardService {
@@ -97,6 +101,37 @@ public class DashBoardService implements IDashBoardService {
       throw new RuntimeException("Only image files are allowed");
     }
 
+  }
+
+  public ApiResponse<Map<String, Object>> getUserProfileSummary(String email) {
+    if (email == null || email.isBlank()) {
+      return new ApiResponse<>(400, "Email is required", null);
+    }
+
+    try {
+      User user = userRepository.findByEmail(email.trim().toLowerCase())
+              .orElseThrow(() -> new RuntimeException("User not found"));
+
+      String avatarUrl = user.getAvatarUrl();
+      String presignedUrl = null;
+
+      if (avatarUrl != null && !avatarUrl.isBlank()) {
+        presignedUrl = s3Service.generatePresignedDownloadUrl(avatarUrl, Duration.ofHours(2));
+      }
+
+      Map<String, Object> data = Map.of(
+              "username", user.getUsername(),
+              "profileImage", presignedUrl
+      );
+
+      return new ApiResponse<>(200, "User profile fetched successfully", data);
+    }
+    catch (RuntimeException e) {
+      return new ApiResponse<>(400, e.getMessage(), null);
+    }
+    catch (Exception e) {
+      return new ApiResponse<>(500, "An unexpected error occurred: " + e.getMessage(), null);
+    }
   }
 
 }
