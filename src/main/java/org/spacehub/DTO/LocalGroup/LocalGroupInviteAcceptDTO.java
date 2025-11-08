@@ -11,8 +11,8 @@ import java.util.UUID;
 @Builder
 public class LocalGroupInviteAcceptDTO {
 
-    private UUID groupId;
-    private String inviteCode;
-    private String acceptorEmail;
+  private UUID groupId;
+  private String inviteCode;
+  private String acceptorEmail;
 
 }

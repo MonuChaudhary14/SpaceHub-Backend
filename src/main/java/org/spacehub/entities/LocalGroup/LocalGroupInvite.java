@@ -16,35 +16,35 @@ import java.util.UUID;
 @Table(name = "localgroup_invites")
 public class LocalGroupInvite {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.UUID)
+  private UUID id;
 
-    @ManyToOne
-    @JoinColumn(name = "group_id", nullable = false)
-    private LocalGroup localGroup;
+  @ManyToOne
+  @JoinColumn(name = "group_id", nullable = false)
+  private LocalGroup localGroup;
 
-    private String inviterEmail;
+  private String inviterEmail;
 
-    @Column(unique = true, nullable = false)
-    private String inviteCode;
+  @Column(unique = true, nullable = false)
+  private String inviteCode;
 
-    private int maxUses;
+  private int maxUses;
 
-    private int uses = 0;
+  private int uses = 0;
 
-    private LocalDateTime createdAt = LocalDateTime.now();
+  private LocalDateTime createdAt = LocalDateTime.now();
 
-    private LocalDateTime expiresAt;
+  private LocalDateTime expiresAt;
 
-    @Enumerated(EnumType.STRING)
-    private InviteStatus status;
+  @Enumerated(EnumType.STRING)
+  private InviteStatus status;
 
-    @PrePersist
-    public void onCreate() {
-        createdAt = LocalDateTime.now();
-        expiresAt = createdAt.plusHours(72);
-        maxUses = 100;
-    }
+  @PrePersist
+  public void onCreate() {
+    createdAt = LocalDateTime.now();
+    expiresAt = createdAt.plusHours(72);
+    maxUses = 100;
+  }
 
 }

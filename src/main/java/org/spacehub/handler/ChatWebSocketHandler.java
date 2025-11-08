@@ -8,7 +8,6 @@ import org.spacehub.entities.ChatRoom.ChatRoomUser;
 import org.spacehub.entities.ChatRoom.NewChatRoom;
 import org.spacehub.entities.Community.Role;
 import org.spacehub.service.chatRoom.ChatMessageQueue;
-import org.spacehub.service.ChatRoomService;
 import org.spacehub.service.ChatRoomUserService;
 import org.spacehub.service.chatRoom.NewChatRoomService;
 import org.springframework.lang.NonNull;
@@ -34,17 +33,14 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
   private final Map<WebSocketSession, String> userSessions = new ConcurrentHashMap<>();
   private static final Logger logger = LoggerFactory.getLogger(ChatWebSocketHandler.class);
 
-  private final ChatRoomService chatRoomService;
   private final NewChatRoomService newChatRoomService;
   private final ChatMessageQueue chatMessageQueue;
   private final ChatRoomUserService chatRoomUserService;
   private final ObjectMapper objectMapper = new ObjectMapper();
 
-  public ChatWebSocketHandler(ChatRoomService chatRoomService,
-                              NewChatRoomService newChatRoomService,
+  public ChatWebSocketHandler(NewChatRoomService newChatRoomService,
                               ChatMessageQueue chatMessageQueue,
                               ChatRoomUserService chatRoomUserService) {
-    this.chatRoomService = chatRoomService;
     this.newChatRoomService = newChatRoomService;
     this.chatMessageQueue = chatMessageQueue;
     this.chatRoomUserService = chatRoomUserService;
@@ -95,22 +91,10 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
   public void broadcastMessageToRoom(ChatMessage message) {
     String roomCode = message.getRoomCode();
-
     Set<WebSocketSession> sessions = rooms.getOrDefault(roomCode, ConcurrentHashMap.newKeySet());
 
-    Map<String, Object> payload = new LinkedHashMap<>();
-    payload.put("type", message.getFileUrl() != null ? "FILE" : "MESSAGE");
-    payload.put("senderEmail", message.getSenderEmail());
-    payload.put("message", message.getMessage());
-    payload.put("timestamp", message.getTimestamp());
-    if (message.getFileUrl() != null) {
-      payload.put("fileName", message.getFileName());
-      payload.put("fileUrl", message.getFileUrl());
-      payload.put("contentType", message.getContentType());
-    }
-
     try {
-      String json = objectMapper.writeValueAsString(payload);
+      String json = objectMapper.writeValueAsString(buildMessagePayload(message));
       for (WebSocketSession s : sessions) {
         if (s.isOpen()) s.sendMessage(new TextMessage(json));
       }
@@ -150,23 +134,11 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
   private void sendExistingMessages(WebSocketSession session, NewChatRoom newChatRoom) {
     List<ChatMessage> history = chatMessageQueue.getMessagesForNewChatRoom(newChatRoom);
+
     for (ChatMessage m : history) {
-
-      Map<String, Object> payload = new LinkedHashMap<>();
-
-      payload.put("type", m.getFileUrl() != null ? "FILE" : "MESSAGE");
-      payload.put("senderEmail", m.getSenderEmail());
-      payload.put("message", m.getMessage());
-      payload.put("timestamp", m.getTimestamp());
-      if (m.getFileUrl() != null) {
-        payload.put("fileName", m.getFileName());
-        payload.put("fileUrl", m.getFileUrl());
-        payload.put("contentType", m.getContentType());
-      }
       try {
-        session.sendMessage(new TextMessage(objectMapper.writeValueAsString(payload)));
-      }
-      catch (IOException e) {
+        session.sendMessage(new TextMessage(objectMapper.writeValueAsString(buildMessagePayload(m))));
+      } catch (IOException e) {
         logger.error("Error sending history", e);
       }
     }
@@ -239,6 +211,23 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     catch (Exception e) {
       logger.error("Error processing WebSocket message", e);
     }
+  }
+
+  private Map<String, Object> buildMessagePayload(ChatMessage message) {
+    Map<String, Object> payload = new LinkedHashMap<>();
+
+    payload.put("type", message.getFileUrl() != null ? "FILE" : "MESSAGE");
+    payload.put("senderEmail", message.getSenderEmail());
+    payload.put("message", message.getMessage());
+    payload.put("timestamp", message.getTimestamp());
+
+    if (message.getFileUrl() != null) {
+      payload.put("fileName", message.getFileName());
+      payload.put("fileUrl", message.getFileUrl());
+      payload.put("contentType", message.getContentType());
+    }
+
+    return payload;
   }
 
 }

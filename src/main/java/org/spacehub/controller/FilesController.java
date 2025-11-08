@@ -10,6 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("api/v1/files")
@@ -74,10 +75,10 @@ public class FilesController {
     String fileUrl = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(24));
 
     Map<String, String> response = Map.of(
-            "fileName", file.getOriginalFilename(),
+            "fileName", Objects.requireNonNull(file.getOriginalFilename()),
             "fileKey", key,
             "fileUrl", fileUrl,
-            "contentType", file.getContentType()
+            "contentType", Objects.requireNonNull(file.getContentType())
     );
 
     return ResponseEntity.ok(new ApiResponse<>(200, "File uploaded successfully", response));

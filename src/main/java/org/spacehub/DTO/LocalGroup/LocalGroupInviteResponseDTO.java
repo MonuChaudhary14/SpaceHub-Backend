@@ -12,14 +12,14 @@ import java.util.UUID;
 @Builder
 public class LocalGroupInviteResponseDTO {
 
-    private UUID groupId;
-    private String inviteCode;
-    private String inviteLink;
-    private String inviterEmail;
-    private int maxUses;
-    private int uses;
-    private LocalDateTime expiresAt;
-    private String status;
+  private UUID groupId;
+  private String inviteCode;
+  private String inviteLink;
+  private String inviterEmail;
+  private int maxUses;
+  private int uses;
+  private LocalDateTime expiresAt;
+  private String status;
 
 }
 

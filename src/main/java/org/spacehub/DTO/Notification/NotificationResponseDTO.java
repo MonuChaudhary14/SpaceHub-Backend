@@ -15,20 +15,20 @@ import java.util.UUID;
 @Builder
 public class NotificationResponseDTO {
 
-    private UUID id;
-    private String title;
-    private String message;
-    private NotificationType type;
-    private String scope;
-    private String senderName;
-    private String senderEmail;
-    private boolean actionable;
-    private boolean read;
-    private LocalDateTime createdAt;
+  private UUID id;
+  private String title;
+  private String message;
+  private NotificationType type;
+  private String scope;
+  private String senderName;
+  private String senderEmail;
+  private boolean actionable;
+  private boolean read;
+  private LocalDateTime createdAt;
 
-    private UUID communityId;
-    private String communityName;
+  private UUID communityId;
+  private String communityName;
 
-    private UUID referenceId;
+  private UUID referenceId;
 
 }

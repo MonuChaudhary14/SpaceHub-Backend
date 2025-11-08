@@ -9,8 +9,8 @@ import lombok.*;
 @Builder
 public class LocalGroupInviteRequestDTO {
 
-    private String inviterEmail;
-    private int maxUses;
-    private int expiresInHours;
+  private String inviterEmail;
+  private int maxUses;
+  private int expiresInHours;
 
 }
