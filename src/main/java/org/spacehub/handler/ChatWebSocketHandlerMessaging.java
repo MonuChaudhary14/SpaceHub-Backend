@@ -81,33 +81,74 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
             String receiverEmail = meta.get("receiverEmail");
 
             Map<String, Object> clientPayload = objectMapper.readValue(textMessage.getPayload(), Map.class);
-            String content = (String) clientPayload.get("content");
+            String type = (String) clientPayload.getOrDefault("type", "MESSAGE");
 
-            if (content == null || content.trim().isEmpty()) {
-                sendSystemMessage(session, "Message content cannot be empty");
+            if ("MESSAGE".equalsIgnoreCase(type)) {
+                String content = (String) clientPayload.get("content");
+
+                if (content == null || content.trim().isEmpty()) {
+                    sendSystemMessage(session, "Message content cannot be empty");
+                    return;
+                }
+
+                Message chatMessage = Message.builder()
+                        .senderEmail(senderEmail)
+                        .receiverEmail(receiverEmail)
+                        .content(content)
+                        .timestamp(LocalDateTime.now())
+                        .build();
+
+                messageQueueService.enqueue(chatMessage);
+
+                sendToBoth(senderEmail, receiverEmail, chatMessage);
                 return;
             }
 
-            Message chatMessage = Message.builder()
-                    .senderEmail(senderEmail)
-                    .receiverEmail(receiverEmail)
-                    .content(content)
-                    .timestamp(LocalDateTime.now())
-                    .build();
+            if ("FILE".equalsIgnoreCase(type)) {
+                String fileName = (String) clientPayload.get("fileName");
+                String fileUrl = (String) clientPayload.get("fileUrl");
+                String contentType = (String) clientPayload.get("contentType");
 
-            messageQueueService.enqueue(chatMessage);
+                if (fileUrl == null || fileUrl.isBlank()) {
+                    sendSystemMessage(session, "File URL is missing");
+                    return;
+                }
 
-            WebSocketSession receiverSession = activeUsers.get(receiverEmail);
-            if (receiverSession != null && receiverSession.isOpen()) {
-                receiverSession.sendMessage(new TextMessage(objectMapper.writeValueAsString(chatMessage)));
+                Message fileMessage = Message.builder()
+                        .senderEmail(senderEmail)
+                        .receiverEmail(receiverEmail)
+                        .content("[File] " + fileName)
+                        .timestamp(LocalDateTime.now())
+                        .fileName(fileName)
+                        .fileUrl(fileUrl)
+                        .contentType(contentType)
+                        .build();
+
+                messageQueueService.enqueue(fileMessage);
+                sendToBoth(senderEmail, receiverEmail, fileMessage);
+                return;
             }
 
-            session.sendMessage(new TextMessage(objectMapper.writeValueAsString(chatMessage)));
+            sendSystemMessage(session, "Unknown message type: " + type);
 
         }
         catch (IOException e) {
             e.printStackTrace();
             sendSystemMessage(session, "Failed to process message: " + e.getMessage());
+        }
+    }
+
+    private void sendToBoth(String senderEmail, String receiverEmail, Message message) throws IOException {
+        String json = objectMapper.writeValueAsString(message);
+
+        WebSocketSession senderSession = activeUsers.get(senderEmail);
+        if (senderSession != null && senderSession.isOpen()) {
+            senderSession.sendMessage(new TextMessage(json));
+        }
+
+        WebSocketSession receiverSession = activeUsers.get(receiverEmail);
+        if (receiverSession != null && receiverSession.isOpen()) {
+            receiverSession.sendMessage(new TextMessage(json));
         }
     }
 
