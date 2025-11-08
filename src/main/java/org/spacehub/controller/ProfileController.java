@@ -28,11 +28,12 @@ public class ProfileController {
   }
 
   @PutMapping("/updateProfile")
-  public ResponseEntity<User> updateProfile(
-    @RequestParam("email") String email,
-    @RequestBody UserProfileDTO dto) {
-    User updatedUser = profileService.updateProfileByEmail(email, dto);
-    return ResponseEntity.ok(updatedUser);
+  public ResponseEntity<UserProfileResponse> updateProfile(
+          @RequestParam("email") String email,
+          @RequestBody UserProfileDTO dto) {
+
+    UserProfileResponse updatedProfile = profileService.updateProfileByEmail(email, dto);
+    return ResponseEntity.ok(updatedProfile);
   }
 
   @PostMapping("/avatar")

@@ -61,13 +61,29 @@ public class ProfileService implements IProfileService {
     return resp;
   }
 
-  public User updateProfileByEmail(String email, UserProfileDTO dto) {
+  public UserProfileResponse updateProfileByEmail(String email, UserProfileDTO dto) {
     User user = userRepository.findByEmail(email)
-      .orElseThrow(() -> new RuntimeException("User not found"));
+            .orElseThrow(() -> new RuntimeException("User not found"));
 
     applyUserProfileUpdates(user, dto);
+    userRepository.save(user);
 
-    return userRepository.save(user);
+    UserProfileResponse resp = new UserProfileResponse();
+    resp.setFirstName(user.getFirstName());
+    resp.setLastName(user.getLastName());
+    resp.setUsername(user.getUsername());
+    resp.setEmail(user.getEmail());
+    resp.setBio(user.getBio());
+    resp.setDateOfBirth(user.getDateOfBirth());
+    resp.setAvatarKey(user.getAvatarUrl());
+
+    if (user.getAvatarUrl() != null && !user.getAvatarUrl().isBlank()) {
+      resp.setAvatarPreviewUrl(
+              s3Service.generatePresignedDownloadUrl(user.getAvatarUrl(), Duration.ofMinutes(15))
+      );
+    }
+
+    return resp;
   }
 
   private void applyUserProfileUpdates(User user, UserProfileDTO dto) {

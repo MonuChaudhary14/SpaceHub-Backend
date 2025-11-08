@@ -10,7 +10,7 @@ public interface IProfileService {
 
   UserProfileResponse getProfileByEmail(String email);
 
-  User updateProfileByEmail(String email, UserProfileDTO dto);
+  UserProfileResponse updateProfileByEmail(String email, UserProfileDTO dto);
 
   User uploadAvatarByEmail(String email, MultipartFile file) throws IOException;
 
