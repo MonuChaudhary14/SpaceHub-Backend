@@ -4,16 +4,15 @@ import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.UserRepository;
 import org.spacehub.service.Interface.IDashBoardService;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class DashBoardService implements IDashBoardService {
@@ -28,24 +27,33 @@ public class DashBoardService implements IDashBoardService {
 
   public ApiResponse<String> saveUsernameByEmail(String email, String username) {
 
-    if (email == null || email.isBlank() || username == null || username.isBlank()) {
-      return new ApiResponse<>(400, "Email and username are required", null);
-    }
-
     try {
-      User user = userRepository.findByEmail(email).orElseThrow(() ->
-              new RuntimeException("User not found with email: " + email));
+      User user = userRepository.findByEmail(email).orElse(null);
+
+      if (user == null) {
+        return new ApiResponse<>(HttpStatus.NOT_FOUND.value(),
+          "User not found with email: " + email, null);
+      }
+
+      Optional<User> existingUserOpt = userRepository.findByUsernameIgnoreCase(username);
+
+      if (existingUserOpt.isPresent() && !existingUserOpt.get().getId().equals(user.getId())) {
+        return new ApiResponse<>(HttpStatus.CONFLICT.value(),
+          "Username already taken. Please choose another.", null);
+      }
 
       user.setUsername(username);
       userRepository.save(user);
 
-      return new ApiResponse<>(200, "Username updated successfully", username);
-    }
-    catch (RuntimeException e) {
-      return new ApiResponse<>(400, e.getMessage(), null);
-    }
-    catch (Exception e) {
-      return new ApiResponse<>(500, "An unexpected error occurred: " + e.getMessage(), null);
+      return new ApiResponse<>(HttpStatus.OK.value(), "Username updated successfully", username);
+
+    } catch (DataIntegrityViolationException e) {
+      return new ApiResponse<>(HttpStatus.CONFLICT.value(),
+        "Username already takeN.", null);
+
+    } catch (Exception e) {
+      return new ApiResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(),
+        "An unexpected error occurred: " + e.getMessage(), null);
     }
   }
 
@@ -119,6 +127,7 @@ public class DashBoardService implements IDashBoardService {
         presignedUrl = s3Service.generatePresignedDownloadUrl(avatarUrl, Duration.ofHours(2));
       }
 
+      assert presignedUrl != null;
       Map<String, Object> data = Map.of(
               "username", user.getUsername(),
               "profileImage", presignedUrl
