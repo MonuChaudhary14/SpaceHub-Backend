@@ -34,7 +34,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
     this.messageQueueService = messageQueueService;
     this.messageService = messageService;
     this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule())
-      .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
   }
 
   @Override
@@ -106,7 +106,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
 
     messageQueueService.enqueue(mess);
     messageService.saveMessage(mess);
-    sendToBoth(senderEmail, receiverEmail, mess);
+    sendToReceiver(receiverEmail, mess);
   }
 
   private void sendToReceiver(String receiverEmail, Message message) throws IOException {
@@ -133,19 +133,19 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
     return payload;
   }
 
-  private void sendToBoth(String senderEmail, String receiverEmail, Message message) throws IOException {
-    String json = objectMapper.writeValueAsString(message);
-
-    WebSocketSession senderSession = activeUsers.get(senderEmail);
-    if (senderSession != null && senderSession.isOpen()) {
-      senderSession.sendMessage(new TextMessage(json));
-    }
-
-    WebSocketSession receiverSession = activeUsers.get(receiverEmail);
-    if (receiverSession != null && receiverSession.isOpen()) {
-      receiverSession.sendMessage(new TextMessage(json));
-    }
-  }
+//  private void sendToBoth(String senderEmail, String receiverEmail, Message message) throws IOException {
+//    String json = objectMapper.writeValueAsString(message);
+//
+  ////    WebSocketSession senderSession = activeUsers.get(senderEmail);
+  ////    if (senderSession != null && senderSession.isOpen()) {
+  ////      senderSession.sendMessage(new TextMessage(json));
+  ////    }
+//
+//    WebSocketSession receiverSession = activeUsers.get(receiverEmail);
+//    if (receiverSession != null && receiverSession.isOpen()) {
+//      receiverSession.sendMessage(new TextMessage(json));
+//    }
+//  }
 
   @Override
   public void afterConnectionClosed(@NonNull WebSocketSession session, @NonNull CloseStatus status) {
