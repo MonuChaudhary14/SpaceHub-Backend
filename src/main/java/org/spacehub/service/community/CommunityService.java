@@ -27,6 +27,7 @@ import org.spacehub.DTO.Community.CommunityBlockRequest;
 import org.spacehub.DTO.Community.UpdateCommunityDTO;
 import org.spacehub.service.S3Service;
 import org.spacehub.service.community.CommunityInterfaces.ICommunityService;
+import org.spacehub.utils.S3UrlHelper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -54,6 +55,8 @@ public class CommunityService implements ICommunityService {
   private final ChatRoomRepository chatRoomRepository;
   private final CommunityUserRepository communityUserRepository;
   private final S3Service s3Service;
+  private final S3UrlHelper s3UrlHelper;
+
 
   public static class ResourceNotFoundException extends RuntimeException {
     public ResourceNotFoundException(String message) {
@@ -63,12 +66,13 @@ public class CommunityService implements ICommunityService {
 
   public CommunityService(CommunityRepository communityRepository, UserRepository userRepository,
                           ChatRoomRepository chatRoomRepository, S3Service s3Service,
-                          CommunityUserRepository communityUserRepository) {
+                          CommunityUserRepository communityUserRepository, S3UrlHelper s3UrlHelper) {
     this.communityRepository = communityRepository;
     this.userRepository = userRepository;
     this.chatRoomRepository = chatRoomRepository;
     this.communityUserRepository = communityUserRepository;
     this.s3Service = s3Service;
+    this.s3UrlHelper = s3UrlHelper;
   }
 
   public ResponseEntity<ApiResponse<Map<String, Object>>> createCommunity(
@@ -1032,19 +1036,9 @@ public class CommunityService implements ICommunityService {
     m.put("name", c.getName());
     m.put("description", c.getDescription());
 
-    String key = c.getImageUrl();
-    if (key != null && !key.isBlank()) {
-      try {
-        String presigned = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1));
-        m.put("imageUrl", presigned);
-        m.put("imageKey", key);
-      } catch (Exception e) {
-        m.put("imageUrl", null);
-        m.put("imageKey", key);
-      }
-    } else {
-      m.put("imageUrl", null);
-    }
+    Map<String, Object> img = s3UrlHelper.generatePresignedUrl(c.getImageUrl(), Duration.ofHours(1));
+    m.put("imageUrl", img.get("url"));
+    m.put("imageKey", img.get("key"));
 
     String bannerKey = c.getBannerUrl();
     if (bannerKey != null && !bannerKey.isBlank()) {
