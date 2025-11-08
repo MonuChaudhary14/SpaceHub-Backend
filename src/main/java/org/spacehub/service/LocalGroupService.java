@@ -12,6 +12,7 @@ import org.spacehub.repository.UserRepository;
 import org.spacehub.repository.localgroup.LocalGroupRepository;
 import org.spacehub.service.Interface.ILocalGroupService;
 import org.spacehub.utils.S3UrlHelper;
+import org.spacehub.utils.ImageValidator;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -65,7 +66,7 @@ public class LocalGroupService implements ILocalGroupService {
       User creator = userRepository.findByEmail(creatorEmail)
         .orElseThrow(() -> new ResourceNotFoundException("Creator not found"));
 
-      validateImage(imageFile);
+      ImageValidator.validate(imageFile);
 
       String fileName = System.currentTimeMillis() + "_" + imageFile.getOriginalFilename();
       String key = "local-groups/" + name.replaceAll("[^a-zA-Z0-9]", "_") + "/" + fileName;
@@ -222,20 +223,6 @@ public class LocalGroupService implements ILocalGroupService {
     return r;
   }
 
-
-  private void validateImage(MultipartFile file) {
-    if (file.isEmpty()) {
-      throw new RuntimeException("File is empty");
-    }
-
-    if (file.getSize() > 2 * 1024 * 1024)
-      throw new RuntimeException("File size exceeds 2 MB");
-
-    String contentType = file.getContentType();
-
-    if (contentType == null || !contentType.startsWith("image/"))
-      throw new RuntimeException("Only image files are allowed");
-  }
 
   public ResponseEntity<ApiResponse<Map<String, Object>>> searchLocalGroups(
     String q, String requesterEmail, int page, int size) {
@@ -444,7 +431,7 @@ public class LocalGroupService implements ILocalGroupService {
       return false;
     }
 
-    validateImage(imageFile);
+    ImageValidator.validate(imageFile);
 
     String safeName = Optional.ofNullable(group.getName())
       .filter(name -> !name.isBlank())
