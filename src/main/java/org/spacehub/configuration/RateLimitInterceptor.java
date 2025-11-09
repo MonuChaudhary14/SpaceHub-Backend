@@ -35,6 +35,17 @@ public class RateLimitInterceptor implements HandlerInterceptor {
   }
 
   private String getClientKey(HttpServletRequest request) {
+    String ip = request.getHeader("X-Forwarded-For");
+
+    if (ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip)) {
+      return ip.split(",")[0].trim();
+    }
+
+    ip = request.getHeader("X-Real-IP");
+    if (ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip)) {
+      return ip;
+    }
+
     return request.getRemoteAddr();
   }
 }
