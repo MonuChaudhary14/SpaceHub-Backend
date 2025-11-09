@@ -167,6 +167,7 @@ public class NotificationService implements INotificationService {
             .referenceId(n.getReferenceId())
             .senderName(n.getSender() != null ? n.getSender().getUsername() : null)
             .senderEmail(n.getSender() != null ? n.getSender().getEmail() : null)
+            .senderProfileImageUrl(n.getSender() != null ? n.getSender().getAvatarUrl() : null)
             .build();
   }
 

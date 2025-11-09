@@ -25,6 +25,7 @@ public class NotificationResponseDTO {
   private boolean actionable;
   private boolean read;
   private LocalDateTime createdAt;
+  private String senderProfileImageUrl;
 
   private UUID communityId;
   private String communityName;
