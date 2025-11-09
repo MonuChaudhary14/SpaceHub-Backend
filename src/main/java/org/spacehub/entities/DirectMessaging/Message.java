@@ -22,7 +22,6 @@ public class Message {
   @Column(nullable = false, length = 320)
   private String receiverEmail;
 
-  @Lob
   @Column(nullable = false, columnDefinition = "TEXT")
   private String content;
 

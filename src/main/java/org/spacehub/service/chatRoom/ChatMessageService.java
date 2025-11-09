@@ -6,6 +6,7 @@ import org.spacehub.entities.ChatRoom.NewChatRoom;
 import org.spacehub.repository.ChatRoom.ChatMessageRepository;
 import org.spacehub.service.chatRoom.chatroomInterfaces.IChatMessageService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -18,14 +19,17 @@ public class ChatMessageService implements IChatMessageService {
     this.chatMessageRepository = chatMessageRepository;
   }
 
+  @Transactional
   public void saveAll(List<ChatMessage> messages) {
     chatMessageRepository.saveAll(messages);
   }
 
+  @Transactional(readOnly = true)
   public List<ChatMessage> getMessagesForRoom(ChatRoom room) {
     return chatMessageRepository.findByRoomOrderByTimestampAsc(room);
   }
 
+  @Transactional(readOnly = true)
   public List<ChatMessage> getMessagesForNewChatRoom(NewChatRoom newChatRoom) {
     return chatMessageRepository.findByNewChatRoomOrderByTimestampAsc(newChatRoom);
   }

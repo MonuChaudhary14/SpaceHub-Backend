@@ -30,6 +30,7 @@ public class MessageService implements IMessageService {
   }
 
   @Override
+  @Transactional(readOnly = true)
   public List<Message> getChat(String user1, String user2) {
     return repo.findBySenderEmailAndReceiverEmailOrReceiverEmailAndSenderEmailOrderByTimestampAsc(user1, user2, user1, user2);
   }
