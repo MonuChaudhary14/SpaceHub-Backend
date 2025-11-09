@@ -34,4 +34,8 @@ public class Message {
 
   @Column(nullable = false)
   private String type = "MESSAGE";
+
+  private Boolean senderDeleted = false;
+  private Boolean receiverDeleted = false;
+  private LocalDateTime deletedAt;
 }
