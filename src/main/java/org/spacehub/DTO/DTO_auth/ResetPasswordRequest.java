@@ -12,9 +12,4 @@ public class ResetPasswordRequest {
   private String newPassword;
   private String tempToken;
 
-  public ResetPasswordRequest(String email, String newPassword, String tempToken) {
-    this.email = email;
-    this.newPassword = newPassword;
-    this.tempToken = tempToken;
-  }
 }
