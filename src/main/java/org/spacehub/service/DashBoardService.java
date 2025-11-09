@@ -15,6 +15,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class DashBoardService implements IDashBoardService {
@@ -28,6 +29,18 @@ public class DashBoardService implements IDashBoardService {
   }
 
   public ApiResponse<String> saveUsernameByEmail(String email, String username) {
+
+    if(email == null || email.isBlank()){
+      return new ApiResponse<>(400, "Email is null or blank", null);
+    }
+
+    if (username == null || username.isBlank()) {
+      return new ApiResponse<>(400, "Username cannot be blank", null);
+    }
+
+    if (!username.matches("^[a-zA-Z0-9_.-]{3,20}$")) {
+      return new ApiResponse<>(400,"Username must be 3–20 characters, and can include letters, numbers, '.', '-', '_'", null);
+    }
 
     try {
       User user = userRepository.findByEmail(email).orElse(null);
@@ -51,15 +64,18 @@ public class DashBoardService implements IDashBoardService {
 
     } catch (DataIntegrityViolationException e) {
       return new ApiResponse<>(HttpStatus.CONFLICT.value(),
-        "Username already takeN.", null);
+        "Username already taken.", null);
 
     } catch (Exception e) {
-      return new ApiResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(),
-        "An unexpected error occurred: " + e.getMessage(), null);
+      return new ApiResponse<>(500,"An unexpected error occurred: " + e.getMessage(), null);
     }
   }
 
   public ApiResponse<String> uploadProfileImage(String email, MultipartFile image) {
+
+    if (email == null || email.isBlank()) {
+      return new ApiResponse<>(400, "Email is required", null);
+    }
 
     if (image == null || image.isEmpty()) {
       return new ApiResponse<>(400, "No image provided", null);
@@ -70,30 +86,42 @@ public class DashBoardService implements IDashBoardService {
 
       ImageValidator.validate(image);
 
-      String fileName = System.currentTimeMillis() + "_" + image.getOriginalFilename();
+      String originalFileName = image.getOriginalFilename();
+
+      if (originalFileName == null || originalFileName.isBlank()) {
+        originalFileName = "profile.png";
+      }
+
+      String fileName = UUID.randomUUID() + "_" + originalFileName.replaceAll("\\s+", "_");
       String key = "avatars/" + email.replaceAll("[^a-zA-Z0-9]", "_") + "/" + fileName;
 
-      s3Service.uploadFile(key, image.getInputStream(), image.getSize());
+      try {
+        s3Service.uploadFile(key, image.getInputStream(), image.getSize());
+      }
+      catch (IOException e) {
+        return new ApiResponse<>(500,"Error uploading file to S3: " + e.getMessage(), null);
+      }
 
       user.setAvatarUrl(key);
       userRepository.save(user);
 
-      String previewUrl = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(2));
+      String previewUrl;
+      try {
+        previewUrl = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(2));
+      }
+      catch (Exception e) {
+        previewUrl = null;
+      }
 
-      return new ApiResponse<>(HttpStatus.OK.value(), "Profile image uploaded successfully", previewUrl);
+      return new ApiResponse<>(200,"Profile image uploaded successfully", previewUrl);
 
-    }
-    catch (IOException e) {
-      return new ApiResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Error uploading image: " +
-              e.getMessage(), null);
     }
     catch (RuntimeException e) {
       return new ApiResponse<>(400, e.getMessage(), null);
     }
     catch (Exception e) {
-      return new ApiResponse<>(500, "An unexpected error occurred: " + e.getMessage(), null);
+      return new ApiResponse<>(500,"Unexpected error: " + e.getMessage(), null);
     }
-
   }
 
   public ApiResponse<Map<String, Object>> getUserProfileSummary(String email) {
@@ -123,7 +151,6 @@ public class DashBoardService implements IDashBoardService {
 
       Map<String, Object> data = new HashMap<>();
       data.put("username", user.getUsername());
-      data.put("avatarKey", avatarKey);
       data.put("profileImage", presignedUrl);
 
       return new ApiResponse<>(200, "User profile fetched successfully", data);
