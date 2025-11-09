@@ -1,18 +1,15 @@
 package org.spacehub.DTO.DTO_auth;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Getter
-@Setter
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class ResetPasswordRequest {
   private String email;
   private String newPassword;
   private String tempToken;
 
-  public ResetPasswordRequest(String email, String newPassword, String tempToken) {
-    this.email = email;
-    this.newPassword = newPassword;
-    this.tempToken = tempToken;
-  }
 }

@@ -1,16 +1,14 @@
 package org.spacehub.DTO.DTO_auth;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Getter
-@Setter
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class ValidateForgotOtpRequest {
   private String email;
   private String otp;
 
-  public ValidateForgotOtpRequest(String email, String otp) {
-    this.email = email;
-    this.otp = otp;
-  }
 }

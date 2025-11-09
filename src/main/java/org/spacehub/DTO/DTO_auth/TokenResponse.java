@@ -1,8 +1,10 @@
 package org.spacehub.DTO.DTO_auth;
 
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@NoArgsConstructor
 public class TokenResponse {
   private String accessToken;
   private String refreshToken;
