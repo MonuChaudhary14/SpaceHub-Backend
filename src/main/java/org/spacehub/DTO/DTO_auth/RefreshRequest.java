@@ -1,13 +1,12 @@
 package org.spacehub.DTO.DTO_auth;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Setter
-@Getter
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class RefreshRequest {
   private String refreshToken;
-  public RefreshRequest(String refreshToken) {
-    this.refreshToken = refreshToken;
-  }
 }
