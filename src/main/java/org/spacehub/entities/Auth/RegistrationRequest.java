@@ -36,6 +36,6 @@ public class RegistrationRequest {
     message = "Password must contain at least one uppercase letter, one lowercase letter, one digit, " +
       "one special character, and no spaces"
   )
-  @Size(max = 16, message = "Password must not exceed 8 characters")
+  @Size(max = 16, message = "Password must not exceed 16 characters")
   private String password;
 }
