@@ -72,7 +72,7 @@ public class FilesController {
 
     s3Service.uploadFile(key, file.getInputStream(), file.getSize());
 
-    String fileUrl = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(24));
+    String fileUrl = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(100));
 
     Map<String, String> response = Map.of(
             "fileName", Objects.requireNonNull(file.getOriginalFilename()),

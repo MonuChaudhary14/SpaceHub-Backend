@@ -16,22 +16,28 @@ public class Message {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column(nullable = false)
+  @Column(nullable = false, length = 320)
   private String senderEmail;
 
-  @Column(nullable = false)
+  @Column(nullable = false, length = 320)
   private String receiverEmail;
 
-  @Column(nullable = false, length = 1000)
+  @Lob
+  @Column(nullable = false, columnDefinition = "TEXT")
   private String content;
 
-  private String fileName;
+  @Column(length = 2000)
   private String fileUrl;
+
+  @Column(length = 500)
+  private String fileName;
+
+  @Column(length = 255)
   private String contentType;
 
   @Column(nullable = false)
   private LocalDateTime timestamp;
 
-  @Column(nullable = false)
+  @Column(nullable = false, length = 50)
   private String type = "MESSAGE";
 }
