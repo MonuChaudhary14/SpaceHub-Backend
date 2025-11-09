@@ -74,11 +74,12 @@ public class ProfileService implements IProfileService {
     try {
       updateBasicDetails(user, dto);
       updatePasswordIfNeeded(user, dto);
-      updateEmailIfNeeded(user, dto);
 
       userRepository.save(user);
+      log.info("Profile updated successfully for user: {}", email);
       return buildResponse(user);
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       log.error("Failed to update profile for {}: {}", email, e.getMessage());
       throw e;
     }
@@ -99,7 +100,8 @@ public class ProfileService implements IProfileService {
       user.setAvatarUrl(key);
       userRepository.save(user);
       return buildResponse(user);
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       log.error("Avatar upload failed for {}: {}", email, e.getMessage());
       throw new RuntimeException("Avatar upload failed, please try again.");
     }
@@ -119,7 +121,8 @@ public class ProfileService implements IProfileService {
       user.setCoverPhotoUrl(key);
       userRepository.save(user);
       return buildResponse(user);
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       log.error("Cover photo upload failed for {}: {}", email, e.getMessage());
       throw new RuntimeException("Cover photo upload failed, please try again.");
     }
@@ -184,13 +187,11 @@ public class ProfileService implements IProfileService {
     resp.setFirstName(user.getFirstName());
     resp.setLastName(user.getLastName());
     resp.setUsername(user.getUsername());
-    resp.setEmail(user.getEmail());
     resp.setBio(user.getBio());
     resp.setDateOfBirth(user.getDateOfBirth());
-    resp.setAvatarKey(user.getAvatarUrl());
     if (user.getAvatarUrl() != null && !user.getAvatarUrl().isBlank()) {
       resp.setAvatarPreviewUrl(s3Service.generatePresignedDownloadUrl(user.getAvatarUrl(),
-        Duration.ofMinutes(15)));
+        Duration.ofMinutes(30)));
     }
     return resp;
   }
@@ -232,11 +233,11 @@ public class ProfileService implements IProfileService {
   }
 
   private void safeDelete(String fileUrl) {
-    if (fileUrl == null) return;
+    if (fileUrl == null || fileUrl.isBlank()) return;
     try {
       s3Service.deleteFile(fileUrl);
     } catch (Exception e) {
-      log.error("Failed to delete file: {}", fileUrl);
+      log.error("Failed to delete S3 file: {}", fileUrl);
     }
   }
 
@@ -274,24 +275,6 @@ public class ProfileService implements IProfileService {
 
     user.setPassword(encoder.encode(next));
     user.setPasswordVersion(Optional.ofNullable(user.getPasswordVersion()).orElse(0) + 1);
-  }
-
-  private void updateEmailIfNeeded(User user, UserProfileDTO dto) {
-    String newEmail = dto.getNewEmail();
-    if (newEmail == null || newEmail.isBlank()) {
-      return;
-    }
-
-    newEmail = newEmail.trim().toLowerCase();
-    if (newEmail.equals(user.getEmail())) {
-      return;
-    }
-
-    if (userRepository.existsByEmail(newEmail)) {
-      throw new IllegalArgumentException("Email already in use");
-    }
-
-    user.setEmail(newEmail);
   }
 
 }
