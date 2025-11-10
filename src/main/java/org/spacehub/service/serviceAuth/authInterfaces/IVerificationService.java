@@ -4,10 +4,8 @@ import org.spacehub.DTO.DTO_auth.TokenResponse;
 import org.spacehub.entities.User.User;
 
 public interface IVerificationService {
-
-  boolean checkCredentials(String email, String password);
-
+  boolean checkCredentials(User user, String rawPassword);
   TokenResponse generateTokens(User user);
-
 }
+
 

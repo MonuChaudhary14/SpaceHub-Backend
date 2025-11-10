@@ -34,7 +34,7 @@ public interface IOTPService {
 
   String sendOTPWithTempToken(User user, OtpType type);
 
-  String extractEmailFromToken(String tempToken, OtpType type);
+  String extractIdentifierFromToken(String tempToken, OtpType type);
 
   void deleteRegistrationSessionToken(String token);
 

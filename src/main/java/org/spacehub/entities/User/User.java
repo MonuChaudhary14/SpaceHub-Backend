@@ -43,6 +43,8 @@ public class User implements UserDetails {
   private Boolean isVerifiedForgot = false;
   private Integer passwordVersion = 0;
 
+  @Column(unique = true)
+  private String phoneNumber;
   private String avatarUrl;
   private String coverPhotoUrl;
 
@@ -88,7 +90,11 @@ public class User implements UserDetails {
 
   @Override
   public String getUsername() {
-    return username;
+    if (this.email != null) {
+      return this.email;
+    } else {
+      return this.phoneNumber;
+    }
   }
 
   @Override
