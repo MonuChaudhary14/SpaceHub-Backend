@@ -54,7 +54,7 @@ public class UserController {
 
   @PostMapping("/forgotpassword")
   public ResponseEntity<ApiResponse<String>> forgotPassword(@RequestBody ForgotPasswordRequest request) {
-    ApiResponse<String> resp = accountService.forgotPassword(request.getEmail());
+    ApiResponse<String> resp = accountService.forgotPassword(request.getIdentifier());
     return ResponseEntity.status(resp.getStatus()).body(resp);
   }
 
@@ -78,7 +78,7 @@ public class UserController {
 
   @PostMapping("/resendotp")
   public ResponseEntity<ApiResponse<String>> resendOTP(@RequestBody ResendOtpRequest request) {
-    ApiResponse<String> resp = accountService.resendOTP(request.getEmail(), request.getSessionToken());
+    ApiResponse<String> resp = accountService.resendOTP(request.getIdentifier(), request.getSessionToken());
     return ResponseEntity.status(resp.getStatus()).body(resp);
   }
 

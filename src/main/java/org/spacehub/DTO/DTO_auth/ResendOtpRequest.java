@@ -8,6 +8,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ResendOtpRequest {
-  private String email;
+  private String identifier;
   private String sessionToken;
 }

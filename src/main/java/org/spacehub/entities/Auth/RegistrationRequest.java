@@ -38,4 +38,10 @@ public class RegistrationRequest {
   )
   @Size(max = 16, message = "Password must not exceed 16 characters")
   private String password;
+
+  @Pattern(
+    regexp = "^\\+[1-9]\\d{1,14}$",
+    message = "Invalid phone number format. Use E.164 (e.g., +919997990155)"
+  )
+  private String phoneNumber;
 }

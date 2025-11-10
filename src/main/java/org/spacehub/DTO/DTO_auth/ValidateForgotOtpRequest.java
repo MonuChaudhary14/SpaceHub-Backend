@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ValidateForgotOtpRequest {
-  private String email;
+  private String identifier;
   private String otp;
-
 }
