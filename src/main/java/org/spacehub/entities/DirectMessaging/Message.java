@@ -25,8 +25,8 @@ public class Message {
   @Column(nullable = false, columnDefinition = "TEXT")
   private String content;
 
-  @Column(length = 2000)
-  private String fileUrl;
+  @Column(name = "file_key", length = 2000)
+  private String fileKey;
 
   @Column(length = 500)
   private String fileName;

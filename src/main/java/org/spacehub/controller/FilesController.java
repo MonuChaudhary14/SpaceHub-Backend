@@ -24,7 +24,7 @@ public class FilesController {
 
   @PostMapping("/upload")
   public ResponseEntity<ApiResponse<String>> uploadFile(@RequestParam("file") MultipartFile file) throws IOException {
-    String key = file.getOriginalFilename();
+    String key = s3Service.generateFileKey(file.getOriginalFilename());
     s3Service.uploadFile(key, file.getInputStream(), file.getSize());
     return ResponseEntity.ok(new ApiResponse<>(200, "File uploaded successfully", key));
   }
@@ -38,12 +38,19 @@ public class FilesController {
   }
 
   @PostMapping("/presigned/chat-upload")
-  public ResponseEntity<ApiResponse<Map<String, String>>> getChatFilePresignedUrl(@RequestParam("filename")
-                                                                                    String filename) {
+  public ResponseEntity<ApiResponse<Map<String, String>>> getChatFilePresignedUrl(
+          @RequestParam("filename") String filename) {
+
     String key = s3Service.generateFileKey(filename);
     String uploadUrl = s3Service.generatePresignedUploadUrl(key, Duration.ofMinutes(10));
     return ResponseEntity.ok(new ApiResponse<>(200, "Chat presigned upload URL generated",
-      Map.of("uploadUrl", uploadUrl, "key", key)));
+            Map.of("uploadUrl", uploadUrl, "key", key)));
+  }
+
+  @GetMapping("/download")
+  public ResponseEntity<ApiResponse<String>> getPresignedDownloadUrl(@RequestParam String key) {
+    String url = s3Service.generatePresignedDownloadUrl(key, Duration.ofMinutes(10));
+    return ResponseEntity.ok(new ApiResponse<>(200, "Presigned download URL generated successfully", url));
   }
 
   @PostMapping("/presigned/download")
@@ -69,17 +76,15 @@ public class FilesController {
           @RequestParam("file") MultipartFile file) throws IOException {
 
     String key = s3Service.generateFileKey(file.getOriginalFilename());
-
     s3Service.uploadFile(key, file.getInputStream(), file.getSize());
 
-    String fileUrl = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(100));
+    String fileUrl = s3Service.generatePresignedDownloadUrl(key, Duration.ofMinutes(10));
 
     Map<String, String> response = Map.of(
             "fileName", Objects.requireNonNull(file.getOriginalFilename()),
             "fileKey", key,
             "fileUrl", fileUrl,
-            "contentType", Objects.requireNonNull(file.getContentType())
-    );
+            "contentType", Objects.requireNonNull(file.getContentType()));
 
     return ResponseEntity.ok(new ApiResponse<>(200, "File uploaded successfully", response));
   }

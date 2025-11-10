@@ -15,6 +15,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,16 +25,20 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
 
   private final MessageQueueService messageQueueService;
   private final IMessageService messageService;
+  private final S3Service s3Service;
   private final ObjectMapper objectMapper;
 
   private final Map<String, WebSocketSession> activeUsers = new ConcurrentHashMap<>();
   private final Map<WebSocketSession, Map<String, String>> sessionMetadata = new ConcurrentHashMap<>();
 
   public ChatWebSocketHandlerMessaging(MessageQueueService messageQueueService,
-                                       IMessageService messageService) {
+                                       IMessageService messageService,
+                                       S3Service s3Service) {
     this.messageQueueService = messageQueueService;
     this.messageService = messageService;
-    this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule())
+    this.s3Service = s3Service;
+    this.objectMapper = new ObjectMapper()
+            .registerModule(new JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
   }
 
@@ -57,7 +62,17 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
     List<Message> history = messageService.getChat(senderEmail, receiverEmail);
     if (history != null && !history.isEmpty()) {
       List<Map<String, Object>> formatted = new ArrayList<>();
-      for (Message mess : history) formatted.add(buildPayload(mess));
+
+      for (Message mess : history) {
+        Map<String, Object> payload = buildPayload(mess);
+
+        if ("FILE".equalsIgnoreCase(mess.getType()) && mess.getFileKey() != null) {
+          String previewUrl = s3Service.generatePresignedDownloadUrl(mess.getFileKey(), Duration.ofMinutes(10));
+          payload.put("previewUrl", previewUrl);
+        }
+
+        formatted.add(payload);
+      }
 
       Map<String, Object> payload = Map.of(
               "type", "history",
@@ -84,17 +99,34 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
 
     Message mess;
     if ("FILE".equalsIgnoreCase(type)) {
+      String fileKey = (String) clientPayload.get("fileKey");
+      String fileName = (String) clientPayload.get("fileName");
+      String contentType = (String) clientPayload.get("contentType");
+
+      String previewUrl = s3Service.generatePresignedDownloadUrl(fileKey, Duration.ofMinutes(10));
+
       mess = Message.builder()
               .senderEmail(senderEmail)
               .receiverEmail(receiverEmail)
-              .content("[File] " + clientPayload.get("fileName"))
-              .fileName((String) clientPayload.get("fileName"))
-              .fileUrl((String) clientPayload.get("fileUrl"))
-              .contentType((String) clientPayload.get("contentType"))
+              .content("[File] " + fileName)
+              .fileName(fileName)
+              .fileKey(fileKey)
+              .contentType(contentType)
               .timestamp(LocalDateTime.now())
               .type("FILE")
               .build();
-    } else {
+
+      messageQueueService.enqueue(mess);
+      messageService.saveMessage(mess);
+
+      Map<String, Object> payload = buildPayload(mess);
+      payload.put("previewUrl", previewUrl);
+
+      sendToUser(senderEmail, payload);
+      sendToUser(receiverEmail, payload);
+
+    }
+    else {
       mess = Message.builder()
               .senderEmail(senderEmail)
               .receiverEmail(receiverEmail)
@@ -102,17 +134,19 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
               .timestamp(LocalDateTime.now())
               .type("MESSAGE")
               .build();
-    }
 
-    messageQueueService.enqueue(mess);
-    messageService.saveMessage(mess);
-    sendToReceiver(receiverEmail, mess);
+      messageQueueService.enqueue(mess);
+      messageService.saveMessage(mess);
+
+      sendToReceiver(receiverEmail, buildPayload(mess));
+      sendToReceiver(senderEmail, buildPayload(mess));
+    }
   }
 
-  private void sendToReceiver(String receiverEmail, Message message) throws IOException {
-    WebSocketSession receiverSession = activeUsers.get(receiverEmail);
-    if (receiverSession != null && receiverSession.isOpen()) {
-      receiverSession.sendMessage(new TextMessage(objectMapper.writeValueAsString(buildPayload(message))));
+  private void sendToReceiver(String email, Map<String, Object> payload) throws IOException {
+    WebSocketSession session = activeUsers.get(email);
+    if (session != null && session.isOpen()) {
+      session.sendMessage(new TextMessage(objectMapper.writeValueAsString(payload)));
     }
   }
 
@@ -126,7 +160,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
 
     if ("FILE".equalsIgnoreCase(message.getType())) {
       payload.put("fileName", message.getFileName());
-      payload.put("fileUrl", message.getFileUrl());
+      payload.put("fileKey", message.getFileKey());
       payload.put("contentType", message.getContentType());
     }
 

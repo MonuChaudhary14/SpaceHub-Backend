@@ -368,7 +368,7 @@ public class CommunityService implements ICommunityService {
       User user = findUserByEmail(leaveCommunity.getUserEmail());
 
       if (isCreatorOfCommunity(community, user)) {
-        return forbidden();
+          return ResponseEntity.status(403).body(new ApiResponse<>(403, "Community admin cannot leave the community", null));
       }
 
       Optional<CommunityUser> communityUserOptional = Optional.ofNullable(findCommunityUser(community, user));
@@ -1308,11 +1308,6 @@ public class CommunityService implements ICommunityService {
 
   private ResponseEntity<ApiResponse<Object>> badRequest(String message) {
     return ResponseEntity.badRequest().body(new ApiResponse<>(400, message, null));
-  }
-
-  private ResponseEntity<ApiResponse<Object>> forbidden() {
-    return ResponseEntity.status(403).body(new ApiResponse<>(403,
-      "Only community admin can change banner/info", null));
   }
 
   private ResponseEntity<ApiResponse<Object>> serverError(String message) {
