@@ -6,7 +6,6 @@ import org.spacehub.entities.Auth.RegistrationRequest;
 import org.spacehub.entities.User.User;
 import org.spacehub.security.EmailValidator;
 import org.spacehub.security.PhoneNumberValidator;
-import org.spacehub.service.SmsService;
 import org.spacehub.service.serviceAuth.authInterfaces.IEmailService;
 import org.spacehub.service.serviceAuth.authInterfaces.IOTPService;
 import org.springframework.stereotype.Service;

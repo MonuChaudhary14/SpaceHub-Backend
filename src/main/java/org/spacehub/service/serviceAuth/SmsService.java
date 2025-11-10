@@ -1,8 +1,8 @@
-package org.spacehub.service;
+package org.spacehub.service.serviceAuth;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.spacehub.service.Interface.ISmsService;
+import org.spacehub.service.serviceAuth.authInterfaces.ISmsService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
