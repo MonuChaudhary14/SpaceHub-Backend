@@ -8,8 +8,8 @@ import org.spacehub.utils.ImageValidator;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.io.IOException;
 import java.time.Duration;
 import java.util.HashMap;
@@ -18,6 +18,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@Transactional
 public class DashBoardService implements IDashBoardService {
 
   private final UserRepository userRepository;
@@ -160,34 +161,38 @@ public class DashBoardService implements IDashBoardService {
     }
 
     try {
-      String normalized = email.trim().toLowerCase();
-
-      Optional<User> optionalUser = userRepository.findByEmail(normalized);
+      Optional<User> optionalUser = userRepository.findByEmail(email.trim().toLowerCase());
       if (optionalUser.isEmpty()) {
-        return new ApiResponse<>(404, "User not found with email: " + normalized, null);
+        return new ApiResponse<>(404, "User not found with email: " + email, null);
       }
 
       User user = optionalUser.get();
 
-      String avatarKey = user.getAvatarUrl();
       String presignedUrl = null;
-
-      if (avatarKey != null && !avatarKey.isBlank()) {
+      if (user.getAvatarUrl() != null && !user.getAvatarUrl().isBlank()) {
         try {
-          presignedUrl = s3Service.generatePresignedDownloadUrl(avatarKey, Duration.ofHours(2));
-        } catch (Exception ignored) {
-        }
+          presignedUrl = s3Service.generatePresignedDownloadUrl(user.getAvatarUrl(), Duration.ofHours(2));
+        } catch (Exception ignored) {}
       }
 
       Map<String, Object> data = new HashMap<>();
       data.put("username", user.getUsername());
       data.put("profileImage", presignedUrl);
 
+      String phone = user.getPhoneNumber();
+      if (phone != null && !phone.isBlank()) {
+        data.put("phoneNumber", phone);
+      } else {
+        data.put("phoneNumber", null);
+      }
+
       return new ApiResponse<>(200, "User profile fetched successfully", data);
+
     } catch (Exception e) {
       return new ApiResponse<>(500, "An unexpected error occurred: " + e.getMessage(), null);
     }
   }
+
 
 
 }
