@@ -11,6 +11,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
+import org.spacehub.service.S3Service;
 
 import java.io.IOException;
 import java.net.URLDecoder;
@@ -122,8 +123,8 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
       Map<String, Object> payload = buildPayload(mess);
       payload.put("previewUrl", previewUrl);
 
-      sendToUser(senderEmail, payload);
-      sendToUser(receiverEmail, payload);
+      sendToReceiver(senderEmail, payload);
+      sendToReceiver(receiverEmail, payload);
 
     }
     else {
