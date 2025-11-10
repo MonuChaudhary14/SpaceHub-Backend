@@ -9,6 +9,8 @@ import org.spacehub.repository.FriendsRepository;
 import org.spacehub.repository.UserRepository;
 import org.spacehub.service.Interface.IFriendService;
 import org.springframework.stereotype.Service;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.spacehub.DTO.FriendUpdateDTO;
 
 import java.time.Duration;
 import java.util.List;
@@ -23,13 +25,18 @@ public class FriendService implements IFriendService {
   private final UserRepository userRepository;
   private final NotificationService notificationService;
   private final S3Service s3Service;
+  private final SimpMessagingTemplate messagingTemplate;
 
-  public FriendService(FriendsRepository friendsRepository, UserRepository userRepository,
-                       NotificationService notificationService, S3Service s3Service) {
+  public FriendService(FriendsRepository friendsRepository,
+                       UserRepository userRepository,
+                       NotificationService notificationService,
+                       S3Service s3Service,
+                       SimpMessagingTemplate messagingTemplate) {
     this.friendsRepository = friendsRepository;
     this.userRepository = userRepository;
     this.notificationService = notificationService;
     this.s3Service = s3Service;
+    this.messagingTemplate = messagingTemplate;
   }
 
   public String sendFriendRequest(String userEmail, String friendEmail) {
@@ -98,6 +105,9 @@ public class FriendService implements IFriendService {
               .referenceId(UUID.randomUUID())
               .build();
       notificationService.createNotification(notification);
+
+      sendFriendListUpdate(user, requester);
+      sendFriendListUpdate(requester, user);
 
       return "Friend request accepted";
     }
@@ -277,6 +287,24 @@ public class FriendService implements IFriendService {
       relationship = friendsRepository.findByUserAndFriend(friend, user);
     }
     return relationship;
+  }
+
+  private void sendFriendListUpdate(User target, User newFriend) {
+    try {
+      String avatarUrl = buildPresignedUrlSafely(newFriend.getAvatarUrl());
+      FriendUpdateDTO dto = new FriendUpdateDTO(
+              newFriend.getId(),
+              newFriend.getFirstName(),
+              newFriend.getLastName(),
+              newFriend.getEmail(),
+              avatarUrl
+      );
+      messagingTemplate.convertAndSendToUser(target.getEmail(),"/queue/friends", dto);
+      System.out.println("Friend request send to "+ target.getEmail());
+    }
+    catch (Exception e) {
+      System.out.println(e.getMessage());
+    }
   }
 
 }
