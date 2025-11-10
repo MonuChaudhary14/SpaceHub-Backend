@@ -10,5 +10,5 @@ public class UpdateCommunityDTO {
   private UUID communityId;
   private String name;
   private String description;
-
+  private String requesterEmail;
 }
