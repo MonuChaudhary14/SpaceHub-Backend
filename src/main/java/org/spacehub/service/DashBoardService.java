@@ -30,7 +30,38 @@ public class DashBoardService implements IDashBoardService {
 
   public ApiResponse<String> saveUsernameByEmail(String email, String username) {
 
-    if (email == null || email.isBlank()){
+    ApiResponse<String> validationError = validateUsernameInputs(email, username);
+    if (validationError != null) return validationError;
+
+    try {
+      User user = findUserByEmail(email);
+      if (user == null) {
+        return new ApiResponse<>(HttpStatus.NOT_FOUND.value(),
+          "User not found with email: " + email, null);
+      }
+
+      if (isUsernameTakenByAnotherUser(username, user)) {
+        return new ApiResponse<>(HttpStatus.CONFLICT.value(),
+          "Username already taken. Please choose another.", null);
+      }
+
+      user.setUsername(username);
+      userRepository.save(user);
+
+      return new ApiResponse<>(HttpStatus.OK.value(),
+        "Username updated successfully", username);
+
+    } catch (DataIntegrityViolationException e) {
+      return new ApiResponse<>(HttpStatus.CONFLICT.value(),
+        "Username already taken.", null);
+    } catch (Exception e) {
+      return new ApiResponse<>(500,
+        "An unexpected error occurred: " + e.getMessage(), null);
+    }
+  }
+
+  private ApiResponse<String> validateUsernameInputs(String email, String username) {
+    if (email == null || email.isBlank()) {
       return new ApiResponse<>(400, "Email is null or blank", null);
     }
 
@@ -43,89 +74,83 @@ public class DashBoardService implements IDashBoardService {
         "Username must be 3–20 characters, and can include letters, numbers, '.', '-', '_'", null);
     }
 
-    try {
-      User user = userRepository.findByEmail(email).orElse(null);
+    return null;
+  }
 
-      if (user == null) {
-        return new ApiResponse<>(HttpStatus.NOT_FOUND.value(),
-          "User not found with email: " + email, null);
-      }
-
-      Optional<User> existingUserOpt = userRepository.findByUsernameIgnoreCase(username);
-
-      if (existingUserOpt.isPresent() && !existingUserOpt.get().getId().equals(user.getId())) {
-        return new ApiResponse<>(HttpStatus.CONFLICT.value(),
-          "Username already taken. Please choose another.", null);
-      }
-
-      user.setUsername(username);
-      userRepository.save(user);
-
-      return new ApiResponse<>(HttpStatus.OK.value(), "Username updated successfully", username);
-
-    } catch (DataIntegrityViolationException e) {
-      return new ApiResponse<>(HttpStatus.CONFLICT.value(),
-        "Username already taken.", null);
-
-    } catch (Exception e) {
-      return new ApiResponse<>(500,
-        "An unexpected error occurred: " + e.getMessage(), null);
-    }
+  private boolean isUsernameTakenByAnotherUser(String username, User currentUser) {
+    Optional<User> existingUserOpt = userRepository.findByUsernameIgnoreCase(username);
+    return existingUserOpt.isPresent() && !existingUserOpt.get().getId().equals(currentUser.getId());
   }
 
   public ApiResponse<String> uploadProfileImage(String email, MultipartFile image) {
 
-    if (email == null || email.isBlank()) {
+    if (isInvalidEmail(email)) {
       return new ApiResponse<>(400, "Email is required", null);
     }
 
-    if (image == null || image.isEmpty()) {
+    if (isInvalidImage(image)) {
       return new ApiResponse<>(400, "No image provided", null);
     }
 
     try {
-      User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
-
+      User user = findUserByEmail(email);
       ImageValidator.validate(image);
 
-      String originalFileName = image.getOriginalFilename();
-
-      if (originalFileName == null || originalFileName.isBlank()) {
-        originalFileName = "profile.png";
-      }
-
-      String fileName = UUID.randomUUID() + "_" + originalFileName.replaceAll("\\s+", "_");
-      String key = "avatars/" + email.replaceAll("[^a-zA-Z0-9]", "_") + "/" + fileName;
-
-      try {
-        s3Service.uploadFile(key, image.getInputStream(), image.getSize());
-      }
-      catch (IOException e) {
-        return new ApiResponse<>(500,
-          "Error uploading file to S3: " + e.getMessage(), null);
+      String key = buildS3Key(email, image);
+      if (!uploadToS3(key, image)) {
+        return new ApiResponse<>(500, "Error uploading file to S3", null);
       }
 
       user.setAvatarUrl(key);
       userRepository.save(user);
 
-      String previewUrl;
-      try {
-        previewUrl = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(2));
-      }
-      catch (Exception e) {
-        previewUrl = null;
-      }
+      String previewUrl = generatePreviewUrlSafely(key);
 
-      return new ApiResponse<>(200,
-        "Profile image uploaded successfully", previewUrl);
+      return new ApiResponse<>(200, "Profile image uploaded successfully", previewUrl);
 
-    }
-    catch (RuntimeException e) {
+    } catch (RuntimeException e) {
       return new ApiResponse<>(400, e.getMessage(), null);
+    } catch (Exception e) {
+      return new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null);
     }
-    catch (Exception e) {
-      return new ApiResponse<>(500,
-        "Unexpected error: " + e.getMessage(), null);
+  }
+
+  private boolean isInvalidEmail(String email) {
+    return email == null || email.isBlank();
+  }
+
+  private boolean isInvalidImage(MultipartFile image) {
+    return image == null || image.isEmpty();
+  }
+
+  private User findUserByEmail(String email) {
+    return userRepository.findByEmail(email)
+      .orElseThrow(() -> new RuntimeException("User not found"));
+  }
+
+  private String buildS3Key(String email, MultipartFile image) {
+    String originalFileName = image.getOriginalFilename();
+    if (originalFileName == null || originalFileName.isBlank()) {
+      originalFileName = "profile.png";
+    }
+    String fileName = UUID.randomUUID() + "_" + originalFileName.replaceAll("\\s+", "_");
+    return "avatars/" + email.replaceAll("[^a-zA-Z0-9]", "_") + "/" + fileName;
+  }
+
+  private boolean uploadToS3(String key, MultipartFile image) {
+    try {
+      s3Service.uploadFile(key, image.getInputStream(), image.getSize());
+      return true;
+    } catch (IOException e) {
+      return false;
+    }
+  }
+
+  private String generatePreviewUrlSafely(String key) {
+    try {
+      return s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(2));
+    } catch (Exception e) {
+      return null;
     }
   }
 
