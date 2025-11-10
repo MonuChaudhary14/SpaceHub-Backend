@@ -108,7 +108,6 @@ public class UserService implements UserDetailsService, IUserService {
           user.getUsername(),
           user.getEmail(),
           avatarUrl,
-          avatarUrl,
           friendshipStatus
         );
       });
