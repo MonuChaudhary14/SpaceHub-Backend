@@ -90,12 +90,12 @@ public class User implements UserDetails {
 
   @Override
   public String getUsername() {
-    if (this.email != null) {
-      return this.email;
-    } else {
-      return this.phoneNumber;
+    if (this.username != null && !this.username.isBlank()) {
+      return this.username;
     }
+    return "Enter your username";
   }
+
 
   @Override
   public boolean isAccountNonLocked() {
