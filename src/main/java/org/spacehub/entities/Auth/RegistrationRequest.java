@@ -6,12 +6,10 @@ import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.spacehub.security.EmailOrPhone;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@EmailOrPhone
 public class RegistrationRequest {
 
   @NotBlank(message = "First name is required")
@@ -24,6 +22,7 @@ public class RegistrationRequest {
   @Pattern(regexp = "^[A-Za-z]+$", message = "Last name must contain only letters and no spaces")
   private String lastName;
 
+  @NotBlank
   @Size(max = 50, message = "Email must not exceed 50 characters")
   @Pattern(
     regexp = "^\\s*[^\\s@]+@[^\\s@]+\\.[^\\s@]+\\s*$",
@@ -42,7 +41,7 @@ public class RegistrationRequest {
 
   @Pattern(
     regexp = "^\\+[1-9]\\d{1,14}$",
-    message = "Invalid phone number format. Use E.164 (e.g., +919997990155)"
+    message = "Invalid phone number format."
   )
   private String phoneNumber;
 }

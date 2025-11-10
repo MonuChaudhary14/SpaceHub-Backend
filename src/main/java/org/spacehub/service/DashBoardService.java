@@ -30,7 +30,7 @@ public class DashBoardService implements IDashBoardService {
 
   public ApiResponse<String> saveUsernameByEmail(String email, String username) {
 
-    if(email == null || email.isBlank()){
+    if (email == null || email.isBlank()){
       return new ApiResponse<>(400, "Email is null or blank", null);
     }
 
@@ -39,7 +39,8 @@ public class DashBoardService implements IDashBoardService {
     }
 
     if (!username.matches("^[a-zA-Z0-9_.-]{3,20}$")) {
-      return new ApiResponse<>(400,"Username must be 3–20 characters, and can include letters, numbers, '.', '-', '_'", null);
+      return new ApiResponse<>(400,
+        "Username must be 3–20 characters, and can include letters, numbers, '.', '-', '_'", null);
     }
 
     try {
@@ -67,7 +68,8 @@ public class DashBoardService implements IDashBoardService {
         "Username already taken.", null);
 
     } catch (Exception e) {
-      return new ApiResponse<>(500,"An unexpected error occurred: " + e.getMessage(), null);
+      return new ApiResponse<>(500,
+        "An unexpected error occurred: " + e.getMessage(), null);
     }
   }
 
@@ -99,7 +101,8 @@ public class DashBoardService implements IDashBoardService {
         s3Service.uploadFile(key, image.getInputStream(), image.getSize());
       }
       catch (IOException e) {
-        return new ApiResponse<>(500,"Error uploading file to S3: " + e.getMessage(), null);
+        return new ApiResponse<>(500,
+          "Error uploading file to S3: " + e.getMessage(), null);
       }
 
       user.setAvatarUrl(key);
@@ -113,14 +116,16 @@ public class DashBoardService implements IDashBoardService {
         previewUrl = null;
       }
 
-      return new ApiResponse<>(200,"Profile image uploaded successfully", previewUrl);
+      return new ApiResponse<>(200,
+        "Profile image uploaded successfully", previewUrl);
 
     }
     catch (RuntimeException e) {
       return new ApiResponse<>(400, e.getMessage(), null);
     }
     catch (Exception e) {
-      return new ApiResponse<>(500,"Unexpected error: " + e.getMessage(), null);
+      return new ApiResponse<>(500,
+        "Unexpected error: " + e.getMessage(), null);
     }
   }
 

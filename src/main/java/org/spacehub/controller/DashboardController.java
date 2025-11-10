@@ -4,7 +4,6 @@ import jakarta.validation.Valid;
 import org.spacehub.DTO.DashBoard.UsernameRequest;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.service.Interface.IDashBoardService;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -28,7 +27,7 @@ public class DashboardController {
     return ResponseEntity.status(resp.getStatus()).body(resp);
   }
 
-  @PostMapping(value = "/upload-profile-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  @PostMapping(value = "/upload-profile-image")
   public ResponseEntity<ApiResponse<String>> uploadProfileImage(@RequestParam("email") String email,
                                                                 @RequestParam("image") MultipartFile image) {
     ApiResponse<String> response = dashboardService.uploadProfileImage(email, image);

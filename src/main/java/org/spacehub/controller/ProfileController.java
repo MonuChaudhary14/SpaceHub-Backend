@@ -34,7 +34,8 @@ public class ProfileController {
       return ResponseEntity.badRequest().body(Map.of("status", 400, "message", e.getMessage()));
     }
     catch (Exception e) {
-      return ResponseEntity.internalServerError().body(Map.of("status", 500, "message", "Error fetching profile"));
+      return ResponseEntity.internalServerError().body(Map.of("status", 500, "message",
+        "Error fetching profile"));
     }
   }
 
@@ -51,7 +52,8 @@ public class ProfileController {
       return ResponseEntity.badRequest().body(Map.of("status", 400, "message", e.getMessage()));
     }
     catch (Exception e) {
-      return ResponseEntity.internalServerError().body(Map.of("status", 500, "message", "Error updating profile"));
+      return ResponseEntity.internalServerError().body(Map.of("status", 500, "message",
+        "Error updating profile"));
     }
   }
 
@@ -100,7 +102,8 @@ public class ProfileController {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
     }
     catch (Exception e) {
-      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Something went wrong", null));
+      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Something went wrong",
+        null));
     }
   }
 
