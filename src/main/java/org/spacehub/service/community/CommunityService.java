@@ -40,6 +40,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import java.time.Duration;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import java.util.*;
 
@@ -1450,9 +1451,11 @@ public class CommunityService implements ICommunityService {
     );
   }
 
-  public ResponseEntity<ApiResponse<Map<String, Object>>> discoverCommunities(int page, int size) {
+  public ResponseEntity<ApiResponse<Map<String, Object>>> discoverCommunities(String currentUserEmail, int page, int size) {
     Pageable pageable = PageRequest.of(Math.max(0, page), Math.max(1, size));
     Page<Community> communityPage = communityRepository.findAll(pageable);
+
+    User currentUser = userRepository.findByEmail(currentUserEmail).orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + currentUserEmail));
 
     List<Map<String, Object>> out = communityPage.getContent().stream().map(c -> {
       Map<String, Object> m = new HashMap<>();
@@ -1461,39 +1464,35 @@ public class CommunityService implements ICommunityService {
       m.put("description", c.getDescription());
 
       String bannerKey = c.getBannerUrl();
-      if (bannerKey == null || bannerKey.isBlank()) {
-        bannerKey = null;
-      }
-
-      String imageKey = c.getImageUrl();
-      if (imageKey == null || imageKey.isBlank()) {
-        imageKey = null;
-      }
-
-      if (bannerKey != null) {
+      if (bannerKey != null && !bannerKey.isBlank()) {
         try {
           String presignedBanner = s3Service.generatePresignedDownloadUrl(bannerKey, Duration.ofHours(1));
           m.put("bannerUrl", presignedBanner);
           m.put("bannerKey", bannerKey);
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
           m.put("bannerUrl", null);
           m.put("bannerKey", bannerKey);
         }
-      } else {
+      }
+      else {
         m.put("bannerUrl", null);
         m.put("bannerKey", null);
       }
 
-      if (imageKey != null) {
+      String imageKey = c.getImageUrl();
+      if (imageKey != null && !imageKey.isBlank()) {
         try {
           String presignedImage = s3Service.generatePresignedDownloadUrl(imageKey, Duration.ofHours(1));
           m.put("imageUrl", presignedImage);
           m.put("imageKey", imageKey);
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
           m.put("imageUrl", null);
           m.put("imageKey", imageKey);
         }
-      } else {
+      }
+      else {
         m.put("imageUrl", null);
         m.put("imageKey", null);
       }
@@ -1503,11 +1502,32 @@ public class CommunityService implements ICommunityService {
       }
       m.put("createdAt", c.getCreatedAt());
 
+      boolean joined = false;
+      String role = null;
+      boolean isBanned = false;
+
+      Optional<CommunityUser> membership =
+              communityUserRepository.findByCommunityIdAndUserId(c.getId(), currentUser.getId());
+
+      if (membership.isPresent()) {
+        joined = true;
+        CommunityUser cu = membership.get();
+        role = cu.getRole() != null ? cu.getRole().name() : null;
+        isBanned = cu.isBanned();
+      }
+
+      m.put("joined", joined);
+      m.put("role", role);
+      m.put("isBanned", isBanned);
+
+      long memberCount = communityUserRepository.countByCommunityId(c.getId());
+      m.put("memberCount", memberCount);
+
       return m;
     }).collect(Collectors.toList());
 
     Map<String, Object> body = buildPagedResponse(communityPage, out);
-    return ResponseEntity.ok(new ApiResponse<>(200, "Discover communities fetched", body));
+    return ResponseEntity.ok(new ApiResponse<>(200, "Discover communities fetched successfully", body));
   }
 
   @Override

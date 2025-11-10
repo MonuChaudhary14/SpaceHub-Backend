@@ -193,8 +193,9 @@ public class CommunityController {
 
   @GetMapping("/discover")
   public ResponseEntity<?> discoverCommunities(@RequestParam(value = "page", defaultValue = "0") int page,
-                                               @RequestParam(value = "size", defaultValue = "20") int size) {
-    return communityService.discoverCommunities(page, size);
+                                               @RequestParam(value = "size", defaultValue = "20") int size,
+                                               String currentUserEmail) {
+    return communityService.discoverCommunities(currentUserEmail,page, size);
   }
 
   @GetMapping("/my-pending-requests")

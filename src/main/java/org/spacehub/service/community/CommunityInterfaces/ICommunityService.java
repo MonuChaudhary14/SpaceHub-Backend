@@ -80,7 +80,7 @@ public interface ICommunityService {
 
   ResponseEntity<?> getRolesForRequester(UUID communityId, String requesterEmail);
 
-  ResponseEntity<ApiResponse<Map<String, Object>>> discoverCommunities(int page, int size);
+  ResponseEntity<ApiResponse<Map<String, Object>>> discoverCommunities(String currentUserEmail, int page, int size);
 
   ResponseEntity<ApiResponse<Map<String, List<Map<String, Object>>>>> listMyCommunities(String requesterEmail);
 
