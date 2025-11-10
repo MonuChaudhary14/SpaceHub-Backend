@@ -22,7 +22,6 @@ public class Message {
   @Column(nullable = false, length = 320)
   private String receiverEmail;
 
-  @Lob
   @Column(nullable = false, columnDefinition = "TEXT")
   private String content;
 
@@ -40,4 +39,8 @@ public class Message {
 
   @Column(nullable = false, length = 50)
   private String type = "MESSAGE";
+
+  private Boolean senderDeleted = false;
+  private Boolean receiverDeleted = false;
+  private LocalDateTime deletedAt;
 }
