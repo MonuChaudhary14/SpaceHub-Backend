@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 public class TokenResponse {
   private String accessToken;
   private String refreshToken;
+  private String email;
 
   public TokenResponse(String accessToken, String refreshToken) {
     this.accessToken = accessToken;

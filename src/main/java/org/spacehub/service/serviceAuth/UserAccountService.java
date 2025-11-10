@@ -92,7 +92,10 @@ public class UserAccountService implements IUserAccountService {
       return new ApiResponse<>(500, "Failed to generate tokens", null);
     }
 
+    tokens.setEmail(user.getEmail());
+
     return new ApiResponse<>(200, "Logged in successfully", tokens);
+
   }
 
   private ApiResponse<TokenResponse> validateLoginRequest(LoginRequest request) {
