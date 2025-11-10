@@ -201,6 +201,10 @@ public class CommunityService implements ICommunityService {
         community.getPendingRequests().clear();
       }
 
+      if (!isUserMemberOfCommunity(user, community)) {
+          return ResponseEntity.status(403).body(new ApiResponse<>(403, "You are no longer a member of this community", null));
+      }
+
       communityRepository.save(community);
       communityRepository.delete(community);
 
@@ -274,6 +278,11 @@ public class CommunityService implements ICommunityService {
         );
       }
 
+      if (community.getCommunityUsers().stream()
+              .anyMatch(cu -> cu.getUser().getId().equals(user.getId()) && (cu.isBanned() || cu.isBlocked()))) {
+          return ResponseEntity.status(403).body(new ApiResponse<>(403, "You are not allowed to cancel requests in this community", null));
+      }
+
       community.getPendingRequests().remove(user);
       communityRepository.save(community);
 
@@ -320,6 +329,10 @@ public class CommunityService implements ICommunityService {
       if (!pending) {
         return ResponseEntity.badRequest().body(new ApiResponse<>(400,
           "No pending request from this user"));
+      }
+
+      if (!isUserMemberOfCommunity(creator, community)) {
+          return ResponseEntity.status(403).body(new ApiResponse<>(403, "You are no longer an active member of this community", null));
       }
 
       community.getPendingRequests().removeIf(u -> u != null && u.getId() != null &&
@@ -377,6 +390,11 @@ public class CommunityService implements ICommunityService {
         return badRequest("You are not a member of this community");
       }
 
+        if (!isUserMemberOfCommunity(user, community)) {
+            return ResponseEntity.status(403)
+                    .body(new ApiResponse<>(403, "You are not a member of this community or you have been removed", null));
+        }
+
       removeCommunityUser(community, communityUserOptional.get(), user);
       communityRepository.save(community);
 
@@ -420,6 +438,11 @@ public class CommunityService implements ICommunityService {
       Community community = findCommunityByName(communityName);
       User creator = findUserByEmail(creatorEmail);
       User user = findUserByEmail(userEmail);
+
+        if (!isUserMemberOfCommunity(creator, community)) {
+            return ResponseEntity.status(403)
+                    .body(new ApiResponse<>(403, "You are no longer a member of this community", null));
+        }
 
       boolean isAdmin = community.getCreatedBy().getId().equals(creator.getId());
       boolean isWorkspaceOwner = community.getCommunityUsers() != null && community.getCommunityUsers().stream()
@@ -483,21 +506,22 @@ public class CommunityService implements ICommunityService {
       .orElseThrow(() -> new ResourceNotFoundException("User not found"));
   }
 
-  public ResponseEntity<ApiResponse<Map<String, Object>>> getCommunityWithRooms(UUID communityId) {
-    Optional<Community> optionalCommunity = communityRepository.findById(communityId);
-    if (optionalCommunity.isEmpty()) {
-      return ResponseEntity.badRequest()
-        .body(new ApiResponse<>(400, "Community not found", null));
-    }
+  public ResponseEntity<ApiResponse<Map<String, Object>>> getCommunityWithRooms(UUID communityId, String userEmail) {
+      Optional<Community> optionalCommunity = communityRepository.findById(communityId);
+      if (optionalCommunity.isEmpty()) {
+           return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Community not found", null));
+      }
 
-    Community community = optionalCommunity.get();
-    List<ChatRoom> rooms = chatRoomRepository.findByCommunityId(communityId);
+      Community community = optionalCommunity.get();
+      User user = findUserByEmail(userEmail);
 
-    Map<String, Object> response = buildCommunityResponse(community, rooms);
+      if (!isUserMemberOfCommunity(user, community)) {
+          return ResponseEntity.status(403).body(new ApiResponse<>(403, "Access denied: You are not a member of this community", null));
+      }
 
-    return ResponseEntity.ok(
-      new ApiResponse<>(200, "Community details fetched successfully", response)
-    );
+      List<ChatRoom> rooms = chatRoomRepository.findByCommunityId(communityId);
+      Map<String, Object> response = buildCommunityResponse(community, rooms);
+        return ResponseEntity.ok(new ApiResponse<>(200, "Community details fetched successfully", response));
   }
 
   private Map<String, Object> buildCommunityResponse(Community community, List<ChatRoom> rooms) {
@@ -520,13 +544,11 @@ public class CommunityService implements ICommunityService {
     return response;
   }
 
-
   public ResponseEntity<ApiResponse<String>> removeMemberFromCommunity(CommunityMemberRequest request) {
 
     if (request.getCommunityId() == null || request.getUserEmail() == null ||
       request.getRequesterEmail() == null) {
-      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Check the fields",
-        null));
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Check the fields", null));
     }
 
     try {
@@ -536,9 +558,17 @@ public class CommunityService implements ICommunityService {
       User requester = findUserByEmail(request.getRequesterEmail());
       User target = findUserByEmail(request.getUserEmail());
 
-      if (!community.getCreatedBy().getId().equals(requester.getId())) {
-        return ResponseEntity.status(403).body(new ApiResponse<>(403,
-          "Only the community creator can remove members", null));
+      if (!isUserMemberOfCommunity(requester, community)) {
+          return ResponseEntity.status(403).body(new ApiResponse<>(403, "You are not a member of this community", null));
+      }
+
+      boolean isCreator = community.getCreatedBy().getId().equals(requester.getId());
+      boolean isAdmin = community.getCommunityUsers().stream()
+              .anyMatch(cu -> cu.getUser().getId().equals(requester.getId())
+                     && (cu.getRole() == Role.ADMIN || cu.getRole() == Role.WORKSPACE_OWNER));
+
+      if (!isCreator && !isAdmin) {
+          return ResponseEntity.status(403).body(new ApiResponse<>(403, "Only the creator or admins can remove members", null));
       }
 
       Optional<CommunityUser> communityUserOptional = communityUserRepository
@@ -573,6 +603,14 @@ public class CommunityService implements ICommunityService {
       Community community = findCommunity(request.getCommunityId());
       User requester = findUser(request.getRequesterEmail(), "Requester not found");
       User target = findUser(request.getTargetUserEmail(), "Target user not found");
+
+        if (!isUserMemberOfCommunity(requester, community)) {
+            return ResponseEntity.status(403).body(new ApiResponse<>(403, "You are not a member of this community", null));
+        }
+
+        if (!isUserMemberOfCommunity(target, community)) {
+            return ResponseEntity.status(403).body(new ApiResponse<>(403, "Target user is not a member of this community", null));
+        }
 
       verifyCreatorPermission(community, requester);
 
@@ -1621,5 +1659,11 @@ public class CommunityService implements ICommunityService {
       );
     }
   }
+
+    private boolean isUserMemberOfCommunity(User user, Community community) {
+        return community.getCommunityUsers() != null &&
+                community.getCommunityUsers().stream()
+                        .anyMatch(cu -> cu.getUser().getId().equals(user.getId()) && !cu.isBanned() && !cu.isBlocked());
+    }
 
 }
