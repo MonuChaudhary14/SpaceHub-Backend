@@ -71,7 +71,8 @@ public class UserAccountService implements IUserAccountService {
         normalizedIdentifier = phoneNumberValidator.normalize(rawIdentifier);
         user = userService.getUserByPhoneNumber(normalizedIdentifier);
       } else {
-        return new ApiResponse<>(400, "Invalid identifier. Must be an email or phone number.", null);
+        return new ApiResponse<>(400, "Invalid identifier. Must be an email or phone number.",
+          null);
       }
     } catch (UsernameNotFoundException e) {
       return new ApiResponse<>(404, "User not found", null);
@@ -115,40 +116,21 @@ public class UserAccountService implements IUserAccountService {
       return new ApiResponse<>(400, "Registration data is required", null);
     }
 
-    String identifier;
     RegistrationRequest tempRegistration = new RegistrationRequest();
     tempRegistration.setFirstName(request.getFirstName());
     tempRegistration.setLastName(request.getLastName());
     tempRegistration.setPassword(passwordEncoder.encode(request.getPassword()));
 
-    if (request.getEmail() != null && !request.getEmail().isBlank()) {
-      identifier = emailValidator.normalize(request.getEmail());
-      if (!emailValidator.isEmail(identifier)) {
-        return new ApiResponse<>(400, "Invalid email format", null);
-      }
-      if (userService.existsByEmail(identifier)) {
-        return new ApiResponse<>(400, "User with this email already exists", null);
-      }
-      tempRegistration.setEmail(identifier);
-
-    } else if (request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()) {
-      identifier = phoneNumberValidator.normalize(request.getPhoneNumber());
-      if (!phoneNumberValidator.isPhoneNumber(identifier)) {
-        return new ApiResponse<>(400, "Invalid phone number format. Use E.164 (e.g., +12223334444)", null);
-      }
-      if (userService.existsByPhoneNumber(identifier)) {
-        return new ApiResponse<>(400, "User with this phone number already exists", null);
-      }
-      tempRegistration.setPhoneNumber(identifier);
-
-    } else {
-      return new ApiResponse<>(400, "Email or Phone Number is required for registration", null);
+    String identifier;
+    try {
+      identifier = processIdentifier(request, tempRegistration);
+    } catch (IllegalArgumentException e) {
+      return new ApiResponse<>(400, e.getMessage(), null);
     }
 
-    if (otpService.isInCooldown(identifier, OtpType.REGISTRATION)) {
-      long secondsLeft = otpService.cooldownTime(identifier, OtpType.REGISTRATION);
-      return new ApiResponse<>(400,
-        "Please wait " + secondsLeft + " seconds before requesting OTP again.", null);
+    ApiResponse<String> cooldownResponse = handleCooldown(identifier);
+    if (cooldownResponse != null) {
+      return cooldownResponse;
     }
 
     try {
@@ -165,6 +147,43 @@ public class UserAccountService implements IUserAccountService {
     }
   }
 
+  private String processIdentifier(RegistrationRequest request, RegistrationRequest tempRegistration) {
+    if (request.getEmail() != null && !request.getEmail().isBlank()) {
+      String email = emailValidator.normalize(request.getEmail());
+      if (!emailValidator.isEmail(email)) {
+        throw new IllegalArgumentException("Invalid email format");
+      }
+      if (userService.existsByEmail(email)) {
+        throw new IllegalArgumentException("User with this email already exists");
+      }
+      tempRegistration.setEmail(email);
+      return email;
+    }
+
+    if (request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()) {
+      String phone = phoneNumberValidator.normalize(request.getPhoneNumber());
+      if (!phoneNumberValidator.isPhoneNumber(phone)) {
+        throw new IllegalArgumentException("Invalid phone number format.");
+      }
+      if (userService.existsByPhoneNumber(phone)) {
+        throw new IllegalArgumentException("User with this phone number already exists");
+      }
+      tempRegistration.setPhoneNumber(phone);
+      return phone;
+    }
+
+    throw new IllegalArgumentException("Email or Phone Number is required for registration");
+  }
+
+  private ApiResponse<String> handleCooldown(String identifier) {
+    if (otpService.isInCooldown(identifier, OtpType.REGISTRATION)) {
+      long secondsLeft = otpService.cooldownTime(identifier, OtpType.REGISTRATION);
+      return new ApiResponse<>(400,
+        "Please wait " + secondsLeft + " seconds before requesting OTP again.", null);
+    }
+    return null;
+  }
+
   public ApiResponse<?> validateOTP(OTPRequest request) {
 
     if (request.getIdentifier() == null || request.getOtp() == null || request.getType() == null) {
@@ -172,47 +191,64 @@ public class UserAccountService implements IUserAccountService {
     }
 
     String identifier;
-    String rawIdentifier = request.getIdentifier();
-
-    if (emailValidator.isEmail(rawIdentifier)) {
-      identifier = emailValidator.normalize(rawIdentifier);
-    } else if (phoneNumberValidator.isPhoneNumber(rawIdentifier)) {
-      identifier = phoneNumberValidator.normalize(rawIdentifier);
-    } else {
-      return new ApiResponse<>(400, "Invalid identifier format.", null);
+    try {
+      identifier = normalizeIdentifier(request);
+    } catch (IllegalArgumentException e) {
+      return new ApiResponse<>(400, e.getMessage(), null);
     }
 
     OtpType type = request.getType();
+    ApiResponse<?> earlyCheck = preValidateOtpChecks(identifier, type);
+    if (earlyCheck != null) {
+      return earlyCheck;
+    }
 
+    boolean valid = otpService.validateOTP(identifier, request.getOtp(), type);
+    if (!valid) {
+      return handleInvalidOtp(identifier, type);
+    }
+
+    otpService.markAsUsed(identifier, request.getOtp(), type);
+    return handleRegistrationOTP(identifier);
+  }
+
+  private String normalizeIdentifier(OTPRequest request) {
+    String raw = request.getIdentifier();
+    if (emailValidator.isEmail(raw)) {
+      return emailValidator.normalize(raw);
+    }
+    if (phoneNumberValidator.isPhoneNumber(raw)) {
+      return phoneNumberValidator.normalize(raw);
+    }
+    throw new IllegalArgumentException("Invalid identifier format.");
+  }
+
+  private ApiResponse<?> preValidateOtpChecks(String identifier, OtpType type) {
     if (type != OtpType.REGISTRATION) {
       return new ApiResponse<>(400, "Only registration OTP can be validated here.", null);
     }
 
     if (otpService.isBlocked(identifier, type)) {
-      return new ApiResponse<>(429, "Too many invalid OTP attempts. Try again later.",
-        null);
+      return new ApiResponse<>(429, "Too many invalid OTP attempts. Try again later.", null);
     }
 
     if (otpService.isUsed(identifier, type)) {
       return new ApiResponse<>(400, "OTP has already been used", null);
     }
 
-    boolean valid = otpService.validateOTP(identifier, request.getOtp(), type);
-    if (!valid) {
-      long attempts = otpService.incrementOtpAttempts(identifier, type);
-      if (attempts >= 3) {
-        otpService.blockOtp(identifier, type);
-        return new ApiResponse<>(429, "Too many invalid attempts. Please request a new OTP.",
-          null);
-      }
+    return null;
+  }
 
-      return new ApiResponse<>(400, "Invalid or expired OTP. Attempts left: " + (3 - attempts),
+  private ApiResponse<?> handleInvalidOtp(String identifier, OtpType type) {
+    long attempts = otpService.incrementOtpAttempts(identifier, type);
+    if (attempts >= 3) {
+      otpService.blockOtp(identifier, type);
+      return new ApiResponse<>(429, "Too many invalid attempts. Please request a new OTP.",
         null);
     }
 
-    otpService.markAsUsed(identifier, request.getOtp(), type);
-
-    return handleRegistrationOTP(identifier);
+    return new ApiResponse<>(400, "Invalid or expired OTP. Attempts left: " + (3 - attempts),
+      null);
   }
 
   public ApiResponse<String> forgotPassword(String identifier) {
@@ -231,10 +267,12 @@ public class UserAccountService implements IUserAccountService {
         normalizedIdentifier = phoneNumberValidator.normalize(identifier);
         user = userService.getUserByPhoneNumber(normalizedIdentifier);
       } else {
-        return new ApiResponse<>(200, "If this account is registered, an OTP has been sent.", null);
+        return new ApiResponse<>(200, "If this account is registered, an OTP has been sent.",
+          null);
       }
     } catch (Exception e) {
-      return new ApiResponse<>(200, "If this account is registered, an OTP has been sent.", null);
+      return new ApiResponse<>(200, "If this account is registered, an OTP has been sent.",
+        null);
     }
 
     if (otpService.isInCooldown(normalizedIdentifier, OtpType.FORGOT_PASSWORD)) {
@@ -315,30 +353,11 @@ public class UserAccountService implements IUserAccountService {
         return new ApiResponse<>(400, "Registration session expired or not found", null);
       }
 
-      if (tempRequest.getEmail() != null && userService.existsByEmail(tempRequest.getEmail())) {
-        return new ApiResponse<>(400, "User already registered", null);
-      }
-      if (tempRequest.getPhoneNumber() != null && userService.existsByPhoneNumber(tempRequest.getPhoneNumber())) {
+      if (isUserAlreadyRegistered(tempRequest)) {
         return new ApiResponse<>(400, "User already registered", null);
       }
 
-      User newUser = new User();
-      newUser.setFirstName(tempRequest.getFirstName());
-      newUser.setLastName(tempRequest.getLastName());
-
-      if (tempRequest.getEmail() != null) {
-        newUser.setEmail(tempRequest.getEmail());
-      }
-      if (tempRequest.getPhoneNumber() != null) {
-        newUser.setPhoneNumber(tempRequest.getPhoneNumber());
-      }
-
-      newUser.setPassword(tempRequest.getPassword());
-      newUser.setIsVerifiedRegistration(true);
-      newUser.setEnabled(true);
-      newUser.setLocked(false);
-      newUser.setUserRole(UserRole.USER);
-
+      User newUser = buildUserFromRequest(tempRequest);
       userService.save(newUser);
 
       otpService.deleteTempOtp(identifier);
@@ -351,6 +370,33 @@ public class UserAccountService implements IUserAccountService {
       return new ApiResponse<>(500, "Registration verification failed: " + e.getMessage(),
         null);
     }
+  }
+
+  private boolean isUserAlreadyRegistered(RegistrationRequest tempRequest) {
+    if (tempRequest.getEmail() != null && userService.existsByEmail(tempRequest.getEmail())) {
+      return true;
+    }
+    return tempRequest.getPhoneNumber() != null && userService.existsByPhoneNumber(tempRequest.getPhoneNumber());
+  }
+
+  private User buildUserFromRequest(RegistrationRequest tempRequest) {
+    User newUser = new User();
+    newUser.setFirstName(tempRequest.getFirstName());
+    newUser.setLastName(tempRequest.getLastName());
+    newUser.setPassword(tempRequest.getPassword());
+    newUser.setIsVerifiedRegistration(true);
+    newUser.setEnabled(true);
+    newUser.setLocked(false);
+    newUser.setUserRole(UserRole.USER);
+
+    if (tempRequest.getEmail() != null) {
+      newUser.setEmail(tempRequest.getEmail());
+    }
+    if (tempRequest.getPhoneNumber() != null) {
+      newUser.setPhoneNumber(tempRequest.getPhoneNumber());
+    }
+
+    return newUser;
   }
 
   public ApiResponse<String> resendOTP(String identifier, String sessionToken) {
