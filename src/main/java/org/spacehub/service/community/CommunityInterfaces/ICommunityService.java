@@ -35,7 +35,7 @@ public interface ICommunityService {
 
   ResponseEntity<?> rejectRequest(RejectRequest rejectRequest);
 
-  ResponseEntity<ApiResponse<Map<String, Object>>> getCommunityWithRooms(UUID communityId);
+  ResponseEntity<ApiResponse<Map<String, Object>>> getCommunityWithRooms(UUID communityId, String email);
 
   ResponseEntity<ApiResponse<String>> removeMemberFromCommunity(CommunityMemberRequest request);
 

@@ -1186,7 +1186,7 @@ public class CommunityService implements ICommunityService {
         .anyMatch(u -> u.getId().equals(user.getId()));
 
       if (isMember) {
-        return getCommunityWithRooms(communityId);
+        return getCommunityWithRooms(communityId, requesterEmail);
       }
 
       if (isPending) {

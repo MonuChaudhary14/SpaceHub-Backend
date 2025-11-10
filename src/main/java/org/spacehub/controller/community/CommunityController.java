@@ -72,11 +72,11 @@ public class CommunityController {
   }
 
   @PostMapping("/getCommunityRooms")
-  public ResponseEntity<?> getCommunityRooms(@RequestBody CommunityRoomsRequest request) {
+  public ResponseEntity<?> getCommunityRooms(@RequestBody CommunityRoomsRequest request, String userEmail) {
     if (request.getCommunityId() == null) {
       return ResponseEntity.badRequest().body("communityId is required");
     }
-    return communityService.getCommunityWithRooms(request.getCommunityId());
+    return communityService.getCommunityWithRooms(request.getCommunityId(), userEmail);
   }
 
   @PostMapping("/removeMember")
