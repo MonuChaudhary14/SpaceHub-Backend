@@ -148,6 +148,8 @@ public class UserAccountService implements IUserAccountService {
   }
 
   private String processIdentifier(RegistrationRequest request, RegistrationRequest tempRegistration) {
+    String identifier = null;
+
     if (request.getEmail() != null && !request.getEmail().isBlank()) {
       String email = emailValidator.normalize(request.getEmail());
       if (!emailValidator.isEmail(email)) {
@@ -157,7 +159,7 @@ public class UserAccountService implements IUserAccountService {
         throw new IllegalArgumentException("User with this email already exists");
       }
       tempRegistration.setEmail(email);
-      return email;
+      identifier = email;
     }
 
     if (request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()) {
@@ -169,10 +171,17 @@ public class UserAccountService implements IUserAccountService {
         throw new IllegalArgumentException("User with this phone number already exists");
       }
       tempRegistration.setPhoneNumber(phone);
-      return phone;
+
+      if (identifier == null) {
+        identifier = phone;
+      }
     }
 
-    throw new IllegalArgumentException("Email or Phone Number is required for registration");
+    if (identifier == null) {
+      throw new IllegalArgumentException("Email or Phone Number is required for registration");
+    }
+
+    return identifier;
   }
 
   private ApiResponse<String> handleCooldown(String identifier) {

@@ -10,7 +10,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.io.IOException;
 import java.time.Duration;
 import java.util.HashMap;
@@ -167,10 +166,8 @@ public class DashBoardService implements IDashBoardService {
         return new ApiResponse<>(404, "User not found with email: " + email, null);
       }
 
-      // Force fetch fresh user
       User user = optionalUser.get();
 
-      // Reload avatar URL if needed
       String presignedUrl = null;
       if (user.getAvatarUrl() != null && !user.getAvatarUrl().isBlank()) {
         try {
@@ -182,12 +179,20 @@ public class DashBoardService implements IDashBoardService {
       data.put("username", user.getUsername());
       data.put("profileImage", presignedUrl);
 
+      String phone = user.getPhoneNumber();
+      if (phone != null && !phone.isBlank()) {
+        data.put("phoneNumber", phone);
+      } else {
+        data.put("phoneNumber", null);
+      }
+
       return new ApiResponse<>(200, "User profile fetched successfully", data);
 
     } catch (Exception e) {
       return new ApiResponse<>(500, "An unexpected error occurred: " + e.getMessage(), null);
     }
   }
+
 
 
 }
