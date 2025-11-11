@@ -52,16 +52,16 @@ public class MessageService implements IMessageService {
     if (optionalMessage.isEmpty()) return null;
 
     Message message = optionalMessage.get();
-
     boolean changed = false;
+
     if (requesterEmail.equals(message.getSenderEmail())) {
-      if (message.getSenderDeleted() == null || !message.getSenderDeleted()) {
+      if (!Boolean.TRUE.equals(message.getSenderDeleted())) {
         message.setSenderDeleted(true);
         changed = true;
       }
     }
     else if (requesterEmail.equals(message.getReceiverEmail())) {
-      if (message.getReceiverDeleted() == null || !message.getReceiverDeleted()) {
+      if (!Boolean.TRUE.equals(message.getReceiverDeleted())) {
         message.setReceiverDeleted(true);
         changed = true;
       }
@@ -89,6 +89,40 @@ public class MessageService implements IMessageService {
   @Override
   public Message getMessageById(Long id) {
     return repo.findById(id).orElse(null);
+  }
+
+  @Override
+  public List<Message> getUnreadMessages(String receiverEmail) {
+    return repo.findByReceiverEmailAndReadStatusFalse(receiverEmail);
+  }
+
+  @Override
+  public Message markAsRead(Long messageId) {
+    Optional<Message> optionalMessage = repo.findById(messageId);
+
+    if (optionalMessage.isEmpty()) return null;
+    Message mess = optionalMessage.get();
+
+    if (!mess.getReadStatus()) {
+      mess.setReadStatus(true);
+      repo.save(mess);
+    }
+    return mess;
+  }
+
+  @Override
+  public void markAllAsRead(String receiverEmail, String senderEmail) {
+    repo.markAllAsReadBetweenUsers(receiverEmail, senderEmail);
+  }
+
+  @Override
+  public long countUnreadMessages(String receiverEmail) {
+    return repo.countUnreadMessages(receiverEmail);
+  }
+
+  @Override
+  public long countUnreadMessagesInChat(String userEmail, String chatPartner) {
+    return repo.countUnreadMessagesInChat(userEmail, chatPartner);
   }
 
 }

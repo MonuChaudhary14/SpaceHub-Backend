@@ -34,6 +34,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
 
   private final Map<String, WebSocketSession> activeUsers = new ConcurrentHashMap<>();
   private final Map<WebSocketSession, Map<String, String>> sessionMetadata = new ConcurrentHashMap<>();
+  private final Map<String, String> usernameCache = new ConcurrentHashMap<>();
 
   public ChatWebSocketHandlerMessaging(MessageQueueService messageQueueService,
                                        IMessageService messageService,
@@ -54,45 +55,66 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
     String senderEmail = params.get("senderEmail");
     String receiverEmail = params.get("receiverEmail");
 
-    if (senderEmail == null || receiverEmail == null) {
-      sendSystemMessage(session, "Missing senderEmail or receiverEmail in connection URL");
+    if (senderEmail == null) {
+      sendSystemMessage(session, "Missing senderEmail in connection URL");
       session.close(CloseStatus.BAD_DATA);
       return;
     }
 
     activeUsers.put(senderEmail, session);
     sessionMetadata.put(session, params);
+    sendSystemMessage(session, "Connected as " + senderEmail);
 
-    sendSystemMessage(session, "Connected as " + senderEmail + " (chat with " + receiverEmail + ")");
+    List<Message> unread = messageService.getUnreadMessages(senderEmail);
 
-    List<Message> history = messageService.getChat(senderEmail, receiverEmail);
-    if (history != null && !history.isEmpty()) {
+    if (!unread.isEmpty()) {
       List<Map<String, Object>> formatted = new ArrayList<>();
 
-      for (Message mess : history) {
-
-        boolean isSender = senderEmail.equalsIgnoreCase(mess.getSenderEmail());
-        if ((isSender && Boolean.TRUE.equals(mess.getSenderDeleted())) || (!isSender && Boolean.TRUE.equals(mess.getReceiverDeleted()))) {
-          continue;
-        }
-
-        Map<String, Object> payload = buildPayload(mess);
-
-        if ("FILE".equalsIgnoreCase(mess.getType()) && mess.getFileKey() != null) {
-          String previewUrl = s3Service.generatePresignedDownloadUrl(mess.getFileKey(), Duration.ofMinutes(10));
+      for (Message message : unread) {
+        Map<String, Object> payload = buildPayload(message);
+        if ("FILE".equalsIgnoreCase(message.getType()) && message.getFileKey() != null) {
+          String previewUrl = s3Service.generatePresignedDownloadUrl(message.getFileKey(), Duration.ofMinutes(10));
           payload.put("previewUrl", previewUrl);
         }
 
         formatted.add(payload);
+        messageService.markAsRead(message.getId());
       }
 
-      Map<String, Object> payload = Map.of(
-              "type", "history",
-              "chatWith", receiverEmail,
-              "messages", formatted
-      );
+      Map<String, Object> unreadPayload = Map.of("type", "unread", "count", formatted.size(), "messages", formatted);
+      session.sendMessage(new TextMessage(objectMapper.writeValueAsString(unreadPayload)));
+    }
+
+    if (receiverEmail != null) {
+      List<Message> history = messageService.getChat(senderEmail, receiverEmail);
+      List<Map<String, Object>> formatted = new ArrayList<>();
+      for (Message mess : history) {
+
+        boolean isSender = senderEmail.equalsIgnoreCase(mess.getSenderEmail());
+
+        if ((isSender && Boolean.TRUE.equals(mess.getSenderDeleted())) || (!isSender && Boolean.TRUE.equals(mess.getReceiverDeleted()))) continue;
+
+        Map<String, Object> payload = buildPayload(mess);
+        if ("FILE".equalsIgnoreCase(mess.getType()) && mess.getFileKey() != null) {
+          String previewUrl = s3Service.generatePresignedDownloadUrl(mess.getFileKey(), Duration.ofMinutes(10));
+          payload.put("previewUrl", previewUrl);
+        }
+        formatted.add(payload);
+      }
+
+      Map<String, Object> payload = Map.of("type", "history", "chatWith", receiverEmail, "messages", formatted);
       session.sendMessage(new TextMessage(objectMapper.writeValueAsString(payload)));
     }
+
+    List<String> partners = messageService.getAllChatPartners(senderEmail);
+    List<Map<String, Object>> summary = new ArrayList<>();
+    for (String partner : partners) {
+      long unreadCount = messageService.countUnreadMessagesInChat(senderEmail, partner);
+      summary.add(Map.of("chatPartner", partner, "unreadCount", unreadCount));
+    }
+    Map<String, Object> summaryPayload = Map.of("type", "chatSummary", "rooms", summary);
+
+    session.sendMessage(new TextMessage(objectMapper.writeValueAsString(summaryPayload)));
   }
 
   @Override
@@ -112,6 +134,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
     switch (type.toUpperCase()) {
       case "FILE" -> handleFileMessage(senderEmail, receiverEmail, clientPayload);
       case "DELETE" -> handleDeleteMessage(senderEmail, receiverEmail, clientPayload);
+      case "READ" -> handleReadMessages(senderEmail, clientPayload);
       default -> handleTextOnlyMessage(senderEmail, receiverEmail, clientPayload);
     }
   }
@@ -127,7 +150,6 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
 
     messageQueueService.enqueue(mess);
     Message saved = messageService.saveMessage(mess);
-
     Map<String, Object> sendPayload = buildPayload(saved);
 
     sendToReceiver(receiverEmail, sendPayload);
@@ -162,6 +184,17 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
     sendToReceiver(receiverEmail, sendPayload);
   }
 
+  private void handleReadMessages(String senderEmail, Map<String, Object> payload) {
+    Object ids = payload.get("messageIds");
+    if (ids instanceof List<?> list) {
+      for (Object id : list) {
+        try {
+          messageService.markAsRead(Long.parseLong(id.toString()));
+        } catch (Exception ignored) {}
+      }
+    }
+  }
+
   private void handleDeleteMessage(String senderEmail, String receiverEmail, Map<String, Object> payload) throws IOException {
     Object objectID = payload.get("messageId");
     if (objectID == null) {
@@ -171,12 +204,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
 
     Long messageId;
     try {
-      if (objectID instanceof Number) {
-        messageId = ((Number) objectID).longValue();
-      }
-      else {
-        messageId = Long.parseLong(objectID.toString());
-      }
+      messageId = Long.parseLong(objectID.toString());
     }
     catch (Exception e) {
       sendSystemMessage(activeUsers.get(senderEmail), "Invalid messageId format");
@@ -191,10 +219,8 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
 
     Map<String, Object> resp = new LinkedHashMap<>();
     resp.put("type", "DELETE");
-    resp.put("messageId", String.valueOf(messageId));
+    resp.put("messageId", messageId.toString());
     resp.put("deletedBy", senderEmail);
-    resp.put("senderDeleted", updated.getSenderDeleted());
-    resp.put("receiverDeleted", updated.getReceiverDeleted());
     resp.put("timestamp", LocalDateTime.now().toString());
 
     sendToReceiver(senderEmail, resp);
@@ -205,38 +231,41 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
     WebSocketSession session = activeUsers.get(email);
     if (session != null && session.isOpen()) {
       session.sendMessage(new TextMessage(objectMapper.writeValueAsString(payload)));
+
+      Object id = payload.get("messageId");
+      if (id != null) {
+        try {
+          messageService.markAsRead(Long.parseLong(id.toString()));
+        }
+        catch (Exception ignored) {}
+      }
     }
   }
 
   private Map<String, Object> buildPayload(Message message) {
     Map<String, Object> payload = new LinkedHashMap<>();
-    payload.put("messageId", message.getId() != null ? String.valueOf(message.getId()) : null);
+    payload.put("messageId", message.getId());
     payload.put("type", message.getType());
     payload.put("senderEmail", message.getSenderEmail());
     payload.put("receiverEmail", message.getReceiverEmail());
     payload.put("content", message.getContent());
-    payload.put("timestamp", message.getTimestamp() != null ? message.getTimestamp().toString() : null);
+    payload.put("timestamp", message.getTimestamp().toString());
+    payload.put("readStatus", message.getReadStatus());
     payload.put("senderDeleted", message.getSenderDeleted());
     payload.put("receiverDeleted", message.getReceiverDeleted());
-
-    try {
-      Optional<User> sUser = userRepository.findByEmail(message.getSenderEmail());
-      Optional<User> rUser = userRepository.findByEmail(message.getReceiverEmail());
-      payload.put("senderUsername", sUser.map(User::getUsername).orElse(null));
-      payload.put("receiverUsername", rUser.map(User::getUsername).orElse(null));
-    }
-    catch (Exception ignored) {
-      payload.put("senderUsername", null);
-      payload.put("receiverUsername", null);
-    }
+    payload.put("senderUsername", getUsername(message.getSenderEmail()));
+    payload.put("receiverUsername", getUsername(message.getReceiverEmail()));
 
     if ("FILE".equalsIgnoreCase(message.getType())) {
       payload.put("fileName", message.getFileName());
       payload.put("fileKey", message.getFileKey());
       payload.put("contentType", message.getContentType());
     }
-
     return payload;
+  }
+
+  private String getUsername(String email) {
+    return usernameCache.computeIfAbsent(email,e -> userRepository.findByEmail(e).map(User::getUsername).orElse(null));
   }
 
 //  private void sendToBoth(String senderEmail, String receiverEmail, Message message) throws IOException {
@@ -262,8 +291,11 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
   }
 
   @Override
-  public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
-    System.err.println("WebSocket transport error: " + exception.getMessage());
+  public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception  {
+    Map<String, String> meta = sessionMetadata.remove(session);
+    if (meta != null) {
+      activeUsers.remove(meta.get("senderEmail"));
+    }
     if (session.isOpen()) {
       session.close(CloseStatus.SERVER_ERROR);
     }

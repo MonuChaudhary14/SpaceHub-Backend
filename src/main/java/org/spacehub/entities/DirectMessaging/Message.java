@@ -9,7 +9,12 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "direct_messages")
+@Table(
+        name = "direct_messages",
+        indexes = {
+                @Index(name = "idx_receiver_read_status", columnList = "receiverEmail, readStatus")
+        }
+)
 public class Message {
 
   @Id
@@ -40,7 +45,15 @@ public class Message {
   @Column(nullable = false, length = 50)
   private String type = "MESSAGE";
 
+  @Builder.Default
+  @Column(nullable = false)
+  private Boolean readStatus = false;
+
+  @Builder.Default
   private Boolean senderDeleted = false;
+
+  @Builder.Default
   private Boolean receiverDeleted = false;
+
   private LocalDateTime deletedAt;
 }

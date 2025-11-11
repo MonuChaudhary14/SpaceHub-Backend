@@ -20,5 +20,15 @@ public interface IMessageService {
   void deleteMessageHard(Long messageId);
 
   Message getMessageById(Long id);
+
+  List<Message> getUnreadMessages(String receiverEmail);
+
+  Message markAsRead(Long messageId);
+
+  void markAllAsRead(String receiverEmail, String senderEmail);
+
+  long countUnreadMessages(String receiverEmail);
+
+  long countUnreadMessagesInChat(String userEmail, String chatPartner);
 }
 
