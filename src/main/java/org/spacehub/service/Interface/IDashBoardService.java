@@ -13,5 +13,14 @@ public interface IDashBoardService {
 
   ApiResponse<Map<String, Object>> getUserProfileSummary(String email);
 
+  ApiResponse<Map<String, Object>> saveProfileChanges(
+    String email,
+    String newEmail,
+    String oldPassword,
+    String newPassword,
+    String newUsername,
+    MultipartFile image
+  );
+
 }
 

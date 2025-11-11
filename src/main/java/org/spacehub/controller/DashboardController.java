@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/v1/dashboard")
 public class DashboardController {
@@ -38,6 +40,21 @@ public class DashboardController {
   public ResponseEntity<ApiResponse<?>> getUserProfileSummary(@RequestParam("email") String email) {
     ApiResponse<?> response = dashboardService.getUserProfileSummary(email);
     return ResponseEntity.status(response.getStatus()).body(response);
+  }
+
+  @PostMapping(value = "/save-changes")
+  public ResponseEntity<ApiResponse<Map<String, Object>>> saveChanges(
+    @RequestParam("email") String email,
+    @RequestParam(value = "newEmail", required = false) String newEmail,
+    @RequestParam(value = "oldPassword", required = false) String oldPassword,
+    @RequestParam(value = "newPassword", required = false) String newPassword,
+    @RequestParam(value = "newUsername", required = false) String newUsername,
+    @RequestParam(value = "image", required = false) MultipartFile image
+  ) {
+    ApiResponse<Map<String, Object>> resp = dashboardService.saveProfileChanges(
+      email, newEmail, oldPassword, newPassword, newUsername, image
+    );
+    return ResponseEntity.status(resp.getStatus()).body(resp);
   }
 
 }
