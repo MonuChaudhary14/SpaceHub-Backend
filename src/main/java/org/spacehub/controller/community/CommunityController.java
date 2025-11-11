@@ -143,10 +143,10 @@ public class CommunityController {
 
 
   @GetMapping("/search")
-  public ResponseEntity<?> searchCommunities(@RequestParam("q") String q,
-                                             @RequestParam(value = "requesterEmail", required = false) String requesterEmail,
-                                             @RequestParam(value = "page", defaultValue = "0") int page,
-                                             @RequestParam(value = "size", defaultValue = "20") int size) {
+  public ResponseEntity<?> searchCommunities(
+    @RequestParam("q") String q, @RequestParam(value = "requesterEmail", required = false) String requesterEmail,
+    @RequestParam(value = "page", defaultValue = "0") int page,
+    @RequestParam(value = "size", defaultValue = "20") int size) {
     return communityService.searchCommunities(q, requesterEmail, page, size);
   }
 
