@@ -244,14 +244,17 @@ public class CommunityService implements ICommunityService {
         CommunityUser cu = existingMember.get();
 
         if (cu.isBlocked()) {
-          return ResponseEntity.status(403).body(new ApiResponse<>(403, "You are blocked from this community", null));
+          return ResponseEntity.status(403).body(new ApiResponse<>(403,
+            "You are blocked from this community", null));
         }
 
         if (cu.isBanned()) {
-          return ResponseEntity.status(403).body(new ApiResponse<>(403, "You are banned from this community", null));
+          return ResponseEntity.status(403).body(new ApiResponse<>(403,
+            "You are banned from this community", null));
         }
 
-        return ResponseEntity.status(409).body(new ApiResponse<>(409, "You are already a member of this community", null));
+        return ResponseEntity.status(409).body(new ApiResponse<>(409,
+          "You are already a member of this community", null));
       }
 
       community.getPendingRequests().add(user);
@@ -510,7 +513,8 @@ public class CommunityService implements ICommunityService {
   }
 
   private void removePendingRequest(Community community, User user) {
-    community.getPendingRequests().removeIf(u -> u != null && u.getId() != null && u.getId().equals(user.getId()));
+    community.getPendingRequests().removeIf(u -> u != null && u.getId() != null &&
+      u.getId().equals(user.getId()));
     communityRepository.save(community);
   }
 
@@ -597,18 +601,14 @@ public class CommunityService implements ICommunityService {
       User requester = findUserByEmail(request.getRequesterEmail());
       User target = findUserByEmail(request.getUserEmail());
 
-      if (!isUserMemberOfCommunity(requester, community)) {
-        return ResponseEntity.status(403).body(new ApiResponse<>(403,
-          "You are not a member of this community", null));
+      MembershipCheckResult m = checkMembershipsAndRoles(community, requester, target);
+      if (m.hasError()) {
+        return m.error();
       }
 
-      if (!isUserMemberOfCommunity(target, community)) {
-        return ResponseEntity.badRequest().body(new ApiResponse<>(400,
-          "Target user is not a member of this community", null));
-      }
+      Role requesterRole = m.requesterRole();
+      Role targetRole = m.targetRole();
 
-      Role requesterRole = getUserRoleInCommunity(community, requester);
-      Role targetRole = getUserRoleInCommunity(community, target);
 
       if (!canRequesterRemoveTarget(requesterRole, targetRole)) {
         return ResponseEntity.status(403).body(new ApiResponse<>(403,
@@ -648,7 +648,8 @@ public class CommunityService implements ICommunityService {
   }
 
   private Role getUserRoleInCommunity(Community community, User user) {
-    return community.getCommunityUsers().stream().filter(cu -> cu.getUser().getId().equals(user.getId()))
+    return community.getCommunityUsers().stream().filter(cu ->
+        cu.getUser().getId().equals(user.getId()))
             .map(CommunityUser::getRole).findFirst().orElse(Role.MEMBER);
   }
 
@@ -765,7 +766,8 @@ public class CommunityService implements ICommunityService {
   public ResponseEntity<ApiResponse<Map<String, Object>>> getCommunityMembers(UUID communityId) {
     Optional<Community> optionalCommunity = communityRepository.findById(communityId);
     if (optionalCommunity.isEmpty()) {
-      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Community not found", null));
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400,
+        "Community not found", null));
     }
 
     Community community = optionalCommunity.get();
@@ -813,18 +815,13 @@ public class CommunityService implements ICommunityService {
       User target = userRepository.findByEmail(request.getTargetUserEmail())
         .orElseThrow(() -> new ResourceNotFoundException("Target user not found"));
 
-      if (!isUserMemberOfCommunity(requester, community)) {
-        return ResponseEntity.status(403).body(new ApiResponse<>(403,
-          "You are not a member of this community", null));
+      MembershipCheckResult m = checkMembershipsAndRoles(community, requester, target);
+      if (m.hasError()) {
+        return m.error();
       }
 
-      if (!isUserMemberOfCommunity(target, community)) {
-        return ResponseEntity.badRequest().body(new ApiResponse<>(400,
-          "Target user is not a member of this community", null));
-      }
-
-      Role requesterRole = getUserRoleInCommunity(community, requester);
-      Role targetRole = getUserRoleInCommunity(community, target);
+      Role requesterRole = m.requesterRole();
+      Role targetRole = m.targetRole();
 
       if (!canRequesterBlockTarget(requesterRole, targetRole)) {
         return ResponseEntity.status(403)
@@ -947,13 +944,16 @@ public class CommunityService implements ICommunityService {
     List<Map<String, Object>> out = all.stream()
             .map(this::buildCommunityBasicInfo).toList();
 
-    return ResponseEntity.ok(new ApiResponse<>(200, "Communities fetched successfully", Map.of("communities", out)));
+    return ResponseEntity.ok(new ApiResponse<>(200, "Communities fetched successfully",
+      Map.of("communities", out)));
   }
 
-  public ResponseEntity<ApiResponse<Map<String, List<Map<String, Object>>>>> listMyCommunities(String requesterEmail) {
+  public ResponseEntity<ApiResponse<Map<String, List<Map<String, Object>>>>>
+    listMyCommunities(String requesterEmail) {
     try {
       if (isInvalidEmail(requesterEmail)) {
-        return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Requester email is required"));
+        return ResponseEntity.badRequest().body(new ApiResponse<>(400,
+          "Requester email is required"));
       }
 
       String normalizedEmail = requesterEmail.trim().toLowerCase();
@@ -1132,7 +1132,8 @@ public class CommunityService implements ICommunityService {
       );
     }
     catch (Exception e){
-      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
+      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: " +
+        e.getMessage(), null));
     }
   }
 
@@ -1226,12 +1227,14 @@ public class CommunityService implements ICommunityService {
   public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getRoomsByCommunity(UUID communityId) {
     try {
       if (communityId == null) {
-        return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Community ID is required", null));
+        return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Community ID is required",
+          null));
       }
 
       Optional<Community> optionalCommunity = communityRepository.findById(communityId);
       if (optionalCommunity.isEmpty()) {
-        return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Community not found", null));
+        return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Community not found",
+          null));
       }
 
       List<ChatRoom> rooms = chatRoomRepository.findByCommunityId(communityId);
@@ -1248,7 +1251,8 @@ public class CommunityService implements ICommunityService {
       return ResponseEntity.ok(new ApiResponse<>(200, "Rooms fetched successfully", out));
     }
     catch (Exception e) {
-      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
+      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: " +
+        e.getMessage(), null));
     }
   }
 
@@ -1428,7 +1432,8 @@ public class CommunityService implements ICommunityService {
               .anyMatch(cu -> cu.getUser().getId().equals(user.getId()) && cu.isBanned());
       if (isBanned) {
         return ResponseEntity.status(403)
-                .body(new ApiResponse<>(403, "You are banned from this community", Map.of("accessDenied", true)));
+                .body(new ApiResponse<>(403, "You are banned from this community",
+                  Map.of("accessDenied", true)));
       }
 
       boolean isMember = community.getCommunityUsers().stream()
@@ -1683,7 +1688,8 @@ public class CommunityService implements ICommunityService {
 
       if (!canRenameRoom(community, requester, communityUser.getRole())) {
         return ResponseEntity.status(403)
-          .body(new ApiResponse<>(403, "Only admins or workspace owners can rename rooms", null));
+          .body(new ApiResponse<>(403, "Only admins or workspace owners can rename rooms",
+            null));
       }
 
       ChatRoom room = getChatRoomOrThrow(roomId);
@@ -1716,11 +1722,13 @@ public class CommunityService implements ICommunityService {
     } catch (ResourceNotFoundException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
     } catch (Exception e) {
-      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
+      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: " +
+        e.getMessage(), null));
     }
   }
 
-  private ResponseEntity<ApiResponse<Object>> validateRenameRoomInput(UUID communityId, UUID roomId, RenameRoomRequest req) {
+  private ResponseEntity<ApiResponse<Object>> validateRenameRoomInput(UUID communityId, UUID roomId,
+                                                                      RenameRoomRequest req) {
     if (communityId == null || roomId == null) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400,
         "Community ID and Room ID are required", null));
@@ -1755,42 +1763,45 @@ public class CommunityService implements ICommunityService {
         new ResourceNotFoundException("Community not found"));
 
       User requester = userRepository.findByEmail(requesterEmail.trim().toLowerCase())
-              .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
       Optional<CommunityUser> cuOpt = communityUserRepository.findByCommunityIdAndUserId(
-              community.getId(), requester.getId());
+        community.getId(), requester.getId());
 
       if (cuOpt.isEmpty()) {
         return ResponseEntity.status(403).body(new ApiResponse<>(403,
           "You are not a member of this community", null));
       }
 
-      CommunityUser communityUser = cuOpt.get();
-      Role role = communityUser.getRole();
+      Map<String, Object> roleInfo = buildRoleInfo(community, cuOpt.get(), requester);
 
-      boolean isAdmin = role == Role.ADMIN;
-      boolean isWorkspaceOwner = role == Role.WORKSPACE_OWNER;
-      boolean isMember = role == Role.MEMBER;
-      boolean isCreator = community.getCreatedBy() != null &&
-        community.getCreatedBy().getId().equals(requester.getId());
+      return ResponseEntity.ok(new ApiResponse<>(200, "Role details fetched successfully",
+        roleInfo));
 
-      Map<String, Object> roleInfo = new HashMap<>();
-      roleInfo.put("role", role.toString());
-      roleInfo.put("isAdmin", isAdmin);
-      roleInfo.put("isWorkspaceOwner", isWorkspaceOwner);
-      roleInfo.put("isMember", isMember);
-      roleInfo.put("isCreator", isCreator);
-
-      return ResponseEntity.ok(
-              new ApiResponse<>(200, "Role details fetched successfully", roleInfo));
-
-    }
-    catch (ResourceNotFoundException e) {
+    } catch (ResourceNotFoundException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
+    } catch (Exception e) {
+      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: " +
+        e.getMessage(), null));
     }
-    catch (Exception e) {
-      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
-    }
+  }
+
+  private Map<String, Object> buildRoleInfo(Community community, CommunityUser communityUser, User requester) {
+    Role role = communityUser.getRole();
+
+    boolean isAdmin = role == Role.ADMIN;
+    boolean isWorkspaceOwner = role == Role.WORKSPACE_OWNER;
+    boolean isMember = role == Role.MEMBER;
+    boolean isCreator = community.getCreatedBy() != null &&
+      community.getCreatedBy().getId().equals(requester.getId());
+
+    Map<String, Object> roleInfo = new HashMap<>();
+    roleInfo.put("role", role.toString());
+    roleInfo.put("isAdmin", isAdmin);
+    roleInfo.put("isWorkspaceOwner", isWorkspaceOwner);
+    roleInfo.put("isMember", isMember);
+    roleInfo.put("isCreator", isCreator);
+    return roleInfo;
   }
 
   public ResponseEntity<ApiResponse<Map<String, Object>>> discoverCommunities(String currentUserEmail, int page,
@@ -1888,13 +1899,15 @@ public class CommunityService implements ICommunityService {
               .orElseThrow(() -> new ResourceNotFoundException("Community not found with ID: " + communityId));
 
       User requester = userRepository.findByEmail(requesterEmail.trim().toLowerCase())
-              .orElseThrow(() -> new ResourceNotFoundException("Requester not found with email: " + requesterEmail));
+              .orElseThrow(() -> new ResourceNotFoundException("Requester not found with email: " +
+                requesterEmail));
 
       Optional<CommunityUser> communityUserOpt = communityUserRepository.findByCommunityIdAndUserId(
               community.getId(), requester.getId());
 
       if (communityUserOpt.isEmpty()) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ApiResponse<>(403, "You are not a member of this community", null));
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ApiResponse<>(403,
+          "You are not a member of this community", null));
       }
 
       CommunityUser communityUser = communityUserOpt.get();
@@ -1909,7 +1922,8 @@ public class CommunityService implements ICommunityService {
 
       if (!canViewRequests) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(new ApiResponse<>(403, "Only admins or workspace owners can view pending requests", null));
+                .body(new ApiResponse<>(403,
+                  "Only admins or workspace owners can view pending requests", null));
       }
 
       List<PendingRequestUserDTO> pendingRequests = community.getPendingRequests().stream()
@@ -1919,14 +1933,17 @@ public class CommunityService implements ICommunityService {
                       user.getEmail()
               )).collect(Collectors.toList());
 
-      return ResponseEntity.ok(new ApiResponse<>(200, "Pending requests fetched successfully", pendingRequests));
+      return ResponseEntity.ok(new ApiResponse<>(200, "Pending requests fetched successfully",
+        pendingRequests));
 
     }
     catch (ResourceNotFoundException ex) {
-      return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse<>(404, ex.getMessage(), null));
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse<>(404, ex.getMessage(),
+        null));
     }
     catch (Exception e) {
-      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "An unexpected error occurred: " + e.getMessage(), null));
+      return ResponseEntity.internalServerError().body(new ApiResponse<>(500,
+        "An unexpected error occurred: " + e.getMessage(), null));
     }
   }
 
@@ -1979,4 +1996,38 @@ public class CommunityService implements ICommunityService {
           !cu.isBanned() && !cu.isBlocked());
   }
 
+  private record MembershipCheckResult(ResponseEntity<ApiResponse<String>> error, Role requesterRole,
+                                       Role targetRole) {
+
+    public static MembershipCheckResult error(ResponseEntity<ApiResponse<String>> error) {
+      return new MembershipCheckResult(error, null, null);
+    }
+
+    public static MembershipCheckResult ok(Role requesterRole, Role targetRole) {
+      return new MembershipCheckResult(null, requesterRole, targetRole);
+    }
+
+    public boolean hasError() {
+      return error != null;
+    }
+  }
+
+  private MembershipCheckResult checkMembershipsAndRoles(Community community, User requester, User target) {
+    if (!isUserMemberOfCommunity(requester, community)) {
+      ResponseEntity<ApiResponse<String>> resp = ResponseEntity.status(403)
+        .body(new ApiResponse<>(403, "You are not a member of this community", null));
+      return MembershipCheckResult.error(resp);
+    }
+
+    if (!isUserMemberOfCommunity(target, community)) {
+      ResponseEntity<ApiResponse<String>> resp = ResponseEntity.badRequest()
+        .body(new ApiResponse<>(400, "Target user is not a member of this community", null));
+      return MembershipCheckResult.error(resp);
+    }
+
+    Role requesterRole = getUserRoleInCommunity(community, requester);
+    Role targetRole = getUserRoleInCommunity(community, target);
+
+    return MembershipCheckResult.ok(requesterRole, targetRole);
+  }
 }
