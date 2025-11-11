@@ -2,7 +2,7 @@ package org.spacehub.service.serviceAuth;
 
 import org.spacehub.entities.Auth.RefreshToken;
 import org.spacehub.entities.User.User;
-import org.spacehub.repository.RefreshTokenRepository;
+import org.spacehub.repository.User.RefreshTokenRepository;
 import org.spacehub.service.serviceAuth.authInterfaces.IRefreshTokenService;
 import org.springframework.stereotype.Service;
 import java.time.Instant;

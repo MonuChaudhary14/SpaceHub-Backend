@@ -1,20 +1,16 @@
 package org.spacehub.handler;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.spacehub.entities.ChatRoom.ChatMessage;
-import org.spacehub.entities.ChatRoom.ChatRoom;
-import org.spacehub.entities.ChatRoom.ChatRoomUser;
 import org.spacehub.entities.ChatRoom.NewChatRoom;
-import org.spacehub.entities.Community.Role;
 import org.spacehub.entities.User.User;
-import org.spacehub.repository.UserRepository;
-import org.spacehub.service.S3Service;
+import org.spacehub.repository.User.UserRepository;
+import org.spacehub.service.File.S3Service;
 import org.spacehub.service.chatRoom.ChatMessageQueue;
-import org.spacehub.service.ChatRoomUserService;
+import org.spacehub.service.chatRoom.ChatRoomUserService;
 import org.spacehub.service.chatRoom.ChatMessageService;
 import org.spacehub.service.chatRoom.NewChatRoomService;
 import org.springframework.lang.NonNull;

@@ -1,7 +1,7 @@
 package org.spacehub.utils;
 
 import org.springframework.stereotype.Component;
-import org.spacehub.service.S3Service;
+import org.spacehub.service.File.S3Service;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;

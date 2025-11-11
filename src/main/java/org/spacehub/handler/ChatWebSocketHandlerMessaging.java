@@ -6,14 +6,14 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.spacehub.entities.DirectMessaging.Message;
 import org.spacehub.entities.User.User;
-import org.spacehub.repository.UserRepository;
-import org.spacehub.service.MessageQueueService;
+import org.spacehub.repository.User.UserRepository;
+import org.spacehub.service.Message.MessageQueueService;
 import org.spacehub.service.Interface.IMessageService;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
-import org.spacehub.service.S3Service;
+import org.spacehub.service.File.S3Service;
 
 import java.io.IOException;
 import java.net.URLDecoder;

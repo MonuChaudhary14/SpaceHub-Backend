@@ -1,9 +1,9 @@
 package org.spacehub.service.community.CommunityInterfaces;
 
-import org.spacehub.DTO.AcceptRequest;
-import org.spacehub.DTO.CancelJoinRequest;
+import org.spacehub.DTO.Community.AcceptRequest;
+import org.spacehub.DTO.Community.CancelJoinRequest;
 import org.spacehub.DTO.Community.*;
-import org.spacehub.DTO.RejectRequest;
+import org.spacehub.DTO.Community.RejectRequest;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.Community.Community;
 import org.springframework.http.ResponseEntity;

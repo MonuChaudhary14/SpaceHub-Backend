@@ -12,11 +12,11 @@ import org.spacehub.entities.Community.CommunityUser;
 import org.spacehub.entities.Community.Role;
 import org.spacehub.entities.Notification.NotificationType;
 import org.spacehub.entities.User.User;
-import org.spacehub.repository.UserRepository;
+import org.spacehub.repository.User.UserRepository;
 import org.spacehub.repository.community.CommunityInviteRepository;
 import org.spacehub.repository.community.CommunityRepository;
 import org.spacehub.repository.community.CommunityUserRepository;
-import org.spacehub.service.NotificationService;
+import org.spacehub.service.Notification.NotificationService;
 import org.spacehub.service.community.CommunityInterfaces.ICommunityInviteService;
 import org.springframework.stereotype.Service;
 

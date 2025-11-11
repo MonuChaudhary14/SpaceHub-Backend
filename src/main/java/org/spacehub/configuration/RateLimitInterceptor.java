@@ -3,7 +3,7 @@ package org.spacehub.configuration;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.spacehub.service.RateLimitService;
+import org.spacehub.service.RateLimit.RateLimitService;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;

@@ -7,8 +7,6 @@ import org.spacehub.entities.Community.Role;
 import org.spacehub.repository.ChatRoom.ChatPollRepository;
 import org.spacehub.repository.ChatRoom.ChatVoteRepository;
 import org.spacehub.service.chatRoom.chatroomInterfaces.IChatPollService;
-import org.spacehub.service.ChatRoomService;
-import org.spacehub.service.ChatRoomUserService;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;

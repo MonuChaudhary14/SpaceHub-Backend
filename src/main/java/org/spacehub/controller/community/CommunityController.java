@@ -1,7 +1,7 @@
 package org.spacehub.controller.community;
 
-import org.spacehub.DTO.AcceptRequest;
-import org.spacehub.DTO.CancelJoinRequest;
+import org.spacehub.DTO.Community.AcceptRequest;
+import org.spacehub.DTO.Community.CancelJoinRequest;
 import org.spacehub.DTO.Community.CommunityBlockRequest;
 import org.spacehub.DTO.Community.CommunityChangeRoleRequest;
 import org.spacehub.DTO.Community.CommunityMemberListRequest;
@@ -12,7 +12,7 @@ import org.spacehub.DTO.Community.JoinCommunity;
 import org.spacehub.DTO.Community.LeaveCommunity;
 import org.spacehub.DTO.Community.RenameRoomRequest;
 import org.spacehub.DTO.Community.UpdateCommunityDTO;
-import org.spacehub.DTO.RejectRequest;
+import org.spacehub.DTO.Community.RejectRequest;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.service.community.CommunityInterfaces.ICommunityService;
 import org.springframework.http.ResponseEntity;

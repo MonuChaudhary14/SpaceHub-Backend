@@ -4,8 +4,7 @@ import org.spacehub.entities.ChatRoom.ChatMessage;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.ChatRoom.NewChatRoom;
 import org.spacehub.handler.ChatWebSocketHandler;
-import org.spacehub.service.Interface.IS3Service;
-import org.spacehub.service.S3Service;
+import org.spacehub.service.File.S3Service;
 import org.spacehub.service.chatRoom.chatroomInterfaces.IChatMessageQueue;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
@@ -13,7 +12,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 

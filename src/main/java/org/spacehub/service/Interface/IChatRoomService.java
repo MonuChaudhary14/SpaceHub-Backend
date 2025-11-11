@@ -1,6 +1,6 @@
 package org.spacehub.service.Interface;
 
-import org.spacehub.DTO.CreateRoomRequest;
+import org.spacehub.DTO.chatroom.CreateRoomRequest;
 import org.spacehub.DTO.chatroom.LeaveRoomRequest;
 import org.spacehub.DTO.chatroom.RoleChangeAction;
 import org.spacehub.DTO.chatroom.RoomMemberAction;
