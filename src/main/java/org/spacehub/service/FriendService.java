@@ -131,39 +131,36 @@ public class FriendService implements IFriendService {
   }
 
   public List<UserOutput> getFriends(String userEmail) {
-    User user = userRepository.findByEmail(userEmail)
-      .orElseThrow(() -> new RuntimeException("User not found"));
+    User user = userRepository.findByEmail(userEmail).orElseThrow(() -> new RuntimeException("User not found"));
 
     List<Friends> sent = friendsRepository.findByUserAndStatus(user, "accepted");
     List<Friends> received = friendsRepository.findByFriendAndStatus(user, "accepted");
 
     List<UserOutput> friendsList = sent.stream()
-      .map(friend -> {
-        User f = friend.getFriend();
-        String preview = buildPresignedUrlSafely(f.getAvatarUrl());
-        return new UserOutput(
-          f.getId(),
-          f.getFirstName(),
-          f.getLastName(),
-          f.getEmail(),
-          preview
-        );
-      })
-      .collect(Collectors.toList());
+            .map(friend -> {
+              User f = friend.getFriend();
+              String preview = buildPresignedUrlSafely(f.getAvatarUrl());
+              return new UserOutput(
+                      f.getId(),
+                      f.getUsername(),
+                      f.getEmail(),
+                      preview
+              );
+            })
+            .collect(Collectors.toList());
 
     friendsList.addAll(received.stream()
-      .map(friend -> {
-        User f = friend.getUser();
-        String preview = buildPresignedUrlSafely(f.getAvatarUrl());
-        return new UserOutput(
-          f.getId(),
-          f.getFirstName(),
-          f.getLastName(),
-          f.getEmail(),
-          preview
-        );
-      })
-      .toList());
+            .map(friend -> {
+              User f = friend.getUser();
+              String preview = buildPresignedUrlSafely(f.getAvatarUrl());
+              return new UserOutput(
+                      f.getId(),
+                      f.getUsername(),
+                      f.getEmail(),
+                      preview
+              );
+            })
+            .toList());
 
     return friendsList;
   }
@@ -200,8 +197,7 @@ public class FriendService implements IFriendService {
     return pendingRequests.stream()
             .map(f -> new UserOutput(
                     f.getUser().getId(),
-                    f.getUser().getFirstName(),
-                    f.getUser().getLastName(),
+                    f.getUser().getUsername(),
                     f.getUser().getEmail(),
                     f.getUser().getAvatarUrl()
             ))
@@ -217,8 +213,7 @@ public class FriendService implements IFriendService {
     return sentRequests.stream()
             .map(f -> new UserOutput(
                     f.getFriend().getId(),
-                    f.getFriend().getFirstName(),
-                    f.getFriend().getLastName(),
+                    f.getFriend().getUsername(),
                     f.getFriend().getEmail(),
                     f.getUser().getAvatarUrl()
             ))
