@@ -15,9 +15,12 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
 
 @Service
 @Transactional
@@ -209,103 +212,155 @@ public class DashBoardService implements IDashBoardService {
     MultipartFile image
   ) {
     if (email == null || email.isBlank()) {
-      return new ApiResponse<>(400, "Email (identifier) is required", null);
+      return ApiResponse.error(400, "Email (identifier) is required");
     }
 
     try {
       User user = userRepository.findByEmail(email.trim().toLowerCase())
         .orElseThrow(() -> new RuntimeException("User not found"));
 
-      String normalizedNewEmail = null;
-      if (newEmail != null && !newEmail.isBlank()) {
-        normalizedNewEmail = newEmail.trim().toLowerCase();
-        if (!emailValidator.isEmail(normalizedNewEmail)) {
-          return new ApiResponse<>(400, "Invalid new email format", null);
-        }
-        if (!normalizedNewEmail.equalsIgnoreCase(user.getEmail()) &&
-          userRepository.existsByEmail(normalizedNewEmail)) {
-          return new ApiResponse<>(409, "New email already in use", null);
-        }
-      }
-
-      boolean wantsPasswordChange = (oldPassword != null && !oldPassword.isBlank())
-        || (newPassword != null && !newPassword.isBlank());
-
-      if (wantsPasswordChange) {
-        if (oldPassword == null || oldPassword.isBlank() || newPassword == null || newPassword.isBlank()) {
-          return new ApiResponse<>(400,
-            "Both oldPassword and newPassword are required to change password", null);
-        }
-        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
-          return new ApiResponse<>(401, "Old password is incorrect", null);
-        }
-      }
-
-      if (newUsername != null && !newUsername.isBlank()) {
-        if (!newUsername.matches("^[a-zA-Z0-9_.-]{3,20}$")) {
-          return new ApiResponse<>(400,
-            "Username must be 3–20 characters and may include letters, numbers, '.', '-', '_'", null);
-        }
-        if (isUsernameTakenByAnotherUser(newUsername, user)) {
-          return new ApiResponse<>(409,
-            "Username already taken. Please choose another.", null);
-        }
-      }
-
       Map<String, Object> result = new HashMap<>();
 
-      String previewUrl = null;
-      if (image != null && !image.isEmpty()) {
-        ImageValidator.validate(image);
-        String key = buildS3Key(user.getEmail(), image);
-        boolean uploaded = uploadToS3(key, image);
-        if (!uploaded) {
-          return new ApiResponse<>(500, "Failed to upload profile image", null);
+      List<Function<Void, ApiResponse<Map<String, Object>>>> steps = List.of(
+        unused -> processEmailUpdate(user, newEmail, result),
+        unused -> processPasswordUpdate(user, oldPassword, newPassword, result),
+        unused -> processUsernameUpdate(user, newUsername, result),
+        unused -> processImageUpload(user, image, result)
+      );
+
+      for (Function<Void, ApiResponse<Map<String, Object>>> step : steps) {
+        ApiResponse<Map<String, Object>> error = step.apply(null);
+        if (error != null) {
+          return error;
         }
-        user.setAvatarUrl(key);
-
-        try {
-          previewUrl = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(2));
-        } catch (Exception ignored) { }
-        result.put("profileImage", previewUrl);
-      }
-
-      if (normalizedNewEmail != null && !normalizedNewEmail.isBlank() &&
-        !normalizedNewEmail.equalsIgnoreCase(user.getEmail())) {
-        user.setEmail(normalizedNewEmail);
-        result.put("email", normalizedNewEmail);
-      }
-
-      if (newUsername != null && !newUsername.isBlank() &&
-        (user.getUsername() == null || !user.getUsername().equals(newUsername))) {
-        user.setUsername(newUsername);
-        result.put("username", newUsername);
-      }
-
-      if (wantsPasswordChange) {
-        user.setPassword(passwordEncoder.encode(newPassword));
-        int pv = user.getPasswordVersion() != null ? user.getPasswordVersion() : 0;
-        user.setPasswordVersion(pv + 1);
-        result.put("passwordChanged", true);
       }
 
       userRepository.save(user);
+      addPresignedPreviewIfMissing(user, result);
 
-      if (result.containsKey("profileImage") && previewUrl == null) {
-        try {
-          previewUrl = s3Service.generatePresignedDownloadUrl(user.getAvatarUrl(), Duration.ofHours(2));
-          result.put("profileImage", previewUrl);
-        } catch (Exception ignored) {}
-      }
-
-      return new ApiResponse<>(200, "Profile updated successfully", result);
+      return ApiResponse.success(200, "Profile updated successfully", result);
 
     } catch (RuntimeException e) {
-      return new ApiResponse<>(400, e.getMessage(), null);
+      return ApiResponse.error(400, e.getMessage());
     } catch (Exception e) {
-      return new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null);
+      return ApiResponse.error(500, "Unexpected error: " + e.getMessage());
     }
   }
 
+  private void addPresignedPreviewIfMissing(User user, Map<String, Object> result) {
+    if (!result.containsKey("profileImage") || result.get("profileImage") != null) {
+      return;
+    }
+
+    try {
+      String previewUrl = s3Service.generatePresignedDownloadUrl(
+        user.getAvatarUrl(),
+        Duration.ofHours(2)
+      );
+      result.put("profileImage", previewUrl);
+    } catch (Exception ignored) {}
+  }
+
+  private ApiResponse<Map<String, Object>> processEmailUpdate(User user, String newEmail,
+                                                              Map<String, Object> result) {
+    if (newEmail == null || newEmail.isBlank()) {
+      return null;
+    }
+
+    String normalizedNewEmail = newEmail.trim().toLowerCase();
+
+    if (normalizedNewEmail.equalsIgnoreCase(user.getEmail())) {
+      return null;
+    }
+
+    if (!emailValidator.isEmail(normalizedNewEmail)) {
+      return new ApiResponse<>(400, "Invalid new email format", null);
+    }
+
+    if (userRepository.existsByEmail(normalizedNewEmail)) {
+      return new ApiResponse<>(409, "New email already in use", null);
+    }
+
+    user.setEmail(normalizedNewEmail);
+    result.put("email", normalizedNewEmail);
+    return null;
+  }
+
+  private ApiResponse<Map<String, Object>> processPasswordUpdate(User user, String oldPassword, String newPassword,
+                                                                 Map<String, Object> result) {
+    boolean wantsPasswordChange = (oldPassword != null && !oldPassword.isBlank())
+      || (newPassword != null && !newPassword.isBlank());
+
+    if (!wantsPasswordChange) {
+      return null;
+    }
+
+    if (oldPassword == null || oldPassword.isBlank() || newPassword == null || newPassword.isBlank()) {
+      return new ApiResponse<>(400,
+        "Both oldPassword and newPassword are required to change password", null);
+    }
+
+    if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+      return new ApiResponse<>(401, "Old password is incorrect", null);
+    }
+
+    user.setPassword(passwordEncoder.encode(newPassword));
+    int pv = Objects.requireNonNullElse(user.getPasswordVersion(), 0);
+    user.setPasswordVersion(pv + 1);
+    result.put("passwordChanged", true);
+    return null;
+  }
+
+  private ApiResponse<Map<String, Object>> processUsernameUpdate(User user, String newUsername, Map<String, Object> result) {
+    if (newUsername == null || newUsername.isBlank()) {
+      return null;
+    }
+
+    if (user.getUsername() != null && user.getUsername().equals(newUsername)) {
+      return null;
+    }
+
+    if (!newUsername.matches("^[a-zA-Z0-9_.-]{3,20}$")) {
+      return new ApiResponse<>(400,
+        "Username must be 3–20 characters and may include letters, numbers, '.', '-', '_'", null);
+    }
+
+    if (isUsernameTakenByAnotherUser(newUsername, user)) {
+      return new ApiResponse<>(409, "Username already taken. Please choose another.", null);
+    }
+
+    user.setUsername(newUsername);
+    result.put("username", newUsername);
+    return null;
+  }
+
+  private ApiResponse<Map<String, Object>> processImageUpload(User user, MultipartFile image,
+                                                              Map<String, Object> result) {
+    if (image == null || image.isEmpty()) {
+      return null;
+    }
+
+    try {
+      ImageValidator.validate(image);
+    } catch (RuntimeException e) {
+      return new ApiResponse<>(400, e.getMessage(), null);
+    }
+
+    String key = buildS3Key(user.getEmail(), image);
+    boolean uploaded = uploadToS3(key, image);
+
+    if (!uploaded) {
+      return new ApiResponse<>(500, "Failed to upload profile image", null);
+    }
+
+    user.setAvatarUrl(key);
+    String previewUrl = null;
+    try {
+      previewUrl = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(2));
+    } catch (Exception ignored) {}
+
+    result.put("profileImage", previewUrl);
+    return null;
+  }
 
 }
