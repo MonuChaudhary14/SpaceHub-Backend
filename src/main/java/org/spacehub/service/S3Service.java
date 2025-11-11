@@ -3,6 +3,7 @@ package org.spacehub.service;
 import org.spacehub.service.Interface.IS3Service;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.core.sync.ResponseTransformer;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -95,4 +96,22 @@ public class S3Service implements IS3Service {
     }
   }
 
+  public String uploadFileChat(MultipartFile file, String folderPath) {
+    try {
+      String key = folderPath + UUID.randomUUID() + "_" + file.getOriginalFilename();
+
+      PutObjectRequest request = PutObjectRequest.builder()
+              .bucket(bucketName)
+              .key(key)
+              .contentType(file.getContentType())
+              .build();
+
+      s3Client.putObject(request, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+
+      return String.format("https://%s.s3.amazonaws.com/%s", bucketName, key);
+
+    } catch (Exception e) {
+      throw new RuntimeException("File upload failed: " + e.getMessage(), e);
+    }
+  }
 }

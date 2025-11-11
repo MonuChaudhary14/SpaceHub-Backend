@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class ChatMessageService implements IChatMessageService {
@@ -20,8 +21,8 @@ public class ChatMessageService implements IChatMessageService {
   }
 
   @Transactional
-  public void saveAll(List<ChatMessage> messages) {
-    chatMessageRepository.saveAll(messages);
+  public List<ChatMessage> saveAll(List<ChatMessage> messages) {
+    return chatMessageRepository.saveAll(messages);
   }
 
   @Transactional(readOnly = true)
@@ -32,6 +33,20 @@ public class ChatMessageService implements IChatMessageService {
   @Transactional(readOnly = true)
   public List<ChatMessage> getMessagesForNewChatRoom(NewChatRoom newChatRoom) {
     return chatMessageRepository.findByNewChatRoomOrderByTimestampAsc(newChatRoom);
+  }
+
+  @Transactional(readOnly = true)
+  public Optional<ChatMessage> findById(Long id) {
+    return chatMessageRepository.findById(id);
+  }
+
+  @Transactional
+  public boolean deleteMessageById(Long messageId) {
+    if (chatMessageRepository.existsById(messageId)) {
+      chatMessageRepository.deleteById(messageId);
+      return true;
+    }
+    return false;
   }
 
 }
