@@ -20,8 +20,8 @@ public class MessageService implements IMessageService {
   }
 
   @Override
-  public void saveMessage(Message message) {
-    repo.save(message);
+  public Message saveMessage(Message message) {
+    return repo.save(message);
   }
 
   @Override
@@ -48,34 +48,36 @@ public class MessageService implements IMessageService {
   @Override
   @Transactional
   public Message deleteMessageForUser(Long messageId, String requesterEmail) {
-    Optional<Message> opt = repo.findById(messageId);
-    if (opt.isEmpty()) return null;
+    Optional<Message> optionalMessage = repo.findById(messageId);
+    if (optionalMessage.isEmpty()) return null;
 
-    Message msg = opt.get();
+    Message message = optionalMessage.get();
 
     boolean changed = false;
-    if (requesterEmail.equals(msg.getSenderEmail())) {
-      if (msg.getSenderDeleted() == null || !msg.getSenderDeleted()) {
-        msg.setSenderDeleted(true);
+    if (requesterEmail.equals(message.getSenderEmail())) {
+      if (message.getSenderDeleted() == null || !message.getSenderDeleted()) {
+        message.setSenderDeleted(true);
         changed = true;
       }
-    } else if (requesterEmail.equals(msg.getReceiverEmail())) {
-      if (msg.getReceiverDeleted() == null || !msg.getReceiverDeleted()) {
-        msg.setReceiverDeleted(true);
+    }
+    else if (requesterEmail.equals(message.getReceiverEmail())) {
+      if (message.getReceiverDeleted() == null || !message.getReceiverDeleted()) {
+        message.setReceiverDeleted(true);
         changed = true;
       }
-    } else {
+    }
+    else {
       throw new SecurityException("Not allowed to delete this message");
     }
 
     if (changed) {
-      if (Boolean.TRUE.equals(msg.getSenderDeleted()) && Boolean.TRUE.equals(msg.getReceiverDeleted())) {
-        msg.setDeletedAt(LocalDateTime.now());
+      if (Boolean.TRUE.equals(message.getSenderDeleted()) && Boolean.TRUE.equals(message.getReceiverDeleted())) {
+        message.setDeletedAt(LocalDateTime.now());
       }
-      msg = repo.save(msg);
+      message = repo.save(message);
     }
 
-    return msg;
+    return message;
   }
 
   @Override

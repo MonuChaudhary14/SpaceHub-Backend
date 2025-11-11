@@ -3,11 +3,16 @@ package org.spacehub.controller;
 import org.spacehub.DTO.PresignedRequestDTO;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.service.Interface.IS3Service;
+import org.spacehub.service.S3Service;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
@@ -17,9 +22,11 @@ import java.util.Objects;
 public class FilesController {
 
   private final IS3Service s3Service;
+  private final S3Service s3ServiceImpl;
 
-  public FilesController(IS3Service s3Service) {
+  public FilesController(IS3Service s3Service, S3Service s3ServiceImpl) {
     this.s3Service = s3Service;
+    this.s3ServiceImpl = s3ServiceImpl;
   }
 
   @PostMapping("/upload")
@@ -60,8 +67,7 @@ public class FilesController {
     Duration duration = Duration.ofMinutes(10);
     String url = s3Service.generatePresignedDownloadUrl(key, duration);
 
-    return ResponseEntity.ok(
-            new ApiResponse<>(200, "Presigned download URL generated successfully", url)
+    return ResponseEntity.ok(new ApiResponse<>(200, "Presigned download URL generated successfully", url)
     );
   }
 
@@ -87,6 +93,28 @@ public class FilesController {
             "contentType", Objects.requireNonNull(file.getContentType()));
 
     return ResponseEntity.ok(new ApiResponse<>(200, "File uploaded successfully", response));
+  }
+
+  @GetMapping("/proxy")
+  public ResponseEntity<?> proxyDownload(@RequestParam("key") String key) {
+    try {
+      InputStream is = s3ServiceImpl.getFileStream(key);
+      InputStreamResource resource = new InputStreamResource(is);
+
+      String contentType = s3ServiceImpl.getContentType(key);
+      MediaType mediaType = (contentType != null) ? MediaType.parseMediaType(contentType) : MediaType.APPLICATION_OCTET_STREAM;
+
+      String disposition = "attachment; filename=\"" + key.substring(Math.max(key.lastIndexOf('/') + 1, 0)) + "\"";
+
+      return ResponseEntity.ok()
+              .header(HttpHeaders.CONTENT_DISPOSITION, disposition)
+              .contentType(mediaType)
+              .body(resource);
+
+    }
+    catch (Exception e) {
+      return ResponseEntity.status(404).body(new ApiResponse<>(404, "File not found or error streaming file", key));
+    }
   }
 
 }

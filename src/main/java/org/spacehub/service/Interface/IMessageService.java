@@ -5,7 +5,7 @@ import java.util.List;
 
 public interface IMessageService {
 
-  void saveMessage(Message message);
+  Message saveMessage(Message message);
 
   void saveMessageBatch(List<Message> messages);
 

@@ -4,9 +4,9 @@ import org.spacehub.service.Interface.IS3Service;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.core.sync.ResponseTransformer;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.*;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
@@ -70,6 +70,29 @@ public class S3Service implements IS3Service {
   public String generateFileKey(String originalFilename) {
     String uniqueId = UUID.randomUUID().toString();
     return "chat-uploads/" + uniqueId + "_" + originalFilename;
+  }
+
+  public InputStream getFileStream(String key) {
+    GetObjectRequest getReq = GetObjectRequest.builder()
+            .bucket(bucketName)
+            .key(key)
+            .build();
+
+    return s3Client.getObject(getReq, ResponseTransformer.toInputStream());
+  }
+
+  public String getContentType(String key) {
+    try {
+      HeadObjectRequest headReq = HeadObjectRequest.builder()
+              .bucket(bucketName)
+              .key(key)
+              .build();
+      HeadObjectResponse headResp = s3Client.headObject(headReq);
+      return headResp.contentType();
+    }
+    catch (S3Exception e) {
+      return null;
+    }
   }
 
 }
