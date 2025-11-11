@@ -165,16 +165,17 @@ public class CommunityService implements ICommunityService {
 
   public ResponseEntity<ApiResponse<Void>> deleteCommunityByName(DeleteCommunityDTO deleteCommunity) {
     try {
-
       if (deleteCommunity == null) {
-        return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Request body cannot be null", null));
+        return ResponseEntity.badRequest().body(new ApiResponse<>(400,
+          "Request body cannot be null", null));
       }
-
       if (deleteCommunity.getName() == null || deleteCommunity.getName().trim().isEmpty()) {
-        return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Community name cannot be empty", null));
+        return ResponseEntity.badRequest().body(new ApiResponse<>(400,
+          "Community name cannot be empty", null));
       }
       if (deleteCommunity.getUserEmail() == null || deleteCommunity.getUserEmail().trim().isEmpty()) {
-        return ResponseEntity.badRequest().body(new ApiResponse<>(400, "User email cannot be empty", null));
+        return ResponseEntity.badRequest().body(new ApiResponse<>(400,
+          "User email cannot be empty", null));
       }
 
       Community community = communityRepository.findByNameIgnoreCase(deleteCommunity.getName())
@@ -200,14 +201,11 @@ public class CommunityService implements ICommunityService {
         community.getPendingRequests().clear();
       }
 
-      if (!isUserMemberOfCommunity(user, community)) {
-          return ResponseEntity.status(403).body(new ApiResponse<>(403, "You are no longer a member of this community", null));
-      }
-
       communityRepository.save(community);
       communityRepository.delete(community);
 
-      return ResponseEntity.ok(new ApiResponse<>(200, "Community deleted successfully", null));
+      return ResponseEntity.ok(new ApiResponse<>(200, "Community deleted successfully",
+        null));
 
     } catch (IllegalArgumentException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));

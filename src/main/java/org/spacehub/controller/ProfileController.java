@@ -58,7 +58,8 @@ public class ProfileController {
   }
 
   @PostMapping("/avatar")
-  public ResponseEntity<?> uploadAvatar(@RequestParam("email") String email, @RequestParam("file") MultipartFile file) {
+  public ResponseEntity<?> uploadAvatar(@RequestParam("email") String email,
+                                        @RequestParam("file") MultipartFile file) {
     try {
       UserProfileResponse updated = profileService.uploadAvatarByEmail(email, file);
       return ResponseEntity.ok(Map.of(
@@ -71,12 +72,14 @@ public class ProfileController {
       return ResponseEntity.badRequest().body(Map.of("status", 400, "message", e.getMessage()));
     }
     catch (Exception e) {
-      return ResponseEntity.internalServerError().body(Map.of("status", 500, "message", "Error uploading avatar"));
+      return ResponseEntity.internalServerError().body(Map.of("status", 500, "message",
+        "Error uploading avatar"));
     }
   }
 
   @PostMapping("/cover")
-  public ResponseEntity<?> uploadCover(@RequestParam("email") String email, @RequestParam("file") MultipartFile file) {
+  public ResponseEntity<?> uploadCover(@RequestParam("email") String email,
+                                       @RequestParam("file") MultipartFile file) {
     try {
       UserProfileResponse updated = profileService.uploadCoverPhotoByEmail(email, file);
       return ResponseEntity.ok(Map.of(
@@ -88,7 +91,8 @@ public class ProfileController {
       return ResponseEntity.badRequest().body(Map.of("status", 400, "message", e.getMessage()));
     }
     catch (Exception e) {
-      return ResponseEntity.internalServerError().body(Map.of("status", 500, "message", "Error uploading cover photo"));
+      return ResponseEntity.internalServerError().body(Map.of("status", 500, "message",
+        "Error uploading cover photo"));
     }
   }
 
