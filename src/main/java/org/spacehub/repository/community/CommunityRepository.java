@@ -34,5 +34,4 @@ public interface CommunityRepository extends JpaRepository<Community, UUID> {
   @Query("SELECT c FROM Community c JOIN c.pendingRequests p WHERE p = :user")
   List<Community> findAllWithPendingUser(@Param("user") User user);
 
-  Optional<Community> findByNameIgnoreCase(String name);
 }
