@@ -54,18 +54,20 @@ public class LocalGroupService implements ILocalGroupService {
     String name, String description, String creatorEmail, MultipartFile imageFile) {
 
     if (name == null || name.isBlank() || creatorEmail == null || creatorEmail.isBlank()) {
-      return ResponseEntity.badRequest().body(new ApiResponse<>(400,
-        "name and creatorEmail are required", null));
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "name and creatorEmail are required", null));
     }
 
     if (imageFile == null || imageFile.isEmpty()) {
-      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Group image is required",
-        null));
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Group image is required",null));
     }
 
     try {
-      User creator = userRepository.findByEmail(creatorEmail)
-        .orElseThrow(() -> new ResourceNotFoundException("Creator not found"));
+      User creator = userRepository.findByEmail(creatorEmail).orElseThrow(() -> new ResourceNotFoundException("Creator not found"));
+
+      Optional<LocalGroup> existingGroup = localGroupRepository.findByNameIgnoreCaseAndCreatedBy(name.trim(), creator);
+      if (existingGroup.isPresent()) {
+        return ResponseEntity.badRequest().body(new ApiResponse<>(400, "You already have a local group with this name", null));
+      }
 
       ImageValidator.validate(imageFile);
 
