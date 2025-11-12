@@ -40,10 +40,16 @@ public class ChatMessageService implements IChatMessageService {
     return chatMessageRepository.findById(id);
   }
 
+  @Transactional(readOnly = true)
+  public Optional<ChatMessage> findByUuid(String messageUuid) {
+    return chatMessageRepository.findByMessageUuid(messageUuid);
+  }
+
   @Transactional
-  public boolean deleteMessageById(Long messageId) {
-    if (chatMessageRepository.existsById(messageId)) {
-      chatMessageRepository.deleteById(messageId);
+  public boolean deleteMessageByUuid(String messageUuid) {
+    Optional<ChatMessage> message = chatMessageRepository.findByMessageUuid(messageUuid);
+    if (message.isPresent()) {
+      chatMessageRepository.deleteByMessageUuid(messageUuid);
       return true;
     }
     return false;

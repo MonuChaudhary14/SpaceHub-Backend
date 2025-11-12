@@ -3,6 +3,8 @@ package org.spacehub.entities.ChatRoom;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.UUID;
+
 @Entity
 @Data
 @NoArgsConstructor
@@ -14,6 +16,9 @@ public class ChatMessage {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
+
+  @Column(nullable = false, unique = true, updatable = false, length = 36)
+  private String messageUuid;
 
   @Column(nullable = false, length = 320)
   private String senderEmail;
@@ -47,4 +52,12 @@ public class ChatMessage {
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "room_id")
   private ChatRoom room;
+
+  @PrePersist
+  public void prePersist() {
+    if (this.messageUuid == null) {
+      this.messageUuid = UUID.randomUUID().toString();
+    }
+  }
+
 }

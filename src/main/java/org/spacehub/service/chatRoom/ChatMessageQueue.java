@@ -51,12 +51,14 @@ public class ChatMessageQueue implements IChatMessageQueue {
       for (ChatMessage message : saved) {
         try {
           chatWebSocketHandler.broadcastMessageToRoom(message);
-        }
-        catch (Exception ignored) {
-
-        }
+        } catch (Exception ignored) {}
       }
     }
+  }
+
+  public synchronized boolean deleteMessageByUuid(String messageUuid) {
+    queue.removeIf(m -> Objects.equals(m.getMessageUuid(), messageUuid));
+    return chatMessageService.deleteMessageByUuid(messageUuid);
   }
 
   public synchronized boolean deleteMessage(Long messageId) {

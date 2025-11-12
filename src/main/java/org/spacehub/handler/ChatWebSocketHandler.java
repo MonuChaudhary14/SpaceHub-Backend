@@ -117,7 +117,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     Map<String, Object> system = Map.of("type", "SYSTEM", "message", text, "timestamp", Instant.now().toEpochMilli());
     try {
       broadcastToRoom(roomCode, system);
-    } catch (IOException ignored) {
+    }
+    catch (IOException ignored) {
 
     }
   }
@@ -134,9 +135,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     try {
       List<Map<String, Object>> formatted = new ArrayList<>();
-      for (ChatMessage msg : history) {
-        Map<String, Object> payload = buildMessagePayload(msg);
-        formatted.add(payload);
+      for (ChatMessage message : history) {
+        formatted.add(buildMessagePayload(message));
       }
       Map<String, Object> response = Map.of(
               "type", "history",
@@ -171,7 +171,6 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
       String senderEmail = userSessions.get(session);
 
       if (roomCode == null || senderEmail == null) {
-        logger.warn("Missing roomCode or senderEmail for session {}", session.getId());
         sendSystemMessage(session, "Session not associated with a room or email");
         return;
       }
@@ -191,9 +190,10 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     var optionalRoom = newChatRoomService.getEntityByCode(UUID.fromString(roomCode));
     if (optionalRoom.isEmpty()) return;
 
-    String tempId = UUID.randomUUID().toString();
+    String messageUuid = UUID.randomUUID().toString();
 
     ChatMessage message = ChatMessage.builder()
+            .messageUuid(messageUuid)
             .senderEmail(senderEmail)
             .message((String) payload.get("message"))
             .timestamp(Instant.now().toEpochMilli())
@@ -205,7 +205,6 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     chatMessageQueue.enqueue(message);
 
     Map<String, Object> messagePayload = buildMessagePayload(message);
-    messagePayload.put("tempId", tempId);
     messagePayload.put("optimistic", true);
     broadcastToRoom(roomCode, messagePayload);
   }
@@ -214,14 +213,15 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     var optionalRoom = newChatRoomService.getEntityByCode(UUID.fromString(roomCode));
     if (optionalRoom.isEmpty()) return;
 
+    String messageUuid = UUID.randomUUID().toString();
     String fileKey = (String) payload.get("fileKey");
     String fileName = (String) payload.get("fileName");
     String contentType = (String) payload.get("contentType");
 
     String previewUrl = s3Service.generatePresignedDownloadUrl(fileKey, Duration.ofMinutes(15));
-    String tempId = UUID.randomUUID().toString();
 
     ChatMessage message = ChatMessage.builder()
+            .messageUuid(messageUuid)
             .senderEmail(senderEmail)
             .message("[File] " + fileName)
             .fileName(fileName)
@@ -236,45 +236,42 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     chatMessageQueue.enqueue(message);
 
     Map<String, Object> messagePayload = buildMessagePayload(message);
-    messagePayload.put("tempId", tempId);
     messagePayload.put("optimistic", true);
     broadcastToRoom(roomCode, messagePayload);
   }
 
   private void handleDeleteMessage(String roomCode, String senderEmail, Map<String, Object> payload) throws IOException {
-    Object idObj = payload.get("messageId");
-    if (idObj == null) {
-      sendSystemMessage(findSessionFor(roomCode, senderEmail), "Missing messageId for DELETE action");
+    Object uuidObj = payload.get("messageUuid");
+    if (uuidObj == null) {
+      sendSystemMessage(findSessionFor(roomCode, senderEmail), "Missing messageUuid for DELETE action");
       return;
     }
 
-    Long messageId;
-    try {
-      messageId = Long.parseLong(idObj.toString());
-    } catch (Exception e) {
-      sendSystemMessage(findSessionFor(roomCode, senderEmail), "Invalid messageId format");
+    String messageUuid = uuidObj.toString();
+
+    boolean deleted = chatMessageQueue.deleteMessageByUuid(messageUuid);
+    if (!deleted) {
+      sendSystemMessage(findSessionFor(roomCode, senderEmail), "Message not found or already deleted");
       return;
     }
-
-    chatMessageQueue.deleteMessage(messageId);
 
     Map<String, Object> deletePayload = Map.of(
             "type", "DELETE",
-            "messageId", messageId,
+            "messageUuid", messageUuid,
             "deletedBy", senderEmail,
-            "timestamp", Instant.now().toEpochMilli()
-    );
+            "timestamp", Instant.now().toEpochMilli());
     broadcastToRoom(roomCode, deletePayload);
   }
 
   private WebSocketSession findSessionFor(String roomCode, String email) {
-    return sessionRoom.entrySet().stream().filter(e -> roomCode.equals(e.getValue()) && email.equals(userSessions.get(e.getKey())))
+    return sessionRoom.entrySet().stream()
+            .filter(e -> roomCode.equals(e.getValue()) && email.equals(userSessions.get(e.getKey())))
             .map(Map.Entry::getKey).findFirst().orElse(null);
   }
 
   private Map<String, Object> buildMessagePayload(ChatMessage message) {
     Map<String, Object> payload = new LinkedHashMap<>();
-    payload.put("id", message.getId());
+    payload.put("messageUuid", message.getMessageUuid());
     payload.put("type", message.getType());
     payload.put("senderEmail", message.getSenderEmail());
     payload.put("message", message.getMessage());
@@ -308,6 +305,5 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     Map<String, Object> sys = Map.of("type", "system", "system", content, "timestamp", Instant.now().toEpochMilli());
     session.sendMessage(new TextMessage(objectMapper.writeValueAsString(sys)));
   }
-
 
 }
