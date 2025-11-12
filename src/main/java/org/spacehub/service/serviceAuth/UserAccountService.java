@@ -31,6 +31,7 @@ public class UserAccountService implements IUserAccountService {
   private final RedisService redisService;
   private final UserNameService userNameService;
   private static final int TEMP_TOKEN_EXPIRE = 300;
+  private static final long FORGOT_TOKEN_EXPIRE_SECONDS = 2_592_000L;
 
   public UserAccountService(VerificationService verificationService,
                             EmailValidator emailValidator,
@@ -293,7 +294,8 @@ public class UserAccountService implements IUserAccountService {
         "Please wait " + secondsLeft + " seconds before requesting OTP again.", null);
     }
 
-    String tempToken = otpService.sendOTPWithTempToken(user, OtpType.FORGOT_PASSWORD);
+    String tempToken = sendForgotPasswordOtpAndCreateTempToken(normalizedIdentifier, user);
+
     return new ApiResponse<>(200, "OTP sent to your registered email/phone", tempToken);
   }
 
@@ -525,7 +527,7 @@ public class UserAccountService implements IUserAccountService {
     }
 
     try {
-      String newTempToken = otpService.sendOTPWithTempToken(user, OtpType.FORGOT_PASSWORD);
+      String newTempToken = sendForgotPasswordOtpAndCreateTempToken(identifier, user);
       return new ApiResponse<>(200, "OTP resent successfully.", newTempToken);
     } catch (RuntimeException e) {
       return new ApiResponse<>(429, e.getMessage(), null);
@@ -554,4 +556,21 @@ public class UserAccountService implements IUserAccountService {
       return new ApiResponse<>(429, e.getMessage(), null);
     }
   }
+
+  private String sendForgotPasswordOtpAndCreateTempToken(String identifier, User user) {
+    otpService.sendOTP(identifier, OtpType.FORGOT_PASSWORD);
+
+    var tokenResponse = verificationService.generateTokens(user);
+    long tokenExpire = FORGOT_TOKEN_EXPIRE_SECONDS;
+
+    String tempTokenKey = "TEMP_TOKEN_" + OtpType.FORGOT_PASSWORD + "_" + identifier;
+    redisService.deleteValue(tempTokenKey);
+    redisService.saveValue(tempTokenKey, tokenResponse.getAccessToken(), tokenExpire);
+
+    String tokenToIdentifierKey = OtpType.FORGOT_PASSWORD.name() + "_" + tokenResponse.getAccessToken();
+    redisService.saveValue(tokenToIdentifierKey, identifier, tokenExpire);
+
+    return tokenResponse.getAccessToken();
+  }
+
 }

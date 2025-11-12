@@ -1,5 +1,6 @@
 package org.spacehub.controller.community;
 
+import jakarta.validation.Valid;
 import org.spacehub.DTO.Community.AcceptRequest;
 import org.spacehub.DTO.Community.CancelJoinRequest;
 import org.spacehub.DTO.Community.CommunityBlockRequest;
@@ -95,7 +96,7 @@ public class CommunityController {
   }
 
   @PostMapping("/blockMember")
-  public ResponseEntity<?> blockOrUnblockMember(@RequestBody CommunityBlockRequest request) {
+  public ResponseEntity<?> blockOrUnblockMember(@RequestBody @Valid CommunityBlockRequest request) {
     return communityService.blockOrUnblockMember(request);
   }
 
@@ -142,10 +143,10 @@ public class CommunityController {
 
 
   @GetMapping("/search")
-  public ResponseEntity<?> searchCommunities(@RequestParam("q") String q,
-                                             @RequestParam(value = "requesterEmail", required = false) String requesterEmail,
-                                             @RequestParam(value = "page", defaultValue = "0") int page,
-                                             @RequestParam(value = "size", defaultValue = "20") int size) {
+  public ResponseEntity<?> searchCommunities(
+    @RequestParam("q") String q, @RequestParam(value = "requesterEmail", required = false) String requesterEmail,
+    @RequestParam(value = "page", defaultValue = "0") int page,
+    @RequestParam(value = "size", defaultValue = "20") int size) {
     return communityService.searchCommunities(q, requesterEmail, page, size);
   }
 
@@ -195,7 +196,7 @@ public class CommunityController {
   public ResponseEntity<?> discoverCommunities(@RequestParam(value = "page", defaultValue = "0") int page,
                                                @RequestParam(value = "size", defaultValue = "20") int size,
                                                String currentUserEmail) {
-    return communityService.discoverCommunities(currentUserEmail,page, size);
+    return communityService.discoverCommunities(currentUserEmail, page, size);
   }
 
   @GetMapping("/my-pending-requests")

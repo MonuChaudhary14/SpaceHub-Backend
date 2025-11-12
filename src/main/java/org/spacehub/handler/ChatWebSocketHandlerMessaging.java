@@ -65,60 +65,101 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
     sessionMetadata.put(session, params);
     sendSystemMessage(session, "Connected as " + senderEmail);
 
-    List<Message> unread = messageService.getUnreadMessages(senderEmail);
-
-    if (!unread.isEmpty()) {
-      List<Map<String, Object>> formatted = new ArrayList<>();
-
-      for (Message message : unread) {
-        Map<String, Object> payload = buildPayload(message);
-        if ("FILE".equalsIgnoreCase(message.getType()) && message.getFileKey() != null) {
-          String previewUrl = s3Service.generatePresignedDownloadUrl(message.getFileKey(), Duration.ofMinutes(10));
-          payload.put("previewUrl", previewUrl);
-        }
-
-        formatted.add(payload);
-        messageService.markAsRead(message.getId());
-      }
-
-      Map<String, Object> unreadPayload = Map.of("type", "unread", "count", formatted.size(), "messages", formatted);
-      session.sendMessage(new TextMessage(objectMapper.writeValueAsString(unreadPayload)));
-    }
+    processUnreadMessages(session, senderEmail);
 
     if (receiverEmail != null) {
-      List<Message> history = messageService.getChat(senderEmail, receiverEmail);
-      List<Map<String, Object>> formatted = new ArrayList<>();
-      for (Message mess : history) {
+      processHistoryForReceiver(session, senderEmail, receiverEmail);
+    }
 
-        boolean isSender = senderEmail.equalsIgnoreCase(mess.getSenderEmail());
+    sendChatSummary(session, senderEmail);
+  }
 
-        if ((isSender && Boolean.TRUE.equals(mess.getSenderDeleted())) || (!isSender && Boolean.TRUE.equals(mess.getReceiverDeleted()))) continue;
+  private void processUnreadMessages(WebSocketSession session, String senderEmail) throws Exception {
+    List<Message> unread = messageService.getUnreadMessages(senderEmail);
+    if (unread == null || unread.isEmpty()) return;
 
-        Map<String, Object> payload = buildPayload(mess);
-        if ("FILE".equalsIgnoreCase(mess.getType()) && mess.getFileKey() != null) {
-          String previewUrl = s3Service.generatePresignedDownloadUrl(mess.getFileKey(), Duration.ofMinutes(10));
-          payload.put("previewUrl", previewUrl);
-        }
-        formatted.add(payload);
+    List<Map<String, Object>> formatted = formatAndMarkReadMessages(unread);
+
+    Map<String, Object> unreadPayload = Map.of(
+      "type", "unread",
+      "count", formatted.size(),
+      "messages", formatted
+    );
+    session.sendMessage(new TextMessage(objectMapper.writeValueAsString(unreadPayload)));
+  }
+
+  private List<Map<String, Object>> formatAndMarkReadMessages(List<Message> messages) {
+    List<Map<String, Object>> formatted = new ArrayList<>();
+    for (Message message : messages) {
+      Map<String, Object> payload = buildPayload(message);
+      addPreviewIfFile(payload, message.getType(), message.getFileKey());
+      formatted.add(payload);
+      try {
+        messageService.markAsRead(message.getId());
+      } catch (Exception ignored) {}
+    }
+    return formatted;
+  }
+
+  private void processHistoryForReceiver(WebSocketSession session, String senderEmail, String receiverEmail)
+    throws Exception {
+    List<Message> history = messageService.getChat(senderEmail, receiverEmail);
+    if (history == null || history.isEmpty()) {
+      Map<String, Object> payloadEmpty = Map.of("type", "history", "chatWith", receiverEmail,
+        "messages", List.of());
+      session.sendMessage(new TextMessage(objectMapper.writeValueAsString(payloadEmpty)));
+      return;
+    }
+
+    List<Map<String, Object>> formatted = new ArrayList<>();
+    for (Message mess : history) {
+      boolean isSender = senderEmail.equalsIgnoreCase(mess.getSenderEmail());
+      if ((isSender && Boolean.TRUE.equals(mess.getSenderDeleted())) ||
+        (!isSender && Boolean.TRUE.equals(mess.getReceiverDeleted()))) {
+        continue;
       }
 
-      Map<String, Object> payload = Map.of("type", "history", "chatWith", receiverEmail, "messages", formatted);
-      session.sendMessage(new TextMessage(objectMapper.writeValueAsString(payload)));
+      Map<String, Object> payload = buildPayload(mess);
+      addPreviewIfFile(payload, mess.getType(), mess.getFileKey());
+      formatted.add(payload);
     }
 
+    Map<String, Object> payload = Map.of("type", "history", "chatWith", receiverEmail, "messages",
+      formatted);
+    session.sendMessage(new TextMessage(objectMapper.writeValueAsString(payload)));
+  }
+
+  private void sendChatSummary(WebSocketSession session, String senderEmail) throws Exception {
     List<String> partners = messageService.getAllChatPartners(senderEmail);
-    List<Map<String, Object>> summary = new ArrayList<>();
-    for (String partner : partners) {
-      long unreadCount = messageService.countUnreadMessagesInChat(senderEmail, partner);
-      summary.add(Map.of("chatPartner", partner, "unreadCount", unreadCount));
+    if (partners == null || partners.isEmpty()) {
+      Map<String, Object> empty = Map.of("type", "chatSummary", "rooms", List.of());
+      session.sendMessage(new TextMessage(objectMapper.writeValueAsString(empty)));
+      return;
     }
-    Map<String, Object> summaryPayload = Map.of("type", "chatSummary", "rooms", summary);
 
+    List<Map<String, Object>> summary = partners.stream()
+      .map(partner -> Map.<String, Object>of(
+        "chatPartner", partner,
+        "unreadCount", messageService.countUnreadMessagesInChat(senderEmail, partner)
+      ))
+      .toList();
+
+    Map<String, Object> summaryPayload = Map.of("type", "chatSummary", "rooms", summary);
     session.sendMessage(new TextMessage(objectMapper.writeValueAsString(summaryPayload)));
   }
 
+  private void addPreviewIfFile(Map<String, Object> payload, String type, String fileKey) {
+    if ("FILE".equalsIgnoreCase(type) && fileKey != null) {
+      try {
+        String previewUrl = s3Service.generatePresignedDownloadUrl(fileKey, Duration.ofMinutes(10));
+        payload.put("previewUrl", previewUrl);
+      } catch (Exception ignored) {}
+    }
+  }
+
   @Override
-  protected void handleTextMessage(@NonNull WebSocketSession session, @NonNull TextMessage textMessage) throws Exception {
+  protected void handleTextMessage(@NonNull WebSocketSession session, @NonNull TextMessage textMessage)
+    throws Exception {
     Map<String, String> meta = sessionMetadata.get(session);
     if (meta == null) {
       sendSystemMessage(session, "Session metadata missing. Reconnect required.");
@@ -134,12 +175,13 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
     switch (type.toUpperCase()) {
       case "FILE" -> handleFileMessage(senderEmail, receiverEmail, clientPayload);
       case "DELETE" -> handleDeleteMessage(senderEmail, receiverEmail, clientPayload);
-      case "READ" -> handleReadMessages(senderEmail, clientPayload);
+      case "READ" -> handleReadMessages(clientPayload);
       default -> handleTextOnlyMessage(senderEmail, receiverEmail, clientPayload);
     }
   }
 
-  private void handleTextOnlyMessage(String senderEmail, String receiverEmail, Map<String, Object> payload) throws IOException {
+  private void handleTextOnlyMessage(String senderEmail, String receiverEmail, Map<String, Object> payload)
+    throws IOException {
     Message mess = Message.builder()
             .senderEmail(senderEmail)
             .receiverEmail(receiverEmail)
@@ -156,7 +198,8 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
     sendToReceiver(senderEmail, sendPayload);
   }
 
-  private void handleFileMessage(String senderEmail, String receiverEmail, Map<String, Object> payload) throws IOException {
+  private void handleFileMessage(String senderEmail, String receiverEmail, Map<String, Object> payload)
+    throws IOException {
     String fileKey = (String) payload.get("fileKey");
     String fileName = (String) payload.get("fileName");
     String contentType = (String) payload.get("contentType");
@@ -184,7 +227,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
     sendToReceiver(receiverEmail, sendPayload);
   }
 
-  private void handleReadMessages(String senderEmail, Map<String, Object> payload) {
+  private void handleReadMessages(Map<String, Object> payload) {
     Object ids = payload.get("messageIds");
     if (ids instanceof List<?> list) {
       for (Object id : list) {
@@ -195,14 +238,15 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
     }
   }
 
-  private void handleDeleteMessage(String senderEmail, String receiverEmail, Map<String, Object> payload) throws IOException {
+  private void handleDeleteMessage(String senderEmail, String receiverEmail, Map<String, Object> payload)
+    throws IOException {
     Object objectID = payload.get("messageId");
     if (objectID == null) {
       sendSystemMessage(activeUsers.get(senderEmail), "Missing messageId for DELETE action");
       return;
     }
 
-    Long messageId;
+    long messageId;
     try {
       messageId = Long.parseLong(objectID.toString());
     }
@@ -219,7 +263,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
 
     Map<String, Object> resp = new LinkedHashMap<>();
     resp.put("type", "DELETE");
-    resp.put("messageId", messageId.toString());
+    resp.put("messageId", Long.toString(messageId));
     resp.put("deletedBy", senderEmail);
     resp.put("timestamp", LocalDateTime.now().toString());
 
@@ -265,7 +309,8 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
   }
 
   private String getUsername(String email) {
-    return usernameCache.computeIfAbsent(email,e -> userRepository.findByEmail(e).map(User::getUsername).orElse(null));
+    return usernameCache.computeIfAbsent(email, e ->
+      userRepository.findByEmail(e).map(User::getUsername).orElse(null));
   }
 
 //  private void sendToBoth(String senderEmail, String receiverEmail, Message message) throws IOException {
@@ -291,7 +336,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
   }
 
   @Override
-  public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception  {
+  public void handleTransportError(@NonNull WebSocketSession session, @NonNull Throwable exception) throws Exception  {
     Map<String, String> meta = sessionMetadata.remove(session);
     if (meta != null) {
       activeUsers.remove(meta.get("senderEmail"));

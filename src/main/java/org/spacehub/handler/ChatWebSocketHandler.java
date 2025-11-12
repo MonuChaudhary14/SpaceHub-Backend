@@ -10,8 +10,6 @@ import org.spacehub.entities.User.User;
 import org.spacehub.repository.User.UserRepository;
 import org.spacehub.service.File.S3Service;
 import org.spacehub.service.chatRoom.ChatMessageQueue;
-import org.spacehub.service.chatRoom.ChatRoomUserService;
-import org.spacehub.service.chatRoom.ChatMessageService;
 import org.spacehub.service.chatRoom.NewChatRoomService;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
@@ -41,22 +39,16 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
   private final NewChatRoomService newChatRoomService;
   private final ChatMessageQueue chatMessageQueue;
-  private final ChatMessageService chatMessageService;
-  private final ChatRoomUserService chatRoomUserService;
   private final S3Service s3Service;
   private final UserRepository userRepository;
   private final ObjectMapper objectMapper;
 
   public ChatWebSocketHandler(NewChatRoomService newChatRoomService,
                               ChatMessageQueue chatMessageQueue,
-                              ChatMessageService chatMessageService,
-                              ChatRoomUserService chatRoomUserService,
                               S3Service s3Service,
                               UserRepository userRepository) {
     this.newChatRoomService = newChatRoomService;
     this.chatMessageQueue = chatMessageQueue;
-    this.chatMessageService = chatMessageService;
-    this.chatRoomUserService = chatRoomUserService;
     this.s3Service = s3Service;
     this.userRepository = userRepository;
     this.objectMapper = new ObjectMapper()
@@ -91,7 +83,9 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     }
     catch (Exception e) {
       logger.error("Error establishing WebSocket connection", e);
-      try { session.close(CloseStatus.SERVER_ERROR.withReason("Internal server error")); } catch (IOException ignored) {}
+      try {
+        session.close(CloseStatus.SERVER_ERROR.withReason("Internal server error"));
+      } catch (IOException ignored) {}
     }
   }
 

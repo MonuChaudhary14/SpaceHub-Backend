@@ -4,7 +4,6 @@ import org.spacehub.entities.ChatRoom.ChatMessage;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.ChatRoom.NewChatRoom;
 import org.spacehub.handler.ChatWebSocketHandler;
-import org.spacehub.service.File.S3Service;
 import org.spacehub.service.chatRoom.chatroomInterfaces.IChatMessageQueue;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
@@ -20,12 +19,10 @@ public class ChatMessageQueue implements IChatMessageQueue {
 
   private final List<ChatMessage> queue = new ArrayList<>();
   private final ChatMessageService chatMessageService;
-  private final S3Service s3Service;
   private ChatWebSocketHandler chatWebSocketHandler;
 
-  public ChatMessageQueue(ChatMessageService chatMessageService, S3Service s3Service) {
+  public ChatMessageQueue(ChatMessageService chatMessageService) {
     this.chatMessageService = chatMessageService;
-    this.s3Service = s3Service;
   }
 
   @Autowired
