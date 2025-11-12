@@ -84,5 +84,4 @@ public class LocalGroupController {
     return localGroupService.updateLocalGroupSettings(id, requesterEmail, imageFile, newName);
   }
 
-
 }
