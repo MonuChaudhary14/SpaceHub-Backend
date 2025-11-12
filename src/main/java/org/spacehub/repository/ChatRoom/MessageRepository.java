@@ -14,8 +14,7 @@ import java.util.Optional;
 public interface MessageRepository extends JpaRepository<Message, Long> {
 
   List<Message> findBySenderEmailAndReceiverEmailOrReceiverEmailAndSenderEmailOrderByTimestampAsc(
-          String sender, String receiver, String receiverAlt, String senderAlt
-  );
+          String sender, String receiver, String receiverAlt, String senderAlt);
 
   List<Message> findBySenderEmailOrReceiverEmailOrderByTimestampDesc(String email1, String email2);
 
@@ -30,9 +29,9 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
          """)
   List<String> findDistinctChatPartners(String email);
 
-  Optional<Message> findById(@NonNull Long id);
+  Optional<Message> findByMessageUuid(String messageUuid);
 
-  void deleteById(@NonNull Long id);
+  void deleteByMessageUuid(String messageUuid);
 
   List<Message> findByReceiverEmailAndReadStatusFalse(String receiverEmail);
 

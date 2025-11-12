@@ -25,8 +25,8 @@ public class MessageService implements IMessageService {
   }
 
   @Override
-  public void saveMessageBatch(List<Message> messages) {
-    repo.saveAll(messages);
+  public List<Message> saveMessageBatch(List<Message> messages) {
+    return repo.saveAll(messages);
   }
 
   @Override
@@ -50,8 +50,17 @@ public class MessageService implements IMessageService {
   public Message deleteMessageForUser(Long messageId, String requesterEmail) {
     Optional<Message> optionalMessage = repo.findById(messageId);
     if (optionalMessage.isEmpty()) return null;
+    return applySoftDelete(optionalMessage.get(), requesterEmail);
+  }
 
-    Message message = optionalMessage.get();
+  @Transactional
+  public Message deleteMessageForUserByUuid(String messageUuid, String requesterEmail) {
+    Optional<Message> optionalMessage = repo.findByMessageUuid(messageUuid);
+    if (optionalMessage.isEmpty()) return null;
+    return applySoftDelete(optionalMessage.get(), requesterEmail);
+  }
+
+  private Message applySoftDelete(Message message, String requesterEmail) {
     boolean changed = false;
 
     if (requesterEmail.equals(message.getSenderEmail())) {
@@ -86,9 +95,18 @@ public class MessageService implements IMessageService {
     repo.deleteById(messageId);
   }
 
+  @Transactional
+  public void deleteMessageHardByUuid(String messageUuid) {
+    repo.deleteByMessageUuid(messageUuid);
+  }
+
   @Override
   public Message getMessageById(Long id) {
     return repo.findById(id).orElse(null);
+  }
+
+  public Message getMessageByUuid(String messageUuid) {
+    return repo.findByMessageUuid(messageUuid).orElse(null);
   }
 
   @Override
@@ -97,13 +115,24 @@ public class MessageService implements IMessageService {
   }
 
   @Override
+  @Transactional
   public Message markAsRead(Long messageId) {
     Optional<Message> optionalMessage = repo.findById(messageId);
-
     if (optionalMessage.isEmpty()) return null;
     Message mess = optionalMessage.get();
+    if (!Boolean.TRUE.equals(mess.getReadStatus())) {
+      mess.setReadStatus(true);
+      repo.save(mess);
+    }
+    return mess;
+  }
 
-    if (!mess.getReadStatus()) {
+  @Transactional
+  public Message markAsReadByUuid(String messageUuid) {
+    Optional<Message> optionalMessage = repo.findByMessageUuid(messageUuid);
+    if (optionalMessage.isEmpty()) return null;
+    Message mess = optionalMessage.get();
+    if (!Boolean.TRUE.equals(mess.getReadStatus())) {
       mess.setReadStatus(true);
       repo.save(mess);
     }
@@ -123,6 +152,16 @@ public class MessageService implements IMessageService {
   @Override
   public long countUnreadMessagesInChat(String userEmail, String chatPartner) {
     return repo.countUnreadMessagesInChat(userEmail, chatPartner);
+  }
+
+  @Transactional
+  public boolean deleteMessageByUuid(String messageUuid) {
+    Optional<Message> message = repo.findByMessageUuid(messageUuid);
+    if (message.isPresent()) {
+      repo.deleteByMessageUuid(messageUuid);
+      return true;
+    }
+    return false;
   }
 
 }

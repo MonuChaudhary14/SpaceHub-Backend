@@ -3,6 +3,7 @@ package org.spacehub.entities.DirectMessaging;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Data
@@ -20,6 +21,9 @@ public class Message {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
+
+  @Column(nullable = false, unique = true, updatable = false, length = 36)
+  private String messageUuid;
 
   @Column(nullable = false, length = 320)
   private String senderEmail;
@@ -56,4 +60,14 @@ public class Message {
   private Boolean receiverDeleted = false;
 
   private LocalDateTime deletedAt;
+
+  @PrePersist
+  public void prePersist() {
+    if (this.messageUuid == null) {
+      this.messageUuid = UUID.randomUUID().toString();
+    }
+    if (this.timestamp == null) {
+      this.timestamp = LocalDateTime.now();
+    }
+  }
 }
