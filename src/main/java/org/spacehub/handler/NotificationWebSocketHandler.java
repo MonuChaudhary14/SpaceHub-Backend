@@ -64,7 +64,6 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler{
           String encoded = param.split("=", 2)[1];
           return URLDecoder.decode(encoded, StandardCharsets.UTF_8);
         } catch (Exception e) {
-          e.printStackTrace();
           return null;
         }
       }

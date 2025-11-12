@@ -296,7 +296,7 @@ public class FriendService implements IFriendService {
               newFriend.getEmail(),
               avatarUrl
       );
-      messagingTemplate.convertAndSendToUser(target.getEmail(),"/queue/friends", dto);
+      messagingTemplate.convertAndSendToUser(target.getEmail(), "/queue/friends", dto);
       System.out.println("Friend request send to "+ target.getEmail());
     }
     catch (Exception e) {

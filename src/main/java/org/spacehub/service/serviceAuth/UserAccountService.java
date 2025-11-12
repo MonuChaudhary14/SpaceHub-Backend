@@ -293,7 +293,21 @@ public class UserAccountService implements IUserAccountService {
         "Please wait " + secondsLeft + " seconds before requesting OTP again.", null);
     }
 
-    String tempToken = otpService.sendOTPWithTempToken(user, OtpType.FORGOT_PASSWORD);
+    otpService.sendOTP(normalizedIdentifier, OtpType.FORGOT_PASSWORD);
+
+    var tokenResponse = verificationService.generateTokens(user);
+
+    long tokenExpire = 2592000;
+
+    String tempTokenKey = "TEMP_TOKEN_" + OtpType.FORGOT_PASSWORD + "_" + normalizedIdentifier;
+    redisService.deleteValue(tempTokenKey);
+    redisService.saveValue(tempTokenKey, tokenResponse.getAccessToken(), tokenExpire);
+
+    String tokenToIdentifierKey = OtpType.FORGOT_PASSWORD.name() + "_" + tokenResponse.getAccessToken();
+    redisService.saveValue(tokenToIdentifierKey, normalizedIdentifier, tokenExpire);
+
+    String tempToken = tokenResponse.getAccessToken();
+
     return new ApiResponse<>(200, "OTP sent to your registered email/phone", tempToken);
   }
 
@@ -525,8 +539,23 @@ public class UserAccountService implements IUserAccountService {
     }
 
     try {
-      String newTempToken = otpService.sendOTPWithTempToken(user, OtpType.FORGOT_PASSWORD);
+
+      otpService.sendOTP(identifier, OtpType.FORGOT_PASSWORD);
+
+      var tokenResponse = verificationService.generateTokens(user);
+
+      long tokenExpire = 2592000;
+      String tempTokenKey = "TEMP_TOKEN_" + OtpType.FORGOT_PASSWORD + "_" + identifier;
+      redisService.deleteValue(tempTokenKey);
+      redisService.saveValue(tempTokenKey, tokenResponse.getAccessToken(), tokenExpire);
+
+      String tokenToIdentifierKey = OtpType.FORGOT_PASSWORD.name() + "_" + tokenResponse.getAccessToken();
+      redisService.saveValue(tokenToIdentifierKey, identifier, tokenExpire);
+
+      String newTempToken = tokenResponse.getAccessToken();
+
       return new ApiResponse<>(200, "OTP resent successfully.", newTempToken);
+
     } catch (RuntimeException e) {
       return new ApiResponse<>(429, e.getMessage(), null);
     }
