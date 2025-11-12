@@ -5,6 +5,7 @@ import org.spacehub.DTO.DashBoard.EmailRequest;
 import org.spacehub.DTO.DashBoard.UsernameRequest;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.service.Interface.IDashBoardService;
+import org.spacehub.service.serviceAuth.RedisService;
 import org.spacehub.service.serviceAuth.authInterfaces.IEmailService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,12 +17,16 @@ import java.util.Map;
 @RequestMapping("/api/v1/dashboard")
 public class DashboardController {
 
+  private static final long CUSTOM_EMAIL_COOLDOWN_SECONDS = 24 * 60 * 60;
+  private static final String CUSTOM_EMAIL_COOLDOWN_PREFIX = "CUSTOM_EMAIL_COOLDOWN_";
   private final IDashBoardService dashboardService;
   private final IEmailService emailService;
+  private final RedisService redisService;
 
-  public DashboardController(IDashBoardService dashboardService, IEmailService emailService) {
+  public DashboardController(IDashBoardService dashboardService, IEmailService emailService, RedisService redisService) {
     this.dashboardService = dashboardService;
     this.emailService = emailService;
+    this.redisService = redisService;
   }
 
   @PostMapping("/set-username")
@@ -63,13 +68,31 @@ public class DashboardController {
 
   @PostMapping("/send-email")
   public ResponseEntity<ApiResponse<String>> sendCustomEmail(@Valid @RequestBody EmailRequest request) {
+    String to = request.getTo();
+    if (to == null || to.isBlank()) {
+      ApiResponse<String> response = new ApiResponse<>(400, "Recipient email (to) is required", null);
+      return ResponseEntity.badRequest().body(response);
+    }
+
+    String key = CUSTOM_EMAIL_COOLDOWN_PREFIX + to.trim().toLowerCase();
+
     try {
-      emailService.sendCustomEmail(request.getTo(), request.getSubject(), request.getMessage());
+      String existing = redisService.getValue(key);
+      if (existing != null) {
+        ApiResponse<String> response = new ApiResponse<>(429,
+          "You may only send a custom email to this recipient once every 24 hours. Try again later.",
+          null);
+        return ResponseEntity.status(429).body(response);
+      }
+
+      emailService.sendCustomEmail(to, request.getSubject(), request.getMessage());
+      redisService.saveValue(key, "1", CUSTOM_EMAIL_COOLDOWN_SECONDS);
+
       ApiResponse<String> response = new ApiResponse<>(200, "Email sent successfully!", null);
       return ResponseEntity.ok(response);
     } catch (Exception e) {
-      ApiResponse<String> response = new ApiResponse<>(500, "Failed to send email: " + e.getMessage(),
-        null);
+      ApiResponse<String> response = new ApiResponse<>(500, "Failed to send email: " +
+        e.getMessage(), null);
       return ResponseEntity.status(500).body(response);
     }
   }

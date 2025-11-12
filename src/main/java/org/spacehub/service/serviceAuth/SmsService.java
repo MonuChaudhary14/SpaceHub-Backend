@@ -17,13 +17,10 @@ public class SmsService implements ISmsService {
   private String apiKey;
 
   @Override
-  public void sendSms(String phoneNumber, String otp) { // <-- Changed 'message' to 'otp'
+  public void sendSms(String phoneNumber, String otp) {
     try {
-      // IMPORTANT: Make sure phoneNumber does NOT include a '+' sign
-      // (e.g., "919876543210" is good, "+919876543210" is bad for a URL)
       String mPhoneNumber = phoneNumber.replace("+", "");
 
-      // Use the correct API endpoint for sending a pre-generated OTP
       String url = String.format(
         "https://2factor.in/API/V1/%s/SMS/%s/%s",
         apiKey, mPhoneNumber, otp
@@ -35,7 +32,7 @@ public class SmsService implements ISmsService {
       LOGGER.info("OTP sent to {} | Response: {}", mPhoneNumber, response);
 
     } catch (Exception e) {
-      LOGGER.error("Failed to send OTP via 2Factor: {}", e.getMessage(), e); // Log the full exception
+      LOGGER.error("Failed to send OTP via 2Factor: {}", e.getMessage(), e);
       throw new RuntimeException("Failed to send OTP", e);
     }
   }
