@@ -18,4 +18,5 @@ public class LocalGroupResponse {
   private String imageUrl;
   private String chatRoomCode;
   private String imageKey;
+  private UUID chatRoomId;
 }

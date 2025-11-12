@@ -58,7 +58,7 @@ public class LocalGroupService implements ILocalGroupService {
     }
 
     if (imageFile == null || imageFile.isEmpty()) {
-      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Group image is required",null));
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Group image is required", null));
     }
 
     try {
@@ -206,6 +206,7 @@ public class LocalGroupService implements ILocalGroupService {
     }
     if (g.getChatRoom() != null) {
       r.setChatRoomCode(String.valueOf(g.getChatRoom().getRoomCode()));
+      r.setChatRoomId(g.getChatRoom().getId());
     }
     List<String> memberEmails = g.getMembers().stream().map(User::getEmail).collect(Collectors.toList());
     r.setMemberEmails(memberEmails);
@@ -225,7 +226,6 @@ public class LocalGroupService implements ILocalGroupService {
     }
     return r;
   }
-
 
   public ResponseEntity<ApiResponse<Map<String, Object>>> searchLocalGroups(
     String q, String requesterEmail, int page, int size) {

@@ -1,4 +1,4 @@
-package org.spacehub.DTO.VoiceRoom; // Or your DTO package
+package org.spacehub.DTO.VoiceRoom;
 
 import lombok.Data;
 import org.spacehub.entities.VoiceRoom.VoiceRoom;
