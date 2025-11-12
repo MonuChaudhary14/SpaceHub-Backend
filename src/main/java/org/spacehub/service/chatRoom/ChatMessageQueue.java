@@ -61,12 +61,6 @@ public class ChatMessageQueue implements IChatMessageQueue {
     return chatMessageService.deleteMessageByUuid(messageUuid);
   }
 
-  public synchronized boolean deleteMessage(Long messageId) {
-
-    queue.removeIf(m -> Objects.equals(m.getId(), messageId));
-    return chatMessageService.deleteMessageById(messageId);
-  }
-
   public List<ChatMessage> getMessagesForRoom(ChatRoom room) {
     return chatMessageService.getMessagesForRoom(room);
   }

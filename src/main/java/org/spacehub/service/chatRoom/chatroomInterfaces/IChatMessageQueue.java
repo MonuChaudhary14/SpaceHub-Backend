@@ -12,8 +12,6 @@ public interface IChatMessageQueue {
 
   void flushQueue();
 
-  boolean deleteMessage(Long messageId);
-
   List<ChatMessage> getMessagesForRoom(ChatRoom room);
 
   List<ChatMessage> getMessagesForNewChatRoom(NewChatRoom newChatRoom);
