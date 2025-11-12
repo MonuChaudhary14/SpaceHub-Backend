@@ -17,8 +17,6 @@ public interface IChatMessageService {
 
   Optional<ChatMessage> findById(Long id);
 
-  boolean deleteMessageById(Long messageId);
-
   Optional<ChatMessage> findByUuid(String messageUuid);
 
   boolean deleteMessageByUuid(String messageUuid);
