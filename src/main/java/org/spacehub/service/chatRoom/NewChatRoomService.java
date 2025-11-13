@@ -42,8 +42,6 @@ public class NewChatRoomService implements INewChatRoomService {
       .build();
 
     newChatRoomRepository.save(newChatRoom);
-    chatRoom.getNewChatRooms().add(newChatRoom);
-    chatRoomRepository.save(chatRoom);
 
     return new ApiResponse<>(200, "New chat room created successfully", newChatRoom);
   }
