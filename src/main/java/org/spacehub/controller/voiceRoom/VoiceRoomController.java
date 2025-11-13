@@ -5,8 +5,8 @@ import org.spacehub.DTO.VoiceRoom.VoiceRoomDTO;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.VoiceRoom.VoiceRoom;
 import org.spacehub.repository.ChatRoom.ChatRoomRepository;
+import org.spacehub.service.Interface.IVoiceRoomService;
 import org.spacehub.service.VoiceRoom.JanusService;
-import org.spacehub.service.VoiceRoom.VoiceRoomService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
@@ -24,7 +24,7 @@ public class VoiceRoomController {
   private static final Logger logger = LoggerFactory.getLogger(VoiceRoomController.class);
 
   private final JanusService janusService;
-  private final VoiceRoomService voiceRoomService;
+  private final IVoiceRoomService voiceRoomService;
   private final ChatRoomRepository chatRoomRepository;
 
   @PostMapping("/create")

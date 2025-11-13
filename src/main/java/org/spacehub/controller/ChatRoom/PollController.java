@@ -1,5 +1,6 @@
 package org.spacehub.controller.ChatRoom;
 
+import lombok.RequiredArgsConstructor;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.ChatRoom.ChatPoll;
 import org.spacehub.service.chatRoom.chatroomInterfaces.IChatPollService;
@@ -11,13 +12,10 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/chat/polls")
+@RequiredArgsConstructor
 public class PollController {
 
   private final IChatPollService chatPollService;
-
-  public PollController(IChatPollService chatPollService) {
-    this.chatPollService = chatPollService;
-  }
 
   @GetMapping("/getpolls/{roomCode}")
   public ResponseEntity<ApiResponse<List<ChatPoll>>> getPolls(@PathVariable String roomCode) {

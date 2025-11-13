@@ -1,5 +1,6 @@
 package org.spacehub.controller.Profile;
 
+import lombok.RequiredArgsConstructor;
 import org.spacehub.DTO.User.DeleteAccount;
 import org.spacehub.DTO.User.UserProfileDTO;
 import org.spacehub.DTO.User.UserProfileResponse;
@@ -13,13 +14,10 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/profile")
+@RequiredArgsConstructor
 public class ProfileController {
 
   private final IProfileService profileService;
-
-  public ProfileController(IProfileService profileService) {
-    this.profileService = profileService;
-  }
 
   @GetMapping("/getProfile")
   public ResponseEntity<?> getProfile(@RequestParam("email") String email) {

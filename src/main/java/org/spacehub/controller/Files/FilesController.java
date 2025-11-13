@@ -1,5 +1,6 @@
 package org.spacehub.controller.Files;
 
+import lombok.RequiredArgsConstructor;
 import org.spacehub.DTO.Files.PresignedRequestDTO;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.service.Interface.IS3Service;
@@ -19,15 +20,11 @@ import java.util.Objects;
 
 @RestController
 @RequestMapping("api/v1/files")
+@RequiredArgsConstructor
 public class FilesController {
 
   private final IS3Service s3Service;
   private final S3Service s3ServiceImpl;
-
-  public FilesController(IS3Service s3Service, S3Service s3ServiceImpl) {
-    this.s3Service = s3Service;
-    this.s3ServiceImpl = s3ServiceImpl;
-  }
 
   @PostMapping("/upload")
   public ResponseEntity<ApiResponse<String>> uploadFile(@RequestParam("file") MultipartFile file) throws IOException {

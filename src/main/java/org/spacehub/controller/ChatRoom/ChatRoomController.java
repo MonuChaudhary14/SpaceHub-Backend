@@ -1,5 +1,6 @@
 package org.spacehub.controller.ChatRoom;
 
+import lombok.RequiredArgsConstructor;
 import org.spacehub.DTO.chatroom.CreateRoomRequest;
 import org.spacehub.DTO.chatroom.LeaveRoomRequest;
 import org.spacehub.DTO.chatroom.RoomRequestDTO;
@@ -17,13 +18,10 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("api/v1/rooms")
+@RequiredArgsConstructor
 public class ChatRoomController {
 
   private final IChatRoomService chatRoomService;
-
-  public ChatRoomController(IChatRoomService chatRoomService) {
-    this.chatRoomService = chatRoomService;
-  }
 
   @PostMapping("/create")
   public ResponseEntity<ApiResponse<RoomResponseDTO>> createRoom(@RequestBody CreateRoomRequest requestDTO) {

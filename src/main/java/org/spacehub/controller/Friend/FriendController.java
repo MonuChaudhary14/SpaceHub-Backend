@@ -1,5 +1,6 @@
 package org.spacehub.controller.Friend;
 
+import lombok.RequiredArgsConstructor;
 import org.spacehub.DTO.Friend.FriendRequest;
 import org.spacehub.DTO.Friend.RespondFriendRequest;
 import org.spacehub.DTO.Community.BlockUnblock;
@@ -14,13 +15,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("api/v1/friends")
+@RequiredArgsConstructor
 public class FriendController {
 
   private final IFriendService friendService;
-
-  public FriendController(IFriendService friendService) {
-    this.friendService = friendService;
-  }
 
   @PostMapping("/request")
   public ResponseEntity<ApiResponse<String>> sendFriendRequest(@RequestBody FriendRequest request) {

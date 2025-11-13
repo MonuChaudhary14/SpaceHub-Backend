@@ -1,6 +1,7 @@
 package org.spacehub.controller.community;
 
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.spacehub.DTO.Community.AcceptRequest;
 import org.spacehub.DTO.Community.CancelJoinRequest;
 import org.spacehub.DTO.Community.CommunityBlockRequest;
@@ -25,13 +26,10 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("api/v1/community")
+@RequiredArgsConstructor
 public class CommunityController {
 
   private final ICommunityService communityService;
-
-  public CommunityController(ICommunityService communityService) {
-    this.communityService = communityService;
-  }
 
   @PostMapping("/create")
   public ResponseEntity<ApiResponse<Map<String, Object>>> createCommunity(

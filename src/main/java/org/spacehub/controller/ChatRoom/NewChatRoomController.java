@@ -2,7 +2,7 @@ package org.spacehub.controller.ChatRoom;
 
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.ChatRoom.NewChatRoom;
-import org.spacehub.service.chatRoom.NewChatRoomService;
+import org.spacehub.service.chatRoom.chatroomInterfaces.INewChatRoomService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -12,9 +12,9 @@ import java.util.Map;
 @RequestMapping("/api/v1/new-chatroom")
 public class NewChatRoomController {
 
-  private final NewChatRoomService newChatRoomService;
+  private final INewChatRoomService newChatRoomService;
 
-  public NewChatRoomController(NewChatRoomService newChatRoomService) {
+  public NewChatRoomController(INewChatRoomService newChatRoomService) {
     this.newChatRoomService = newChatRoomService;
   }
 
