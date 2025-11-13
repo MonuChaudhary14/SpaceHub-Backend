@@ -9,8 +9,8 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Repository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -35,5 +35,14 @@ public interface CommunityRepository extends JpaRepository<Community, UUID> {
 
   @Query("SELECT c FROM Community c LEFT JOIN FETCH c.communityUsers WHERE c.communityId = :communityId")
   java.util.Optional<Community> findByCommunityCode(@Param("communityId") java.util.UUID communityId);
+
+  @Query("""
+        SELECT c
+        FROM Community c
+        LEFT JOIN FETCH c.communityUsers cu
+        LEFT JOIN FETCH cu.user
+        WHERE c.id = :communityId
+    """)
+  Optional<Community> findByIdWithUsers(@Param("communityId") UUID communityId);
 
 }
