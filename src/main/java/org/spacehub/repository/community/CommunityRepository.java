@@ -45,4 +45,13 @@ public interface CommunityRepository extends JpaRepository<Community, UUID> {
     """)
   Optional<Community> findByIdWithUsers(@Param("communityId") UUID communityId);
 
+  @Query("""
+        SELECT c
+        FROM Community c
+        LEFT JOIN FETCH c.communityUsers cu
+        LEFT JOIN FETCH cu.user
+        WHERE c.name = :name
+    """)
+  Optional<Community> findByNameWithUsers(@Param("name") String name);
+
 }

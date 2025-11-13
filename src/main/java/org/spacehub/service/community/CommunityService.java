@@ -170,7 +170,8 @@ public class CommunityService implements ICommunityService {
         return ResponseEntity.badRequest().body(new ApiResponse<>(400, validationError, null));
       }
 
-      Community community = findCommunityByName(deleteCommunity.getName());
+      Community community = communityRepository.findByNameWithUsers(deleteCommunity.getName())
+        .orElseThrow(() -> new IllegalArgumentException("Community not found"));
       User user = findUserByEmail(deleteCommunity.getUserEmail());
 
       if (!isCreatorOfCommunity(community, user)) {
@@ -203,17 +204,23 @@ public class CommunityService implements ICommunityService {
   }
 
   private void clearCommunityRelations(Community community) {
-    if (community.getCommunityUsers() != null && !community.getCommunityUsers().isEmpty()) {
-      communityUserRepository.deleteByCommunityId(community.getId());
+    if (community.getCommunityUsers() != null) {
+      community.getCommunityUsers().forEach(cu -> cu.setCommunity(null));
       community.getCommunityUsers().clear();
-    }
-
-    if (community.getMembers() != null) {
-      community.getMembers().clear();
+      communityUserRepository.deleteByCommunityId(community.getId());
     }
 
     if (community.getPendingRequests() != null) {
       community.getPendingRequests().clear();
+    }
+
+    if (community.getChatRooms() != null) {
+      community.getChatRooms().forEach(room -> room.setCommunity(null));
+      community.getChatRooms().clear();
+    }
+
+    if (community.getMembers() != null) {
+      community.getMembers().clear();
     }
   }
 
