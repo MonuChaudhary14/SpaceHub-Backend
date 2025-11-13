@@ -43,6 +43,12 @@ public class FriendService implements IFriendService {
 
   public String sendFriendRequest(String userEmail, String friendEmail) {
 
+    if (userEmail == null || userEmail.isBlank())
+      throw new RuntimeException("UserEmail is required");
+
+    if (friendEmail == null || friendEmail.isBlank())
+      throw new RuntimeException("FriendEmail is required");
+
     if (userEmail.equalsIgnoreCase(friendEmail)) {
       return "You cannot send a friend request to yourself.";
     }
@@ -76,6 +82,13 @@ public class FriendService implements IFriendService {
   }
 
   public String respondFriendRequest(String userEmail, String requesterEmail, boolean accept) {
+
+    if (userEmail == null || userEmail.isBlank())
+      throw new RuntimeException("UserEmail is required");
+
+    if (requesterEmail == null || requesterEmail.isBlank())
+      throw new RuntimeException("RequesterEmail is required");
+
     if (userEmail.equalsIgnoreCase(requesterEmail)) {
       return "Invalid operation.";
     }
@@ -133,6 +146,10 @@ public class FriendService implements IFriendService {
   }
 
   public List<UserOutput> getFriends(String userEmail) {
+
+    if (userEmail == null || userEmail.isBlank())
+      throw new RuntimeException("UserEmail is required");
+
     User user = userRepository.findByEmail(userEmail).orElseThrow(() -> new RuntimeException("User not found"));
 
     List<Friends> sent = friendsRepository.findByUserAndStatus(user, "accepted");
@@ -148,8 +165,7 @@ public class FriendService implements IFriendService {
                       f.getEmail(),
                       preview
               );
-            })
-            .collect(Collectors.toList());
+            }).collect(Collectors.toList());
 
     friendsList.addAll(received.stream()
             .map(friend -> {
@@ -161,13 +177,19 @@ public class FriendService implements IFriendService {
                       f.getEmail(),
                       preview
               );
-            })
-            .toList());
+            }).toList());
 
     return friendsList;
   }
 
   public String blockFriend(String userEmail, String friendEmail) {
+
+    if (userEmail == null || userEmail.isBlank())
+      throw new RuntimeException("UserEmail is required");
+
+    if (friendEmail == null || friendEmail.isBlank())
+      throw new RuntimeException("FriendEmail is required");
+
     if (userEmail.equalsIgnoreCase(friendEmail)) {
       return "You cannot block yourself.";
     }
@@ -191,6 +213,10 @@ public class FriendService implements IFriendService {
 
 
   public List<UserOutput> getIncomingPendingRequests(String userEmail) {
+
+    if (userEmail == null || userEmail.isBlank())
+      throw new RuntimeException("UserEmail is required");
+
     User user = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -207,6 +233,10 @@ public class FriendService implements IFriendService {
   }
 
   public List<UserOutput> getOutgoingPendingRequests(String userEmail) {
+
+    if (userEmail == null || userEmail.isBlank())
+      throw new RuntimeException("UserEmail is required");
+
     User user = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -217,12 +247,19 @@ public class FriendService implements IFriendService {
                     f.getFriend().getId(),
                     f.getFriend().getUsername(),
                     f.getFriend().getEmail(),
-                    f.getUser().getAvatarUrl()
+                    f.getFriend().getAvatarUrl()
             ))
             .collect(Collectors.toList());
   }
 
   public String unblockUser(String userEmail, String blockedUserEmail) {
+
+    if (userEmail == null || userEmail.isBlank())
+      throw new RuntimeException("UserEmail is required");
+
+    if (blockedUserEmail == null || blockedUserEmail.isBlank())
+      throw new RuntimeException("BlockedUserEmail is required");
+
     if (userEmail.equalsIgnoreCase(blockedUserEmail)) {
       return "You cannot unblock yourself.";
     }
@@ -242,9 +279,12 @@ public class FriendService implements IFriendService {
   }
 
   public String removeFriend(String userEmail, String friendEmail) {
-    if (userEmail == null || friendEmail == null) {
-      throw new RuntimeException("Both userEmail and friendEmail are required");
-    }
+
+    if (userEmail == null || userEmail.isBlank())
+      throw new RuntimeException("UserEmail is required");
+
+    if (friendEmail == null || friendEmail.isBlank())
+      throw new RuntimeException("FriendEmail is required");
 
     if (userEmail.equalsIgnoreCase(friendEmail)) {
       return "Invalid operation: cannot remove yourself.";
