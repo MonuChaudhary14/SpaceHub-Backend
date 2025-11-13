@@ -1,11 +1,13 @@
 package org.spacehub.service.Interface;
 
 import org.spacehub.entities.DirectMessaging.Message;
+import org.springframework.http.ResponseEntity;
+
 import java.util.List;
 
 public interface IMessageService {
 
-  Message saveMessage(Message message);
+  void saveMessage(Message message);
 
   List<Message> saveMessageBatch(List<Message> messages);
 
@@ -31,7 +33,7 @@ public interface IMessageService {
 
   Message markAsRead(Long messageId);
 
-  Message markAsReadByUuid(String messageUuid);
+  void markAsReadByUuid(String messageUuid);
 
   void markAllAsRead(String receiverEmail, String senderEmail);
 
@@ -40,5 +42,8 @@ public interface IMessageService {
   long countUnreadMessagesInChat(String userEmail, String chatPartner);
 
   boolean deleteMessageByUuid(String messageUuid);
+
+  ResponseEntity<?> handleDeleteRequest(Long id, String requesterEmail, boolean forEveryone);
+  ResponseEntity<?> handleHardDeleteRequest(Long id);
 }
 

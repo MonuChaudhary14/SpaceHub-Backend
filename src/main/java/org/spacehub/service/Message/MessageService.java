@@ -3,6 +3,8 @@ package org.spacehub.service.Message;
 import org.spacehub.entities.DirectMessaging.Message;
 import org.spacehub.repository.ChatRoom.MessageRepository;
 import org.spacehub.service.Interface.IMessageService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,8 +22,8 @@ public class MessageService implements IMessageService {
   }
 
   @Override
-  public Message saveMessage(Message message) {
-    return repo.save(message);
+  public void saveMessage(Message message) {
+    repo.save(message);
   }
 
   @Override
@@ -126,15 +128,14 @@ public class MessageService implements IMessageService {
   }
 
   @Transactional
-  public Message markAsReadByUuid(String messageUuid) {
+  public void markAsReadByUuid(String messageUuid) {
     Optional<Message> optionalMessage = repo.findByMessageUuid(messageUuid);
-    if (optionalMessage.isEmpty()) return null;
+    if (optionalMessage.isEmpty()) return;
     Message mess = optionalMessage.get();
     if (!Boolean.TRUE.equals(mess.getReadStatus())) {
       mess.setReadStatus(true);
       repo.save(mess);
     }
-    return mess;
   }
 
   @Override
@@ -160,6 +161,42 @@ public class MessageService implements IMessageService {
       return true;
     }
     return false;
+  }
+
+  @Override
+  @Transactional
+  public ResponseEntity<?> handleDeleteRequest(Long id, String requesterEmail, boolean forEveryone) {
+    try {
+      if (forEveryone) {
+        Message msg = getMessageById(id);
+        if (msg == null) return ResponseEntity.notFound().build();
+
+        if (!requesterEmail.equals(msg.getSenderEmail())) {
+          return ResponseEntity.status(HttpStatus.FORBIDDEN)
+            .body("Only sender can delete for everyone");
+        }
+
+        msg.setSenderDeleted(true);
+        msg.setReceiverDeleted(true);
+        saveMessage(msg);
+        return ResponseEntity.ok(msg);
+      } else {
+        Message updated = deleteMessageForUser(id, requesterEmail);
+        if (updated == null) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(updated);
+      }
+    } catch (SecurityException se) {
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).body(se.getMessage());
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+    }
+  }
+
+  @Override
+  @Transactional
+  public ResponseEntity<?> handleHardDeleteRequest(Long id) {
+    deleteMessageHard(id);
+    return ResponseEntity.noContent().build();
   }
 
 }
