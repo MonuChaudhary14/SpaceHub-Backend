@@ -36,13 +36,6 @@ public class MessageQueueService implements IMessageQueueService {
       flushQueue();
   }
 
-  private synchronized void sendBatchIfSizeReached() {
-    int BATCH_SIZE = 10;
-    if (queue.size() >= BATCH_SIZE) {
-      flushQueue();
-    }
-  }
-
   @Scheduled(fixedRate = 10000)
   public synchronized void flushQueue() {
     if (queue.isEmpty()) return;

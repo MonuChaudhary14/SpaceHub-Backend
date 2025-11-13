@@ -13,7 +13,7 @@ import java.util.UUID;
 @Table(
         name = "direct_messages",
         indexes = {
-                @Index(name = "idx_receiver_read_status", columnList = "receiverEmail, readStatus")
+          @Index(name = "idx_receiver_read_status", columnList = "receiverEmail, readStatus")
         }
 )
 public class Message {
@@ -40,7 +40,7 @@ public class Message {
   @Column(length = 500)
   private String fileName;
 
-  @Column(length = 255)
+  @Column()
   private String contentType;
 
   @Column(nullable = false)

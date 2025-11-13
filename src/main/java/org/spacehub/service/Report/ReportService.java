@@ -28,126 +28,126 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ReportService implements IReportService {
 
-    private final DirectMessageReportRepository directReport;
-    private final ChatRoomMessageReportRepository chatReport;
-    private final CommunityRepository communityRepository;
-    private final NotificationService notificationService;
+  private final DirectMessageReportRepository directReport;
+  private final ChatRoomMessageReportRepository chatReport;
+  private final CommunityRepository communityRepository;
+  private final NotificationService notificationService;
 
-    @Override
-    public ApiResponse<Map<String, Object>> reportDirectMessage(DirectMessageReportRequest req) {
+  @Override
+  public ApiResponse<Map<String, Object>> reportDirectMessage(DirectMessageReportRequest req) {
 
-        DirectMessageReport report = DirectMessageReport.builder()
-                .messageId(req.getMessageId())
-                .reporterEmail(req.getReporterEmail())
-                .senderEmail(req.getSenderEmail())
-                .receiverEmail(req.getReceiverEmail())
-                .reason(Optional.ofNullable(req.getReason()).orElse("No reason provided"))
-                .status(ReportStatus.PENDING)
-                .reportedAt(LocalDateTime.now())
-                .build();
+    DirectMessageReport report = DirectMessageReport.builder()
+            .messageId(req.getMessageId())
+            .reporterEmail(req.getReporterEmail())
+            .senderEmail(req.getSenderEmail())
+            .receiverEmail(req.getReceiverEmail())
+            .reason(Optional.ofNullable(req.getReason()).orElse("No reason provided"))
+            .status(ReportStatus.PENDING)
+            .reportedAt(LocalDateTime.now())
+            .build();
 
-        DirectMessageReport saved = directReport.save(report);
+    DirectMessageReport saved = directReport.save(report);
 
-        return new ApiResponse<>(200, "Direct message reported successfully",
-                Map.of(
-                        "reportId", saved.getId(),
-                        "messageId", saved.getMessageId(),
-                        "status", saved.getStatus().toString())
-        );
+    return new ApiResponse<>(200, "Direct message reported successfully",
+            Map.of(
+                    "reportId", saved.getId(),
+                    "messageId", saved.getMessageId(),
+                    "status", saved.getStatus().toString())
+    );
+  }
+
+  @Override
+  public ApiResponse<Map<String, Object>> reportChatRoomMessage(ChatRoomReportRequest req) {
+
+    ChatRoomMessageReport report = ChatRoomMessageReport.builder()
+            .messageId(req.getMessageId())
+            .reporterEmail(req.getReporterEmail())
+            .senderEmail(req.getSenderEmail())
+            .chatRoomCode(req.getChatRoomCode())
+            .communityCode(req.getCommunityCode())
+            .reason(Optional.ofNullable(req.getReason()).orElse("No reason provided"))
+            .status(ReportStatus.PENDING)
+            .reportedAt(LocalDateTime.now())
+            .build();
+
+    ChatRoomMessageReport saved = chatReport.save(report);
+
+    if (req.getCommunityCode() != null) {
+      handleCommunityNotification(report, saved.getId());
     }
 
-    @Override
-    public ApiResponse<Map<String, Object>> reportChatRoomMessage(ChatRoomReportRequest req) {
+    return new ApiResponse<>(200, "Chat room message reported successfully",
+            Map.of(
+                    "reportId", saved.getId(),
+                    "messageId", saved.getMessageId(),
+                    "status", saved.getStatus().toString()
+            )
+    );
+  }
 
-        ChatRoomMessageReport report = ChatRoomMessageReport.builder()
-                .messageId(req.getMessageId())
-                .reporterEmail(req.getReporterEmail())
-                .senderEmail(req.getSenderEmail())
-                .chatRoomCode(req.getChatRoomCode())
-                .communityCode(req.getCommunityCode())
-                .reason(Optional.ofNullable(req.getReason()).orElse("No reason provided"))
-                .status(ReportStatus.PENDING)
-                .reportedAt(LocalDateTime.now())
-                .build();
+  private void handleCommunityNotification(ChatRoomMessageReport report, UUID reportId) {
+    try {
+      UUID communityId = UUID.fromString(report.getCommunityCode());
 
-        ChatRoomMessageReport saved = chatReport.save(report);
+      communityRepository.findByCommunityCode(communityId)
+              .ifPresent(community -> notifyOwnersAndAdmins(report, community, reportId));
 
-        if (req.getCommunityCode() != null) {
-            handleCommunityNotification(report, saved.getId());
-        }
+    }
+    catch (IllegalArgumentException e) {
+      System.err.println("Invalid communityCode UUID: " + report.getCommunityCode());
+    }
+  }
 
-        return new ApiResponse<>(200, "Chat room message reported successfully",
-                Map.of(
-                        "reportId", saved.getId(),
-                        "messageId", saved.getMessageId(),
-                        "status", saved.getStatus().toString()
-                )
-        );
+  private void notifyOwnersAndAdmins(ChatRoomMessageReport report, Community community, UUID reportId) {
+    String reporterEmail = report.getReporterEmail();
+    String chatRoomCode = report.getChatRoomCode();
+
+    Set<User> owners = community.getCommunityUsers().stream()
+            .filter(cu -> cu.getRole() == Role.WORKSPACE_OWNER && !cu.isBlocked() && !cu.isBanned())
+            .map(CommunityUser::getUser)
+            .collect(Collectors.toSet());
+
+    if (owners.isEmpty() && community.getCreatedBy() != null) {
+      owners.add(community.getCreatedBy());
     }
 
-    private void handleCommunityNotification(ChatRoomMessageReport report, UUID reportId) {
-        try {
-            UUID communityId = UUID.fromString(report.getCommunityCode());
+    notifyUsers(owners, reporterEmail, reportId, chatRoomCode, community, true);
 
-            communityRepository.findByCommunityCode(communityId)
-                    .ifPresent(community -> notifyOwnersAndAdmins(report, community, reportId));
+    Set<User> admins = community.getCommunityUsers().stream()
+            .filter(cu -> cu.getRole() == Role.ADMIN && !cu.isBlocked() && !cu.isBanned())
+            .map(CommunityUser::getUser)
+            .collect(Collectors.toSet());
 
-        }
-        catch (IllegalArgumentException e) {
-            System.err.println("Invalid communityCode UUID: " + report.getCommunityCode());
-        }
+    notifyUsers(admins, reporterEmail, reportId, chatRoomCode, community, false);
+  }
+
+  private void notifyUsers(Set<User> users, String reporter, UUID reportId,
+                           String chatRoomCode, Community community, boolean isOwner) {
+
+    for (User user : users) {
+      if (user == null || user.getEmail() == null)
+          continue;
+
+      if (!isOwner && user.getEmail().equalsIgnoreCase(reporter))
+          continue;
+
+      NotificationRequestDTO dto = NotificationRequestDTO.builder()
+              .email(user.getEmail())
+              .senderEmail(reporter)
+              .type(NotificationType.SYSTEM_UPDATE)
+              .title(isOwner ? "Message reported in your workspace" : "ChatRoom message reported")
+              .message(isOwner ?
+                      "A message in chat room `" + chatRoomCode + "` was reported by " + reporter + ". Please review it."
+                      :
+                      "A message in chat room `" + chatRoomCode + "` was reported by " + reporter + ".")
+              .scope("community")
+              .referenceId(reportId)
+              .actionable(true)
+              .communityId(community.getId())
+              .build();
+
+      notificationService.createNotification(dto);
     }
-
-    private void notifyOwnersAndAdmins(ChatRoomMessageReport report, Community community, UUID reportId) {
-        String reporterEmail = report.getReporterEmail();
-        String chatRoomCode = report.getChatRoomCode();
-
-        Set<User> owners = community.getCommunityUsers().stream()
-                .filter(cu -> cu.getRole() == Role.WORKSPACE_OWNER && !cu.isBlocked() && !cu.isBanned())
-                .map(CommunityUser::getUser)
-                .collect(Collectors.toSet());
-
-        if (owners.isEmpty() && community.getCreatedBy() != null) {
-            owners.add(community.getCreatedBy());
-        }
-
-        notifyUsers(owners, reporterEmail, reportId, chatRoomCode, community, true);
-
-        Set<User> admins = community.getCommunityUsers().stream()
-                .filter(cu -> cu.getRole() == Role.ADMIN && !cu.isBlocked() && !cu.isBanned())
-                .map(CommunityUser::getUser)
-                .collect(Collectors.toSet());
-
-        notifyUsers(admins, reporterEmail, reportId, chatRoomCode, community, false);
-    }
-
-    private void notifyUsers(Set<User> users, String reporter, UUID reportId,
-                             String chatRoomCode, Community community, boolean isOwner) {
-
-        for (User user : users) {
-            if (user == null || user.getEmail() == null)
-                continue;
-
-            if (!isOwner && user.getEmail().equalsIgnoreCase(reporter))
-                continue;
-
-            NotificationRequestDTO dto = NotificationRequestDTO.builder()
-                    .email(user.getEmail())
-                    .senderEmail(reporter)
-                    .type(NotificationType.SYSTEM_UPDATE)
-                    .title(isOwner ? "Message reported in your workspace" : "ChatRoom message reported")
-                    .message(isOwner ?
-                            "A message in chat room `" + chatRoomCode + "` was reported by " + reporter + ". Please review it."
-                            :
-                            "A message in chat room `" + chatRoomCode + "` was reported by " + reporter + ".")
-                    .scope("community")
-                    .referenceId(reportId)
-                    .actionable(true)
-                    .communityId(community.getId())
-                    .build();
-
-            notificationService.createNotification(dto);
-        }
-    }
+  }
 
 }

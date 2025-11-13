@@ -13,5 +13,4 @@ public class UserProfileResponse {
   private String avatarPreviewUrl;
   private String bio;
   private LocalDate dateOfBirth;
-
 }

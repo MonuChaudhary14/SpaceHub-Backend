@@ -1,6 +1,5 @@
 package org.spacehub.repository.ChatRoom;
 
-import org.spacehub.entities.ChatRoom.ChatMessage;
 import org.spacehub.entities.ChatRoom.NewChatRoom;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.springframework.data.jpa.repository.JpaRepository;

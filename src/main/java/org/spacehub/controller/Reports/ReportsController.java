@@ -15,18 +15,16 @@ import java.util.Map;
 @RequestMapping("/api/v1/report")
 public class ReportsController {
 
-    private final IReportService reportService;
+  private final IReportService reportService;
 
-    @PostMapping("/direct")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> reportDirect(@RequestBody DirectMessageReportRequest request) {
+  @PostMapping("/direct")
+  public ResponseEntity<ApiResponse<Map<String, Object>>> reportDirect(@RequestBody DirectMessageReportRequest request) {
+    return ResponseEntity.ok(reportService.reportDirectMessage(request));
+  }
 
-        return ResponseEntity.ok(reportService.reportDirectMessage(request));
-    }
-
-    @PostMapping("/chatroom")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> reportChatRoom(@RequestBody ChatRoomReportRequest request) {
-
-        return ResponseEntity.ok(reportService.reportChatRoomMessage(request));
-    }
+  @PostMapping("/chatroom")
+  public ResponseEntity<ApiResponse<Map<String, Object>>> reportChatRoom(@RequestBody ChatRoomReportRequest request) {
+    return ResponseEntity.ok(reportService.reportChatRoomMessage(request));
+  }
 
 }

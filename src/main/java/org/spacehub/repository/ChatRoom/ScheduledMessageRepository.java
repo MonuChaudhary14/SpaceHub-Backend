@@ -13,4 +13,5 @@ public interface ScheduledMessageRepository extends JpaRepository<ScheduledMessa
   List<ScheduledMessage> findBySentFalseAndScheduledTimeBefore(LocalDateTime time);
 
   void deleteAllBySenderEmail(String senderEmail);
+
 }

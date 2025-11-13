@@ -49,15 +49,13 @@ public class MessageService implements IMessageService {
   @Transactional
   public Message deleteMessageForUser(Long messageId, String requesterEmail) {
     Optional<Message> optionalMessage = repo.findById(messageId);
-    if (optionalMessage.isEmpty()) return null;
-    return applySoftDelete(optionalMessage.get(), requesterEmail);
+    return optionalMessage.map(message -> applySoftDelete(message, requesterEmail)).orElse(null);
   }
 
   @Transactional
   public Message deleteMessageForUserByUuid(String messageUuid, String requesterEmail) {
     Optional<Message> optionalMessage = repo.findByMessageUuid(messageUuid);
-    if (optionalMessage.isEmpty()) return null;
-    return applySoftDelete(optionalMessage.get(), requesterEmail);
+    return optionalMessage.map(message -> applySoftDelete(message, requesterEmail)).orElse(null);
   }
 
   private Message applySoftDelete(Message message, String requesterEmail) {

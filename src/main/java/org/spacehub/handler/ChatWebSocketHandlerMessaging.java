@@ -89,19 +89,6 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
     session.sendMessage(new TextMessage(objectMapper.writeValueAsString(unreadPayload)));
   }
 
-  private List<Map<String, Object>> formatAndMarkReadMessages(List<Message> messages) {
-    List<Map<String, Object>> formatted = new ArrayList<>();
-    for (Message message : messages) {
-      Map<String, Object> payload = buildPayload(message);
-      addPreviewIfFile(payload, message.getType(), message.getFileKey());
-      formatted.add(payload);
-      try {
-        messageService.markAsRead(message.getId());
-      } catch (Exception ignored) {}
-    }
-    return formatted;
-  }
-
   private void processHistoryForReceiver(WebSocketSession session, String senderEmail, String receiverEmail)
           throws Exception {
     List<Message> history = messageService.getChat(senderEmail, receiverEmail);

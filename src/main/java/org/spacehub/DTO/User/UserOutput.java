@@ -14,5 +14,4 @@ public class UserOutput {
   private String username;
   private String email;
   private String avatarUrl;
-
 }

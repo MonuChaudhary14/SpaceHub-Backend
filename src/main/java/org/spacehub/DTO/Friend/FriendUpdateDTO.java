@@ -10,10 +10,10 @@ import java.util.UUID;
 @NoArgsConstructor
 public class FriendUpdateDTO {
 
-    private UUID id;
-    private String firstName;
-    private String lastName;
-    private String email;
-    private String avatarUrl;
+  private UUID id;
+  private String firstName;
+  private String lastName;
+  private String email;
+  private String avatarUrl;
 
 }

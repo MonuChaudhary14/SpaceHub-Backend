@@ -4,7 +4,6 @@ import org.spacehub.entities.DirectMessaging.Message;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -19,10 +18,10 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
   List<Message> findBySenderEmailOrReceiverEmailOrderByTimestampDesc(String email1, String email2);
 
   @Query("""
-         SELECT DISTINCT 
-           CASE 
-             WHEN m.senderEmail = :email THEN m.receiverEmail 
-             ELSE m.senderEmail 
+         SELECT DISTINCT
+           CASE
+             WHEN m.senderEmail = :email THEN m.receiverEmail
+             ELSE m.senderEmail
            END
          FROM Message m
          WHERE m.senderEmail = :email OR m.receiverEmail = :email
@@ -55,6 +54,6 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
         AND m.receiverEmail = :receiverEmail
         AND m.readStatus = false
       """)
-  int markAllAsReadBetweenUsers(String receiverEmail, String senderEmail);
+  void markAllAsReadBetweenUsers(String receiverEmail, String senderEmail);
 
 }

@@ -35,7 +35,7 @@ public class ChatMessage {
   @Column(length = 2000)
   private String fileUrl;
 
-  @Column(length = 255)
+  @Column()
   private String contentType;
 
   @Column(nullable = false, length = 100)
