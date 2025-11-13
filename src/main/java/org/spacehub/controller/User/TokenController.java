@@ -1,5 +1,6 @@
 package org.spacehub.controller.User;
 
+import lombok.RequiredArgsConstructor;
 import org.spacehub.DTO.DTO_auth.RefreshRequest;
 import org.spacehub.DTO.DTO_auth.TokenResponse;
 import org.spacehub.entities.ApiResponse.ApiResponse;
@@ -15,16 +16,11 @@ import java.time.Instant;
 
 @RestController
 @RequestMapping("/api/v1/auth")
+@RequiredArgsConstructor
 public class TokenController {
 
   private final RefreshTokenRepository refreshTokenRepository;
   private final UserNameService userNameService;
-
-  public TokenController(RefreshTokenRepository refreshTokenRepository,
-                         UserNameService userNameService) {
-    this.refreshTokenRepository = refreshTokenRepository;
-    this.userNameService = userNameService;
-  }
 
   @PostMapping("/refresh")
   public ResponseEntity<ApiResponse<TokenResponse>> refresh(@RequestBody RefreshRequest req) {

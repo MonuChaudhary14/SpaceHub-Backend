@@ -1,5 +1,6 @@
 package org.spacehub.controller.localgroup;
 
+import lombok.RequiredArgsConstructor;
 import org.spacehub.DTO.LocalGroup.DeleteLocalGroupRequest;
 import org.spacehub.DTO.LocalGroup.JoinLocalGroupRequest;
 import org.spacehub.DTO.LocalGroup.LocalGroupMemberDTO;
@@ -15,13 +16,10 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("api/v1/local-group")
+@RequiredArgsConstructor
 public class LocalGroupController {
 
   private final ILocalGroupService localGroupService;
-
-  public LocalGroupController(ILocalGroupService localGroupService) {
-    this.localGroupService = localGroupService;
-  }
 
   @PostMapping("/create")
   public ResponseEntity<ApiResponse<LocalGroupResponse>> createLocalGroup(

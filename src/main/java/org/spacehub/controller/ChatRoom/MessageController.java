@@ -1,5 +1,6 @@
 package org.spacehub.controller.ChatRoom;
 
+import lombok.RequiredArgsConstructor;
 import org.spacehub.entities.DirectMessaging.Message;
 import org.spacehub.service.Interface.IMessageService;
 import org.springframework.http.ResponseEntity;
@@ -8,13 +9,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/messages")
+@RequiredArgsConstructor
 public class MessageController {
 
   private final IMessageService messageService;
-
-  public MessageController(IMessageService messageService) {
-    this.messageService = messageService;
-  }
 
   @GetMapping("/chat")
   public List<Message> getChat(@RequestParam String user1, @RequestParam String user2) {

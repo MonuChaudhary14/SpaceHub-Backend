@@ -170,7 +170,8 @@ public class CommunityService implements ICommunityService {
         return ResponseEntity.badRequest().body(new ApiResponse<>(400, validationError, null));
       }
 
-      Community community = findCommunityByName(deleteCommunity.getName());
+      Community community = communityRepository.findByNameWithUsers(deleteCommunity.getName())
+        .orElseThrow(() -> new IllegalArgumentException("Community not found"));
       User user = findUserByEmail(deleteCommunity.getUserEmail());
 
       if (!isCreatorOfCommunity(community, user)) {
@@ -203,17 +204,23 @@ public class CommunityService implements ICommunityService {
   }
 
   private void clearCommunityRelations(Community community) {
-    if (community.getCommunityUsers() != null && !community.getCommunityUsers().isEmpty()) {
-      communityUserRepository.deleteByCommunityId(community.getId());
+    if (community.getCommunityUsers() != null) {
+      community.getCommunityUsers().forEach(cu -> cu.setCommunity(null));
       community.getCommunityUsers().clear();
-    }
-
-    if (community.getMembers() != null) {
-      community.getMembers().clear();
+      communityUserRepository.deleteByCommunityId(community.getId());
     }
 
     if (community.getPendingRequests() != null) {
       community.getPendingRequests().clear();
+    }
+
+    if (community.getChatRooms() != null) {
+      community.getChatRooms().forEach(room -> room.setCommunity(null));
+      community.getChatRooms().clear();
+    }
+
+    if (community.getMembers() != null) {
+      community.getMembers().clear();
     }
   }
 
@@ -968,11 +975,33 @@ public class CommunityService implements ICommunityService {
 
       List<Map<String, Object>> userCommunities = buildCommunityListForUser(normalizedEmail);
 
+// replace current loop that sets memberCount
       for (Map<String, Object> community : userCommunities) {
         UUID communityId = (UUID) community.get("communityId");
-        long memberCount = communityUserRepository.countByCommunityId(communityId);
+
+        // load Community with users
+        Community c = communityRepository.findByIdWithUsers(communityId)
+          .orElse(null); // make sure method exists / returns community users eagerly or via JOIN FETCH
+
+        long memberCount = 0;
+        if (c != null) {
+          memberCount = c.getCommunityUsers().stream()
+            // include members, admins and workspace owners
+            .filter(cu -> cu.getRole() == Role.MEMBER
+              || cu.getRole() == Role.ADMIN
+              || cu.getRole() == Role.WORKSPACE_OWNER)
+            // exclude blocked / banned if you want
+            .filter(cu -> !cu.isBlocked() && !cu.isBanned())
+            .map(CommunityUser::getUser)      // in case same user has multiple entries (rare)
+            .filter(Objects::nonNull)
+            .map(User::getId)
+            .distinct()
+            .count();
+        }
+
         community.put("memberCount", memberCount);
       }
+
 
       return ResponseEntity.ok(
               new ApiResponse<>(200, "User's communities fetched with member counts",
@@ -1875,7 +1904,10 @@ public class CommunityService implements ICommunityService {
       m.put("role", role);
       m.put("isBanned", isBanned);
 
-      long memberCount = communityUserRepository.countByCommunityId(c.getId());
+      List<Role> rolesToCount = List.of(Role.MEMBER, Role.ADMIN, Role.WORKSPACE_OWNER);
+      long memberCount = communityUserRepository
+        .countByCommunityIdAndRoleInAndIsBannedFalseAndIsBlockedFalse(c.getId(), rolesToCount);
+
       m.put("memberCount", memberCount);
 
       return m;

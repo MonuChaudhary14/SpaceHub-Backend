@@ -1,6 +1,7 @@
 package org.spacehub.controller.community;
 
 
+import lombok.RequiredArgsConstructor;
 import org.spacehub.DTO.Community.CommunityInviteAcceptDTO;
 import org.spacehub.DTO.Community.CommunityInviteRequestDTO;
 import org.spacehub.entities.ApiResponse.ApiResponse;
@@ -12,13 +13,10 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/community/invites")
+@RequiredArgsConstructor
 public class CommunityInviteController {
 
   private final ICommunityInviteService inviteService;
-
-  public CommunityInviteController(ICommunityInviteService inviteService) {
-    this.inviteService = inviteService;
-  }
 
   @PostMapping("/{communityId}/create")
   public ResponseEntity<ApiResponse<?>> createInvite(@PathVariable UUID communityId, @RequestBody CommunityInviteRequestDTO request) {

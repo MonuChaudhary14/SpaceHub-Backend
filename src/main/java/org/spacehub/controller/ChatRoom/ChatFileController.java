@@ -1,5 +1,6 @@
 package org.spacehub.controller.ChatRoom;
 
+import lombok.RequiredArgsConstructor;
 import org.spacehub.ExceptionHandler.ResourceNotFoundException;
 import org.spacehub.entities.ChatRoom.ChatMessage;
 import org.spacehub.service.chatRoom.chatroomInterfaces.IChatFileService;
@@ -7,15 +8,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/v1/chatMessage")
 public class ChatFileController {
 
   private final IChatFileService chatFileService;
-
-  public ChatFileController(IChatFileService chatFileService) {
-    this.chatFileService = chatFileService;
-  }
 
   @PostMapping("/upload")
   public ResponseEntity<?> uploadChatFile(

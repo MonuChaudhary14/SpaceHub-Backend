@@ -19,6 +19,7 @@ target/
 *.iml
 *.ipr
 .idea/misc.xml
+application.log
 
 ### NetBeans ###
 /nbproject/private/

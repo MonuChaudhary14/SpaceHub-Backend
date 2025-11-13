@@ -1,6 +1,7 @@
 package org.spacehub.controller.User;
 
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.spacehub.DTO.DTO_auth.ForgotPasswordRequest;
 import org.spacehub.DTO.DTO_auth.LoginRequest;
 import org.spacehub.DTO.DTO_auth.OTPRequest;
@@ -24,15 +25,11 @@ import java.util.Map;
 
 @RestController
 @RequestMapping(path = "api/v1")
+@RequiredArgsConstructor
 public class UserController {
 
   private final IUserAccountService accountService;
   private final IUserService userService;
-
-  public UserController(IUserAccountService accountService, IUserService userService) {
-    this.accountService = accountService;
-    this.userService = userService;
-  }
 
   @PostMapping("/login")
   public ResponseEntity<ApiResponse<TokenResponse>> login(@RequestBody LoginRequest request) {

@@ -1,6 +1,7 @@
 package org.spacehub.controller.Dashboard;
 
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.spacehub.DTO.DashBoard.EmailRequest;
 import org.spacehub.DTO.DashBoard.UsernameRequest;
 import org.spacehub.entities.ApiResponse.ApiResponse;
@@ -15,6 +16,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/dashboard")
+@RequiredArgsConstructor
 public class DashboardController {
 
   private static final long CUSTOM_EMAIL_COOLDOWN_SECONDS = 24 * 60 * 60;
@@ -22,12 +24,6 @@ public class DashboardController {
   private final IDashBoardService dashboardService;
   private final IEmailService emailService;
   private final RedisService redisService;
-
-  public DashboardController(IDashBoardService dashboardService, IEmailService emailService, RedisService redisService) {
-    this.dashboardService = dashboardService;
-    this.emailService = emailService;
-    this.redisService = redisService;
-  }
 
   @PostMapping("/set-username")
   public ResponseEntity<ApiResponse<String>> setUsername(@Valid @RequestBody UsernameRequest request) {
