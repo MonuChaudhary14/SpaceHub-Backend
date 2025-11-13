@@ -13,6 +13,7 @@ import org.spacehub.service.File.S3Service;
 import org.springframework.stereotype.Service;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.spacehub.DTO.Friend.FriendUpdateDTO;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.util.List;
@@ -145,6 +146,7 @@ public class FriendService implements IFriendService {
     }
   }
 
+  @Transactional
   public List<UserOutput> getFriends(String userEmail) {
 
     if (userEmail == null || userEmail.isBlank())
