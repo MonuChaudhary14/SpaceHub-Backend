@@ -73,6 +73,8 @@ public class ProfileService implements IProfileService {
       .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
     try {
+      validateUniqueFields(user, dto);
+
       updateBasicDetails(user, dto);
       updatePasswordIfNeeded(user, dto);
 
@@ -83,6 +85,21 @@ public class ProfileService implements IProfileService {
     catch (Exception e) {
       log.error("Failed to update profile for {}: {}", email, e.getMessage());
       throw e;
+    }
+  }
+
+  private void validateUniqueFields(User existingUser, UserProfileDTO dto) {
+
+    if (dto.getUsername() != null && !dto.getUsername().isBlank()) {
+      String newUsername = dto.getUsername().trim();
+
+      if (!newUsername.equals(existingUser.getUsername())) {
+        boolean exists = userRepository.existsByUsername(newUsername);
+
+        if (exists) {
+          throw new IllegalArgumentException("Username already exists. Please choose another one.");
+        }
+      }
     }
   }
 
@@ -247,19 +264,34 @@ public class ProfileService implements IProfileService {
       throw new IllegalArgumentException("Email is required");
     }
     if (dto == null) {
-      throw new IllegalArgumentException("Profile data is missing");
+      throw new IllegalArgumentException("Profile data is required");
     }
   }
 
   private void updateBasicDetails(User user, UserProfileDTO dto) {
-    Optional.ofNullable(dto.getFirstName()).ifPresent(user::setFirstName);
-    Optional.ofNullable(dto.getLastName()).ifPresent(user::setLastName);
-    Optional.ofNullable(dto.getBio()).ifPresent(user::setBio);
-    Optional.ofNullable(dto.getUsername()).ifPresent(user::setUsername);
+    Optional.ofNullable(dto.getFirstName())
+            .filter(s -> !s.isBlank()).ifPresent(user::setFirstName);
+
+    Optional.ofNullable(dto.getLastName())
+            .filter(s -> !s.isBlank()).ifPresent(user::setLastName);
+
+    Optional.ofNullable(dto.getBio())
+            .filter(s -> !s.isBlank()).ifPresent(user::setBio);
+
+    Optional.ofNullable(dto.getUsername())
+            .filter(s -> !s.isBlank()).ifPresent(user::setUsername);
 
     Optional.ofNullable(dto.getDateOfBirth())
-      .ifPresent(d -> user.setDateOfBirth(LocalDate.parse(d)));
+            .ifPresent(d -> {
+              try {
+                user.setDateOfBirth(LocalDate.parse(d));
+              }
+              catch (Exception e) {
+                throw new IllegalArgumentException("Invalid date format. Expected format: yyyy-MM-dd");
+              }
+            });
   }
+
 
   private void updatePasswordIfNeeded(User user, UserProfileDTO dto) {
     String current = dto.getCurrentPassword();
