@@ -90,4 +90,39 @@ public class NewChatRoomService implements INewChatRoomService {
     }
   }
 
+  public ApiResponse<String> deleteNewChatRoom(String newChatRoomCode, String roomCode) {
+    try {
+      UUID roomUUID = UUID.fromString(roomCode);
+      UUID newUUID = UUID.fromString(newChatRoomCode);
+
+      Optional<ChatRoom> optionalChatRoom = chatRoomRepository.findByRoomCode(roomUUID);
+      if (optionalChatRoom.isEmpty()) {
+        return new ApiResponse<>(404, "Parent ChatRoom not found", null);
+      }
+      ChatRoom parentRoom = optionalChatRoom.get();
+
+      Optional<NewChatRoom> optionalNewRoom = newChatRoomRepository.findByRoomCode(newUUID);
+      if (optionalNewRoom.isEmpty()) {
+        return new ApiResponse<>(404, "NewChatRoom not found", null);
+      }
+      NewChatRoom newChatRoom = optionalNewRoom.get();
+
+      if (!newChatRoom.getChatRoom().getRoomCode().equals(roomUUID)) {
+        return new ApiResponse<>(403, "This chat room does not belong to the provided parent room", null);
+      }
+
+      newChatRoomRepository.delete(newChatRoom);
+
+      return new ApiResponse<>(200, "NewChatRoom deleted successfully", null);
+
+    }
+    catch (IllegalArgumentException e) {
+      return new ApiResponse<>(400, "Invalid UUID format", null);
+    }
+    catch (Exception e) {
+      return new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null);
+    }
+  }
+
+
 }

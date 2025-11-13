@@ -19,4 +19,7 @@ public interface INewChatRoomService {
   Optional<NewChatRoom> getEntityByCode(UUID roomCode);
 
   ApiResponse<List<Map<String, Object>>> getAllNewChatRoomsSummary(String roomCode);
+
+  ApiResponse<String> deleteNewChatRoom(String newChatRoomCode, String parentRoomCode);
+
 }

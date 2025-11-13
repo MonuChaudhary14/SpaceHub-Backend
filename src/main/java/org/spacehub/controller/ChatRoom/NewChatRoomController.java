@@ -41,4 +41,10 @@ public class NewChatRoomController {
     return newChatRoomService.getAllNewChatRoomsSummary(roomCode);
   }
 
+  @DeleteMapping("/{newChatRoomCode}/delete")
+  public ApiResponse<String> deleteNewChatRoom(@PathVariable String newChatRoomCode, @RequestParam("RoomCode") String RoomCode
+  ) {
+    return newChatRoomService.deleteNewChatRoom(newChatRoomCode, RoomCode);
+  }
+
 }
