@@ -54,9 +54,35 @@ public class CommunityInviteService implements ICommunityInviteService {
 
   @Override
   public ApiResponse<CommunityInviteResponseDTO> createInvite(UUID communityId, CommunityInviteRequestDTO request) {
-    Optional<Community> optionalCommunity = communityRepository.findById(communityId);
-    if (optionalCommunity.isEmpty()) {
+
+    Community community = communityRepository.findById(communityId).orElse(null);
+    if (community == null) {
       return new ApiResponse<>(404, "Community not found", null);
+    }
+
+    User inviter = userRepository.findByEmail(request.getInviterEmail()).orElse(null);
+    if (inviter == null) {
+      return new ApiResponse<>(404, "Inviter not found", null);
+    }
+
+    boolean isMember = community.getMembers().stream()
+            .anyMatch(u -> u.getId().equals(inviter.getId()));
+
+    if (!isMember) {
+      return new ApiResponse<>(403, "You are not a member of this community", null);
+    }
+
+    CommunityUser membership = communityUserRepository.findByCommunityAndUser(community, inviter).orElse(null);
+    if (membership == null || (membership.getRole() != Role.WORKSPACE_OWNER && membership.getRole() != Role.ADMIN)) {
+      return new ApiResponse<>(403, "Only admins or owners can create invites", null);
+    }
+
+    if (request.getMaxUses() <= 0) {
+      return new ApiResponse<>(400, "maxUses must be >= 1", null);
+    }
+
+    if (request.getExpiresInHours() <= 0) {
+      return new ApiResponse<>(400, "expiresInHours must be >= 1", null);
     }
 
     CommunityInvite invite = CommunityInvite.builder()
@@ -88,39 +114,38 @@ public class CommunityInviteService implements ICommunityInviteService {
 
   @Override
   public ApiResponse<?> acceptInvite(CommunityInviteAcceptDTO request) {
-    String rawCode = request.getInviteCode();
-    UUID communityId = request.getCommunityId();
-    String acceptorEmail = request.getAcceptorEmail();
 
-    if (acceptorEmail == null || acceptorEmail.isBlank()) {
-      return new ApiResponse<>(400, "Acceptor email is required", null);
+    String inviteCode = extractInviteCode(request.getInviteCode());
+    UUID communityId = request.getCommunityId();
+
+    User user = userRepository.findByEmail(request.getAcceptorEmail()).orElse(null);
+    if (user == null) {
+      return new ApiResponse<>(404, "User not found", null);
     }
 
-    String inviteCode = extractInviteCode(rawCode);
+    Community community = communityRepository.findById(communityId).orElse(null);
+    if (community == null) {
+      return new ApiResponse<>(404, "Community not found", null);
+    }
 
     CommunityInvite invite = validateInvite(inviteCode, communityId);
     if (invite == null) {
       return new ApiResponse<>(400, "Invalid or expired invite", null);
     }
 
-    Optional<User> optionalUser = userRepository.findByEmail(acceptorEmail);
-    if (optionalUser.isEmpty()) {
-      return new ApiResponse<>(404, "User not found", null);
+    boolean isMember = communityUserRepository.findByCommunityAndUser(community, user).isPresent();
+    if (isMember) {
+      return new ApiResponse<>(400, "User already a member", community);
     }
 
-    Optional<Community> optionalCommunity = communityRepository.findById(communityId);
-    if (optionalCommunity.isEmpty()) {
-      return new ApiResponse<>(404, "Community not found", null);
-    }
+    CommunityUser communityUser = new CommunityUser();
+    communityUser.setCommunity(community);
+    communityUser.setUser(user);
+    communityUser.setRole(Role.MEMBER);
+    communityUser.setJoinDate(LocalDateTime.now());
 
-    Community community = optionalCommunity.get();
-    User user = optionalUser.get();
+    communityUserRepository.save(communityUser);
 
-    if (isAlreadyMember(community, user)) {
-      return new ApiResponse<>(400, "User is already a member of this community", community);
-    }
-
-    addUserToCommunity(community, user);
     incrementInviteUsage(invite);
 
     NotificationRequestDTO notification = NotificationRequestDTO.builder()

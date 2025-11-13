@@ -1,5 +1,6 @@
 package org.spacehub.repository.community;
 
+import org.spacehub.entities.Community.Community;
 import org.spacehub.entities.Community.CommunityUser;
 import org.spacehub.entities.Community.Role;
 import org.spacehub.entities.User.User;
@@ -24,5 +25,7 @@ public interface CommunityUserRepository extends JpaRepository<CommunityUser, UU
   long countByCommunityId(@Param("communityId") UUID communityId);
 
   void deleteByCommunityId(UUID communityId);
+
+  Optional<CommunityUser> findByCommunityAndUser(Community community, User user);
 
 }
