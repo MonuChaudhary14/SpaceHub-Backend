@@ -146,3 +146,56 @@ Caused by: java.net.UnknownHostException: smtp.gmail.com
 	at org.eclipse.angus.mail.smtp.SMTPTransport.openServer(SMTPTransport.java:2193) ~[jakarta.mail-2.0.4.jar:na]
 	... 15 common frames omitted
 
+2025-11-13T19:57:07.489+05:30  INFO 3680 --- [main] org.spacehub.Homepage                    : Starting Homepage using Java 17.0.15 with PID 3680 (C:\Users\prach\OneDrive\Desktop\SpaceHub\SpaceHub-Backend\target\classes started by prach in C:\Users\prach\OneDrive\Desktop\SpaceHub\SpaceHub-Backend)
+2025-11-13T19:57:07.494+05:30  INFO 3680 --- [main] org.spacehub.Homepage                    : No active profile set, falling back to 1 default profile: "default"
+2025-11-13T19:57:12.457+05:30  INFO 3680 --- [main] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2025-11-13T19:57:12.463+05:30  INFO 3680 --- [main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-11-13T19:57:13.171+05:30  INFO 3680 --- [main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 687 ms. Found 20 JPA repository interfaces.
+2025-11-13T19:57:14.289+05:30  INFO 3680 --- [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2025-11-13T19:57:14.313+05:30  INFO 3680 --- [main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-11-13T19:57:14.314+05:30  INFO 3680 --- [main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.46]
+2025-11-13T19:57:14.415+05:30  INFO 3680 --- [main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2025-11-13T19:57:14.416+05:30  INFO 3680 --- [main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 6715 ms
+2025-11-13T19:57:14.824+05:30  INFO 3680 --- [main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-11-13T19:57:14.949+05:30  INFO 3680 --- [main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.29.Final
+2025-11-13T19:57:14.966+05:30  INFO 3680 --- [main] o.h.spatial.integration.SpatialService   : HHH80000001: hibernate-spatial integration enabled : true
+2025-11-13T19:57:15.016+05:30  INFO 3680 --- [main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2025-11-13T19:57:15.227+05:30  INFO 3680 --- [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2025-11-13T19:57:15.649+05:30  INFO 3680 --- [main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@237aba92
+2025-11-13T19:57:15.652+05:30  INFO 3680 --- [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2025-11-13T19:57:15.837+05:30  INFO 3680 --- [main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 18.0
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2025-11-13T19:57:15.879+05:30  INFO 3680 --- [main] org.hibernate.spatial                    : HHH80000003: hibernate-spatial adding type contributions from : org.hibernate.spatial.dialect.postgis.PostgisDialectContributor
+2025-11-13T19:57:16.279+05:30  INFO 3680 --- [main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-11-13T19:57:16.322+05:30  INFO 3680 --- [main] org.hibernate.spatial                    : HHH80000003: hibernate-spatial adding type contributions from : org.hibernate.spatial.dialect.postgis.PostgisDialectContributor
+2025-11-13T19:57:17.648+05:30  INFO 3680 --- [main] org.hibernate.spatial                    : HHH80000004: hibernate-spatial adding function contributions from : org.hibernate.spatial.dialect.postgis.PostgisDialectContributor
+2025-11-13T19:57:19.196+05:30  INFO 3680 --- [main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-11-13T19:57:21.313+05:30  INFO 3680 --- [main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-11-13T19:57:24.016+05:30  INFO 3680 --- [main] org.redisson.Version                     : Redisson 3.33.0
+2025-11-13T19:57:25.095+05:30  INFO 3680 --- [redisson-netty-1-5] o.redisson.connection.ConnectionsHolder  : 1 connections initialized for localhost/127.0.0.1:6379
+2025-11-13T19:57:25.375+05:30  INFO 3680 --- [redisson-netty-1-20] o.redisson.connection.ConnectionsHolder  : 24 connections initialized for localhost/127.0.0.1:6379
+2025-11-13T19:57:25.951+05:30  INFO 3680 --- [main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2025-11-13T19:57:30.315+05:30  INFO 3680 --- [main] eAuthenticationProviderManagerConfigurer : Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
+2025-11-13T19:57:31.418+05:30  INFO 3680 --- [main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
+2025-11-13T19:57:32.656+05:30  INFO 3680 --- [main] o.s.m.s.b.SimpleBrokerMessageHandler     : Starting...
+2025-11-13T19:57:32.657+05:30  INFO 3680 --- [main] o.s.m.s.b.SimpleBrokerMessageHandler     : BrokerAvailabilityEvent[available=true, SimpleBrokerMessageHandler [org.springframework.messaging.simp.broker.DefaultSubscriptionRegistry@4e94f258]]
+2025-11-13T19:57:32.658+05:30  INFO 3680 --- [main] o.s.m.s.b.SimpleBrokerMessageHandler     : Started.
+2025-11-13T19:57:32.693+05:30  INFO 3680 --- [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
+2025-11-13T19:57:32.719+05:30  INFO 3680 --- [main] org.spacehub.Homepage                    : Started Homepage in 27.325 seconds (process running for 29.044)
+2025-11-13T19:57:33.315+05:30  INFO 3680 --- [RMI TCP Connection(1)-172.24.112.1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-11-13T19:57:33.316+05:30  INFO 3680 --- [RMI TCP Connection(1)-172.24.112.1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2025-11-13T19:57:33.323+05:30  INFO 3680 --- [RMI TCP Connection(1)-172.24.112.1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 5 ms
+2025-11-13T19:57:39.379+05:30  INFO 3680 --- [SpringApplicationShutdownHook] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2025-11-13T19:57:39.530+05:30  INFO 3680 --- [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete
+2025-11-13T19:57:39.556+05:30  INFO 3680 --- [SpringApplicationShutdownHook] o.s.m.s.b.SimpleBrokerMessageHandler     : Stopping...
+2025-11-13T19:57:39.557+05:30  INFO 3680 --- [SpringApplicationShutdownHook] o.s.m.s.b.SimpleBrokerMessageHandler     : BrokerAvailabilityEvent[available=false, SimpleBrokerMessageHandler [org.springframework.messaging.simp.broker.DefaultSubscriptionRegistry@4e94f258]]
+2025-11-13T19:57:39.557+05:30  INFO 3680 --- [SpringApplicationShutdownHook] o.s.m.s.b.SimpleBrokerMessageHandler     : Stopped.
+2025-11-13T19:57:42.157+05:30  INFO 3680 --- [SpringApplicationShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2025-11-13T19:57:42.169+05:30  INFO 3680 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2025-11-13T19:57:42.213+05:30  INFO 3680 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.

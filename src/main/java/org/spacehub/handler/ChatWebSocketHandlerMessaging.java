@@ -7,6 +7,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.spacehub.entities.DirectMessaging.Message;
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.User.UserRepository;
+import org.spacehub.service.Friend.FriendService;
 import org.spacehub.service.Message.MessageQueueService;
 import org.spacehub.service.Interface.IMessageService;
 import org.springframework.lang.NonNull;
@@ -35,15 +36,21 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
   private final Map<String, WebSocketSession> activeUsers = new ConcurrentHashMap<>();
   private final Map<WebSocketSession, Map<String, String>> sessionMetadata = new ConcurrentHashMap<>();
   private final Map<String, String> usernameCache = new ConcurrentHashMap<>();
+  private final FriendService friendService;
 
-  public ChatWebSocketHandlerMessaging(MessageQueueService messageQueueService,
-                                       IMessageService messageService,
-                                       S3Service s3Service,
-                                       UserRepository userRepository) {
+  public ChatWebSocketHandlerMessaging(
+          MessageQueueService messageQueueService,
+          IMessageService messageService,
+          S3Service s3Service,
+          UserRepository userRepository,
+          FriendService friendService) {
+
     this.messageQueueService = messageQueueService;
     this.messageService = messageService;
     this.s3Service = s3Service;
     this.userRepository = userRepository;
+    this.friendService = friendService;
+
     this.objectMapper = new ObjectMapper()
             .registerModule(new JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
@@ -61,9 +68,32 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
       return;
     }
 
+    if (userRepository.findByEmail(senderEmail).isEmpty()) {
+      sendSystemMessage(session, "Sender does not exist.");
+      session.close(CloseStatus.BAD_DATA);
+      return;
+    }
+
     activeUsers.put(senderEmail, session);
     sessionMetadata.put(session, params);
     sendSystemMessage(session, "Connected as " + senderEmail);
+
+    processUnreadMessages(session, senderEmail);
+
+    if (receiverEmail != null) {
+
+      if (userRepository.findByEmail(receiverEmail).isEmpty()) {
+        sendSystemMessage(session, "Receiver not found.");
+        session.close(CloseStatus.BAD_DATA);
+        return;
+      }
+
+      if (!friendService.areFriends(senderEmail, receiverEmail)) {
+        sendSystemMessage(session, "You can only chat with friends.");
+        session.close(CloseStatus.NOT_ACCEPTABLE);
+        return;
+      }
+    }
 
     processUnreadMessages(session, senderEmail);
 
@@ -158,6 +188,11 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
   }
 
   private void handleTextOnlyMessage(String senderEmail, String receiverEmail, Map<String, Object> payload) throws IOException {
+
+    if (!friendService.areFriends(senderEmail, receiverEmail)) {
+      throw new RuntimeException("Cannot message non-friends.");
+    }
+
     Message mess = Message.builder()
             .messageUuid(UUID.randomUUID().toString())
             .senderEmail(senderEmail)
@@ -175,6 +210,11 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
   }
 
   private void handleFileMessage(String senderEmail, String receiverEmail, Map<String, Object> payload) throws IOException {
+
+    if (!friendService.areFriends(senderEmail, receiverEmail)) {
+      throw new RuntimeException("Cannot message non-friends.");
+    }
+
     String fileKey = (String) payload.get("fileKey");
     String fileName = (String) payload.get("fileName");
     String contentType = (String) payload.get("contentType");
