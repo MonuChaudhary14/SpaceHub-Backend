@@ -2,6 +2,8 @@ package org.spacehub.entities.LocalGroup;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.spacehub.entities.Community.InviteStatus;
 
 import java.time.LocalDateTime;
@@ -22,6 +24,7 @@ public class LocalGroupInvite {
 
   @ManyToOne
   @JoinColumn(name = "group_id", nullable = false)
+  @OnDelete(action = OnDeleteAction.CASCADE)
   private LocalGroup localGroup;
 
   private String inviterEmail;
