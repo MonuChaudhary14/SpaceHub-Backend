@@ -119,27 +119,7 @@ public class JanusService {
       "janus", "message", "transaction", UUID.randomUUID().toString(), "body", body
     );
     String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
-
-    ResponseEntity<JsonNode> response = restTemplate.postForEntity(handleUrl, request, JsonNode.class);
-    logger.info("Janus join response: {}", response.getBody());
-  }
-
-  public JsonNode listParticipants(String sessionId, String handleId, int roomId) {
-    Map<String, Object> body = Map.of(
-      "request", "listparticipants", "room", roomId
-    );
-    Map<String, Object> request = Map.of(
-      "janus", "message", "transaction", UUID.randomUUID().toString(), "body", body
-    );
-    String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
-
-    ResponseEntity<JsonNode> response = restTemplate.postForEntity(handleUrl, request, JsonNode.class);
-
-    if (response.getBody() != null) {
-      return response.getBody().path("plugindata").path("data").path("list");
-    }
-
-    throw new RuntimeException("Failed to get participant list from Janus");
+    restTemplate.postForEntity(handleUrl, request, JsonNode.class);
   }
 
   public void sendOffer(String sessionId, String handleId, String sdpOffer,
