@@ -12,7 +12,6 @@ import org.spacehub.repository.Notification.NotificationRepository;
 import org.spacehub.repository.User.UserRepository;
 import org.spacehub.repository.community.CommunityRepository;
 import org.spacehub.service.Interface.INotificationService;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,13 +28,15 @@ public class NotificationService implements INotificationService {
   private final CommunityRepository communityRepository;
   private final NotificationWebSocketHandler notificationWebSocketHandler;
 
+  @Override
+  @Transactional
   public void createNotification(NotificationRequestDTO request) {
 
     User recipient = userRepository.findByEmail(request.getEmail())
             .orElseThrow(() -> new RuntimeException("User not found: " + request.getEmail()));
 
     User sender = null;
-    if (request.getSenderEmail() != null) {
+    if (request.getSenderEmail() != null && !request.getSenderEmail().isBlank()) {
       sender = userRepository.findByEmail(request.getSenderEmail())
               .orElseThrow(() -> new RuntimeException("Sender not found: " + request.getSenderEmail()));
     }
@@ -51,104 +52,116 @@ public class NotificationService implements INotificationService {
 
     NotificationType type = request.getType();
 
+    UUID referenceId = request.getReferenceId() != null ? request.getReferenceId() : UUID.randomUUID();
+
+    String scope = request.getScope();
+
+    String senderName = sender != null ? sender.getUsername() : "Someone";
+    String communityName = community != null ? community.getName() : null;
+
     if (type != null) {
       switch (type) {
 
         case FRIEND_REQUEST:
-          if (sender == null) break;
-          title = title != null ? title : sender.getUsername() + " sent you a friend request";
-          message = message != null ? message : sender.getUsername() + " wants to connect with you.";
+          title = title != null ? title : senderName + " sent you a friend request";
+          message = message != null ? message : senderName + " wants to connect with you.";
+          if (scope == null) scope = "friend";
           break;
 
         case FRIEND_ACCEPTED:
-          if (sender == null) break;
-          title = title != null ? title : sender.getUsername() + " accepted your friend request";
-          message = message != null ? message : "You and " + sender.getUsername() + " are now friends!";
+          title = title != null ? title : senderName + " accepted your friend request";
+          message = message != null ? message : "You and " + senderName + " are now friends!";
+          if (scope == null) scope = "friend";
           break;
 
         case FRIEND_REJECTED:
-          if (sender == null) break;
-          title = title != null ? title : sender.getUsername() + " rejected your request";
-          message = message != null ? message : sender.getUsername() + " declined your friend request.";
+          title = title != null ? title : senderName + " rejected your friend request";
+          message = message != null ? message : senderName + " declined your friend request.";
+          if (scope == null) scope = "friend";
           break;
 
         case COMMUNITY_INVITE:
-          if (sender == null) break;
-          title = title != null ? title :
-                  "Community Invite" + (community != null ? ": " + community.getName() : "");
-          message = message != null ? message : sender.getUsername() + " invited you to join this community.";
+          title = title != null ? title : "Community Invite" + (communityName != null ? ": " + communityName : "");
+          message = message != null ? message : senderName + " invited you to join this community.";
+          if (scope == null) scope = "community";
           break;
 
         case COMMUNITY_JOINED:
-          if (sender == null || community == null) break;
-          title = title != null ? title : sender.getUsername() + " joined the community";
-          message = message != null ? message : sender.getUsername() + " is now a member of " + community.getName();
+          title = title != null ? title : senderName + " joined the community";
+          message = message != null ? message : (senderName + " is now a member of " + (communityName != null ? communityName : "the community"));
+          if (scope == null) scope = "community";
           break;
 
         case COMMUNITY_REQUEST_ACCEPTED:
-          if (community == null) break;
           title = title != null ? title : "Community Join Request Accepted";
-          message = message != null ? message : "Your request to join " + community.getName() + " has been accepted.";
+          message = message != null ? message : "Your request to join " + (communityName != null ? communityName : "the community") + " has been accepted.";
+          if (scope == null) scope = "community";
           break;
 
         case COMMUNITY_INVITE_REVOKED:
-          if (community == null) break;
           title = title != null ? title : "Community Invite Revoked";
-          message = message != null ? message : "Your invite to join " + community.getName() + " has been revoked.";
+          message = message != null ? message : "Your invite to join " + (communityName != null ? communityName : "the community") + " has been revoked.";
+          if (scope == null) scope = "community";
           break;
 
         case COMMUNITY_MEMBER_LEFT:
-          if (sender == null || community == null) break;
-          title = title != null ? title : sender.getUsername() + " left the community";
-          message = message != null ? message : sender.getUsername() + " is no longer a member of " + community.getName();
+          title = title != null ? title : senderName + " left the community";
+          message = message != null ? message : senderName + " is no longer a member of " + (communityName != null ? communityName : "the community");
+          if (scope == null) scope = "community";
           break;
 
         case COMMUNITY_MEMBER_REMOVED:
-          if (community == null) break;
           title = title != null ? title : "Removed from Community";
-          message = message != null ? message : "You have been removed from " + community.getName();
+          message = message != null ? message : "You have been removed from " + (communityName != null ? communityName : "the community");
+          if (scope == null) scope = "community";
           break;
 
         case LOCAL_GROUP_INVITE:
-          if (sender == null) break;
           title = title != null ? title : "Local Group Invitation";
-          message = message != null ? message : sender.getUsername() + " invited you to join a local group.";
+          message = message != null ? message : senderName + " invited you to join a local group.";
+          if (scope == null) scope = "local-group";
           break;
 
         case LOCAL_GROUP_JOIN:
-          if (sender == null) break;
-          title = title != null ? title : sender.getUsername() + " joined the local group";
-          message = message != null ? message : sender.getUsername() + " is now part of the local group.";
+          title = title != null ? title : senderName + " joined the local group";
+          message = message != null ? message : senderName + " is now part of the local group.";
+          if (scope == null) scope = "local-group";
           break;
 
         case REPORT_MESSAGE_DIRECT:
           title = title != null ? title : "Direct Message Report Submitted";
           message = message != null ? message : "A direct message report has been filed.";
+          if (scope == null) scope = "report";
           break;
 
         case REPORT_MESSAGE_CHATROOM:
           title = title != null ? title : "Chatroom Message Report Submitted";
           message = message != null ? message : "A chatroom message was reported.";
+          if (scope == null) scope = "report";
           break;
 
         case REPORT_REVIEW:
           title = title != null ? title : "Your Report Has Been Reviewed";
           message = message != null ? message : "Your report has been reviewed by moderators.";
-          break;
-
-        case COMMUNITY:
-          title = title != null ? title : "Community Update";
+          if (scope == null) scope = "report";
           break;
 
         case SYSTEM_UPDATE:
           title = title != null ? title : "System Update";
           message = message != null ? message : "A system update is available.";
+          if (scope == null) scope = "system";
           break;
 
+        case COMMUNITY:
         default:
           if (title == null) title = "Notification";
           if (message == null) message = "You have a new notification.";
+          if (scope == null) scope = "general";
       }
+    } else {
+      if (title == null) title = "Notification";
+      if (message == null) message = "You have a new notification.";
+      if (scope == null) scope = "general";
     }
 
     Notification notification = Notification.builder()
@@ -159,8 +172,8 @@ public class NotificationService implements INotificationService {
             .recipient(recipient)
             .sender(sender)
             .community(community)
-            .referenceId(request.getReferenceId() != null ? request.getReferenceId() : UUID.randomUUID())
-            .scope(request.getScope())
+            .referenceId(referenceId)
+            .scope(scope)
             .actionable(request.isActionable())
             .createdAt(LocalDateTime.now())
             .expiresAt(LocalDateTime.now().plusDays(30))
@@ -170,12 +183,14 @@ public class NotificationService implements INotificationService {
     notificationRepository.save(notification);
 
     NotificationResponseDTO dto = mapToDTO(notification);
-    notificationWebSocketHandler.sendNotification(request.getEmail(), dto);
+    try {
+      notificationWebSocketHandler.sendNotification(request.getEmail(), dto);
+    } catch (Exception ignored) {
+    }
   }
 
-
   @Override
-  @Transactional
+  @Transactional(readOnly = true)
   public List<NotificationResponseDTO> getUserNotifications(String email, String scope, int page, int size) {
 
     List<Notification> list = notificationRepository.findAllByRecipientWithDetails(email);
@@ -183,16 +198,14 @@ public class NotificationService implements INotificationService {
     if (scope != null && !scope.isBlank()) {
       list = list.stream()
               .filter(n -> scope.equalsIgnoreCase(n.getScope()))
-              .toList();
+              .collect(Collectors.toList());
     }
 
     int start = page * size;
     int end = Math.min(start + size, list.size());
+    if (start >= end) return Collections.emptyList();
 
-    if (start > end) return Collections.emptyList();
-
-    return list.subList(start, end)
-            .stream().map(this::mapToDTO).collect(Collectors.toList());
+    return list.subList(start, end).stream().map(this::mapToDTO).collect(Collectors.toList());
   }
 
   @Override
@@ -201,18 +214,20 @@ public class NotificationService implements INotificationService {
 
     List<Notification> all = notificationRepository.findAllByRecipientWithDetails(email);
 
-    all.forEach(n -> {
-      if (!n.isActionable()) n.setRead(true);});
-
-    notificationRepository.saveAll(all);
+    boolean changed = false;
+    for (Notification n : all) {
+      if (!n.isActionable() && !n.isRead()) {
+        n.setRead(true);
+        changed = true;
+      }
+    }
+    if (changed) notificationRepository.saveAll(all);
 
     int start = page * size;
     int end = Math.min(start + size, all.size());
+    if (start >= end) return Collections.emptyList();
 
-    if (start > end) return Collections.emptyList();
-
-    return all.subList(start, end).stream().map(this::mapToDTO)
-            .collect(Collectors.toList());
+    return all.subList(start, end).stream().map(this::mapToDTO).collect(Collectors.toList());
   }
 
   @Override
@@ -237,9 +252,9 @@ public class NotificationService implements INotificationService {
   }
 
   @Override
+  @Transactional(readOnly = true)
   public long countUnreadNotifications(String email) {
-    return notificationRepository.findByRecipientEmailOrderByCreatedAtDesc(email)
-            .stream().filter(n -> !n.isRead()).count();
+    return notificationRepository.findByRecipientEmailOrderByCreatedAtDesc(email).stream().filter(n -> !n.isRead()).count();
   }
 
   @Override
@@ -274,6 +289,12 @@ public class NotificationService implements INotificationService {
             .senderEmail(n.getSender() != null ? n.getSender().getEmail() : null)
             .senderProfileImageUrl(n.getSender() != null ? n.getSender().getAvatarUrl() : null)
             .build();
+  }
+
+  @Transactional
+  public void deleteActionableByReference(UUID referenceId) {
+    if (referenceId == null) return;
+    notificationRepository.deleteActionableByReference(referenceId);
   }
 
   public void sendFriendRequestNotification(User sender, User recipient) {
