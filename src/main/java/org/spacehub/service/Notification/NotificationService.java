@@ -257,6 +257,12 @@ public class NotificationService implements INotificationService {
     return notificationRepository.findByRecipientEmailOrderByCreatedAtDesc(email).stream().filter(n -> !n.isRead()).count();
   }
 
+  @Transactional(readOnly = true)
+  public List<NotificationResponseDTO> getAllNotificationsForWebSocket(String email) {
+    List<Notification> list = notificationRepository.findAllByRecipientWithDetails(email);
+    return list.stream().map(this::mapToDTO).collect(Collectors.toList());
+  }
+
   @Override
   @Transactional
   public void deleteByPublicId(UUID publicId, String userEmail) {
