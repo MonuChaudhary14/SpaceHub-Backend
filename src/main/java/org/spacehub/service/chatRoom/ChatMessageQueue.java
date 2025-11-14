@@ -38,7 +38,9 @@ public class ChatMessageQueue implements IChatMessageQueue {
 
   @Scheduled(fixedRate = 10000)
   public synchronized void flushQueue() {
-    if (queue.isEmpty()) return;
+    if (queue.isEmpty()) {
+      return;
+    }
 
     List<ChatMessage> batch = new ArrayList<>(queue);
     queue.clear();

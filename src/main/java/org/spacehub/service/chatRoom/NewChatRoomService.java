@@ -54,9 +54,18 @@ public class NewChatRoomService implements INewChatRoomService {
   }
 
   public ApiResponse<NewChatRoom> getNewChatRoomByCode(String newChatRoomCode) {
-    Optional<NewChatRoom> newChatRoom = newChatRoomRepository.findByRoomCode(UUID.fromString(newChatRoomCode));
-    return newChatRoom.map(room -> new ApiResponse<>(200, "Fetched new chat room", room))
-      .orElseGet(() -> new ApiResponse<>(404, "NewChatRoom not found", null));
+    try {
+      Optional<NewChatRoom> newChatRoom = newChatRoomRepository.findByRoomCode(UUID.fromString(newChatRoomCode));
+
+      return newChatRoom.map(room -> new ApiResponse<>(200, "Fetched new chat room",
+          room))
+        .orElseGet(() -> new ApiResponse<>(404, "NewChatRoom not found", null));
+
+    } catch (IllegalArgumentException e) {
+      return new ApiResponse<>(400, "Invalid UUID format for newChatRoomCode", null);
+    } catch (Exception e) {
+      return new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null);
+    }
   }
 
   public Optional<NewChatRoom> getEntityByCode(UUID roomCode) {
@@ -119,6 +128,5 @@ public class NewChatRoomService implements INewChatRoomService {
       return new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null);
     }
   }
-
 
 }

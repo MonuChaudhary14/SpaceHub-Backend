@@ -14,31 +14,27 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true) // <-- SET THE DEFAULT TO READ-ONLY
 public class ChatMessageService implements IChatMessageService {
 
   private final ChatMessageRepository chatMessageRepository;
 
-  @Transactional
   public List<ChatMessage> saveAll(List<ChatMessage> messages) {
     return chatMessageRepository.saveAll(messages);
   }
 
-  @Transactional(readOnly = true)
   public List<ChatMessage> getMessagesForRoom(ChatRoom room) {
     return chatMessageRepository.findByRoomOrderByTimestampAsc(room);
   }
 
-  @Transactional(readOnly = true)
   public List<ChatMessage> getMessagesForNewChatRoom(NewChatRoom newChatRoom) {
     return chatMessageRepository.findByNewChatRoomOrderByTimestampAsc(newChatRoom);
   }
 
-  @Transactional(readOnly = true)
   public Optional<ChatMessage> findById(Long id) {
     return chatMessageRepository.findById(id);
   }
 
-  @Transactional(readOnly = true)
   public Optional<ChatMessage> findByUuid(String messageUuid) {
     return chatMessageRepository.findByMessageUuid(messageUuid);
   }
@@ -52,5 +48,4 @@ public class ChatMessageService implements IChatMessageService {
     }
     return false;
   }
-
 }
