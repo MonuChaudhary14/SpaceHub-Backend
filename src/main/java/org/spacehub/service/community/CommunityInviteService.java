@@ -198,9 +198,8 @@ public class CommunityInviteService implements ICommunityInviteService {
 
   @Override
   public ApiResponse<List<CommunityInviteResponseDTO>> getCommunityInvites(UUID communityId) {
-    List<CommunityInviteResponseDTO> invites = inviteRepository.findAll().stream()
-            .filter(invite -> invite.getCommunityId().equals(communityId))
-            .map(invite -> CommunityInviteResponseDTO.builder()
+    List<CommunityInviteResponseDTO> invites = inviteRepository.findByCommunityId(communityId).stream()
+      .map(invite -> CommunityInviteResponseDTO.builder()
                     .inviteCode(invite.getInviteCode())
                     .inviteLink("https://codewithketan.me/invite/" + communityId + "/" + invite.getInviteCode())
                     .communityId(invite.getCommunityId())

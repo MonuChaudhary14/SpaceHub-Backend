@@ -256,7 +256,7 @@ public class CommunityService implements ICommunityService {
 
       return ResponseEntity.ok().body(new ApiResponse<>(200, "Request sent to community"));
 
-    } catch (IllegalArgumentException e) {
+    } catch (ResourceNotFoundException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
     } catch (Exception e) {
       return ResponseEntity.internalServerError()
@@ -371,7 +371,7 @@ public class CommunityService implements ICommunityService {
         new ApiResponse<>(200, "Cancelled the join request successfully", null)
       );
 
-    } catch (IllegalArgumentException e) {
+    } catch (ResourceNotFoundException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
     } catch (Exception e) {
       return ResponseEntity.internalServerError()
@@ -654,24 +654,31 @@ public class CommunityService implements ICommunityService {
 
   public ResponseEntity<ApiResponse<Map<String, Object>>> getCommunityWithRooms(UUID communityId,
                                                                                 String userEmail) {
-    Optional<Community> optionalCommunity = communityRepository.findById(communityId);
-    if (optionalCommunity.isEmpty()) {
-      return ResponseEntity.badRequest().body(new ApiResponse<>(400,
-       "Community not found", null));
+    try {
+      Optional<Community> optionalCommunity = communityRepository.findById(communityId);
+      if (optionalCommunity.isEmpty()) {
+        return ResponseEntity.badRequest().body(new ApiResponse<>(400,
+          "Community not found", null));
+      }
+
+      Community community = optionalCommunity.get();
+      User user = findUserByEmail(userEmail);
+
+      if (isUserMemberOfCommunity(user, community)) {
+        return ResponseEntity.status(403).body(new ApiResponse<>(403,
+          "Access denied: You are not a member of this community", null));
+      }
+
+      List<ChatRoom> rooms = chatRoomRepository.findByCommunityId(communityId);
+      Map<String, Object> response = buildCommunityResponse(community, rooms);
+      return ResponseEntity.ok(new ApiResponse<>(200, "Community details fetched successfully",
+        response));
+
+    } catch (ResourceNotFoundException e) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
+    } catch (Exception e) {
+      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error", null));
     }
-
-    Community community = optionalCommunity.get();
-    User user = findUserByEmail(userEmail);
-
-    if (isUserMemberOfCommunity(user, community)) {
-      return ResponseEntity.status(403).body(new ApiResponse<>(403,
-        "Access denied: You are not a member of this community", null));
-    }
-
-    List<ChatRoom> rooms = chatRoomRepository.findByCommunityId(communityId);
-    Map<String, Object> response = buildCommunityResponse(community, rooms);
-    return ResponseEntity.ok(new ApiResponse<>(200, "Community details fetched successfully",
-      response));
   }
 
   private Map<String, Object> buildCommunityResponse(Community community, List<ChatRoom> rooms) {
@@ -2025,89 +2032,94 @@ public class CommunityService implements ICommunityService {
     return roleInfo;
   }
 
-  public ResponseEntity<ApiResponse<Map<String, Object>>> discoverCommunities(String currentUserEmail, int page,
-                                                                              int size) {
-    Pageable pageable = PageRequest.of(Math.max(0, page), Math.max(1, size));
-    Page<Community> communityPage = communityRepository.findAll(pageable);
+  @Override
+  public ResponseEntity<ApiResponse<Map<String, Object>>> discoverCommunities(
+    String currentUserEmail, int page, int size) {
 
-    User currentUser = userRepository.findByEmail(currentUserEmail).orElseThrow(() ->
-      new UsernameNotFoundException("User not found with email: " + currentUserEmail));
+    try {
+      Pageable pageable = PageRequest.of(Math.max(0, page), Math.max(1, size));
+      Page<Community> communityPage = communityRepository.findAll(pageable);
 
-    List<Map<String, Object>> out = communityPage.getContent().stream().map(c -> {
-      Map<String, Object> m = new HashMap<>();
-      m.put("communityId", c.getId());
-      m.put("name", c.getName());
-      m.put("description", c.getDescription());
+      User currentUser = loadUser(currentUserEmail);
 
-      String bannerKey = c.getBannerUrl();
-      if (bannerKey != null && !bannerKey.isBlank()) {
-        try {
-          String presignedBanner = s3Service.generatePresignedDownloadUrl(bannerKey, Duration.ofHours(1));
-          m.put("bannerUrl", presignedBanner);
-          m.put("bannerKey", bannerKey);
-        }
-        catch (Exception e) {
-          m.put("bannerUrl", null);
-          m.put("bannerKey", bannerKey);
-        }
-      }
-      else {
-        m.put("bannerUrl", null);
-        m.put("bannerKey", null);
-      }
+      List<Map<String, Object>> communities = communityPage.getContent().stream()
+        .map(c -> buildCommunityDiscoverDTO(c, currentUser))
+        .collect(Collectors.toList());
 
-      String imageKey = c.getImageUrl();
-      if (imageKey != null && !imageKey.isBlank()) {
-        try {
-          String presignedImage = s3Service.generatePresignedDownloadUrl(imageKey, Duration.ofHours(1));
-          m.put("imageUrl", presignedImage);
-          m.put("imageKey", imageKey);
-        }
-        catch (Exception e) {
-          m.put("imageUrl", null);
-          m.put("imageKey", imageKey);
-        }
-      }
-      else {
-        m.put("imageUrl", null);
-        m.put("imageKey", null);
-      }
+      return ResponseEntity.ok(
+        new ApiResponse<>(200,
+          "Discover communities fetched successfully",
+          buildPagedResponse(communityPage, communities))
+      );
 
-      if (c.getCreatedBy() != null) {
-        m.put("createdBy", c.getCreatedBy().getEmail());
-      }
-      m.put("createdAt", c.getCreatedAt());
+    } catch (UsernameNotFoundException | ResourceNotFoundException e) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
+    } catch (Exception e) {
+      return ResponseEntity.internalServerError()
+        .body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
+    }
+  }
 
-      boolean joined = false;
-      String role = null;
-      boolean isBanned = false;
+  private Map<String, Object> buildCommunityDiscoverDTO(Community c, User currentUser) {
+    Map<String, Object> m = new HashMap<>();
+    m.put("communityId", c.getId());
+    m.put("name", c.getName());
+    m.put("description", c.getDescription());
+    m.put("bannerUrl", generatePresignedSafely(c.getBannerUrl()));
+    m.put("bannerKey", c.getBannerUrl());
+    m.put("imageUrl", generatePresignedSafely(c.getImageUrl()));
+    m.put("imageKey", c.getImageUrl());
+    m.put("createdBy", getCreatorEmail(c));
+    m.put("createdAt", c.getCreatedAt());
 
-      Optional<CommunityUser> membership =
-              communityUserRepository.findByCommunityIdAndUserId(c.getId(), currentUser.getId());
+    applyMembershipDetails(m, c, currentUser);
+    applyMemberCount(m, c);
 
-      if (membership.isPresent()) {
-        joined = true;
-        CommunityUser cu = membership.get();
-        role = cu.getRole() != null ? cu.getRole().name() : null;
-        isBanned = cu.isBanned();
-      }
+    return m;
+  }
 
-      m.put("joined", joined);
-      m.put("role", role);
-      m.put("isBanned", isBanned);
+  private String getCreatorEmail(Community c) {
+    return Optional.ofNullable(c.getCreatedBy())
+      .map(User::getEmail)
+      .orElse(null);
+  }
 
-      List<Role> rolesToCount = List.of(Role.MEMBER, Role.ADMIN, Role.WORKSPACE_OWNER);
-      long memberCount = communityUserRepository
-        .countByCommunityIdAndRoleInAndIsBannedFalseAndIsBlockedFalse(c.getId(), rolesToCount);
+  private String generatePresignedSafely(String key) {
+    if (key == null || key.isBlank()) {
+      return null;
+    }
 
-      m.put("memberCount", memberCount);
+    try {
+      return s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1));
+    } catch (Exception e) {
+      return null;
+    }
+  }
 
-      return m;
-    }).collect(Collectors.toList());
+  private void applyMembershipDetails(Map<String, Object> m, Community c, User currentUser) {
 
-    Map<String, Object> body = buildPagedResponse(communityPage, out);
-    return ResponseEntity.ok(new ApiResponse<>(200, "Discover communities fetched successfully",
-      body));
+    Optional<CommunityUser> membership =
+      communityUserRepository.findByCommunityIdAndUserId(c.getId(), currentUser.getId());
+
+    if (membership.isPresent()) {
+      CommunityUser cu = membership.get();
+      m.put("joined", true);
+      m.put("role", cu.getRole() != null ? cu.getRole().name() : null);
+      m.put("isBanned", cu.isBanned());
+    } else {
+      m.put("joined", false);
+      m.put("role", null);
+      m.put("isBanned", false);
+    }
+  }
+
+  private void applyMemberCount(Map<String, Object> m, Community c) {
+    List<Role> rolesToCount = List.of(Role.MEMBER, Role.ADMIN, Role.WORKSPACE_OWNER);
+
+    long memberCount = communityUserRepository
+      .countByCommunityIdAndRoleInAndIsBannedFalseAndIsBlockedFalse(c.getId(), rolesToCount);
+
+    m.put("memberCount", memberCount);
   }
 
   @Override
