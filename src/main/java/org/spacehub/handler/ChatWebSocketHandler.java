@@ -89,16 +89,16 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     }
   }
 
-  public void broadcastMessageToRoom(ChatMessage message) {
-    try {
-      Map<String, Object> payload = buildMessagePayload(message);
-      payload.put("optimistic", false);
-      broadcastToRoom(message.getRoomCode(), payload);
-    }
-    catch (Exception e) {
-      logger.error("Error broadcasting message to room {}", message.getRoomCode(), e);
-    }
-  }
+//  public void broadcastMessageToRoom(ChatMessage message) {
+//    try {
+//      Map<String, Object> payload = buildMessagePayload(message);
+//      payload.put("optimistic", false);
+//      broadcastToRoom(message.getRoomCode(), payload);
+//    }
+//    catch (Exception e) {
+//      logger.error("Error broadcasting message to room {}", message.getRoomCode(), e);
+//    }
+//  }
 
   private Map<String, String> parseQuery(String query) {
     Map<String, String> map = new HashMap<>();
@@ -136,13 +136,15 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     try {
       List<Map<String, Object>> formatted = new ArrayList<>();
       for (ChatMessage message : history) {
-        formatted.add(buildMessagePayload(message));
+        Map<String, Object> payload = buildMessagePayload(message);
+        boolean inMemory = chatMessageQueue.isPending(message.getMessageUuid());
+        payload.put("optimistic", inMemory);
+        formatted.add(payload);
       }
       Map<String, Object> response = Map.of(
               "type", "history",
               "roomCode", newChatRoom.getRoomCode(),
-              "messages", formatted
-      );
+              "messages", formatted);
       session.sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
     }
     catch (IOException e) {
@@ -176,9 +178,9 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
       }
 
       switch (type) {
-        case "FILE" -> handleFileMessage(roomCode, senderEmail, clientPayload);
-        case "DELETE" -> handleDeleteMessage(roomCode, senderEmail, clientPayload);
-        default -> handleTextMessage(roomCode, senderEmail, clientPayload);
+        case "FILE" -> handleFileMessage(roomCode, senderEmail, clientPayload, session);
+        case "DELETE" -> handleDeleteMessage(roomCode, senderEmail, clientPayload, session);
+        default -> handleTextMessage(roomCode, senderEmail, clientPayload, session);
       }
     }
     catch (Exception e) {
@@ -186,12 +188,14 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     }
   }
 
-  private void handleTextMessage(String roomCode, String senderEmail, Map<String, Object> payload) throws IOException {
+  private void handleTextMessage(String roomCode, String senderEmail, Map<String, Object> payload, WebSocketSession senderSession) throws IOException {
     var optionalRoom = newChatRoomService.getEntityByCode(UUID.fromString(roomCode));
-    if (optionalRoom.isEmpty()) return;
+    if (optionalRoom.isEmpty()) {
+      sendSystemMessage(senderSession, "Chat room not found");
+      return;
+    }
 
     String messageUuid = UUID.randomUUID().toString();
-
     ChatMessage message = ChatMessage.builder()
             .messageUuid(messageUuid)
             .senderEmail(senderEmail)
@@ -209,16 +213,24 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     broadcastToRoom(roomCode, messagePayload);
   }
 
-  private void handleFileMessage(String roomCode, String senderEmail, Map<String, Object> payload) throws IOException {
+  private void handleFileMessage(String roomCode, String senderEmail, Map<String, Object> payload, WebSocketSession senderSession) throws IOException {
     var optionalRoom = newChatRoomService.getEntityByCode(UUID.fromString(roomCode));
-    if (optionalRoom.isEmpty()) return;
+    if (optionalRoom.isEmpty()) {
+      sendSystemMessage(senderSession, "Chat room not found");
+      return;
+    }
 
     String messageUuid = UUID.randomUUID().toString();
     String fileKey = (String) payload.get("fileKey");
     String fileName = (String) payload.get("fileName");
     String contentType = (String) payload.get("contentType");
 
-    String previewUrl = s3Service.generatePresignedDownloadUrl(fileKey, Duration.ofMinutes(15));
+    String previewUrl = null;
+    if (fileKey != null) {
+      try {
+        previewUrl = s3Service.generatePresignedDownloadUrl(fileKey, Duration.ofMinutes(15));
+      } catch (Exception ignored) { }
+    }
 
     ChatMessage message = ChatMessage.builder()
             .messageUuid(messageUuid)
@@ -240,7 +252,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     broadcastToRoom(roomCode, messagePayload);
   }
 
-  private void handleDeleteMessage(String roomCode, String senderEmail, Map<String, Object> payload) throws IOException {
+  private void handleDeleteMessage(String roomCode, String senderEmail, Map<String, Object> payload, WebSocketSession senderSession) throws IOException {
     Object uuidObj = payload.get("messageUuid");
     if (uuidObj == null) {
       sendSystemMessage(findSessionFor(roomCode, senderEmail), "Missing messageUuid for DELETE action");
