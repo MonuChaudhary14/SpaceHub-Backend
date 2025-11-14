@@ -1,6 +1,7 @@
 package org.spacehub.service.serviceAuth;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
 import org.spacehub.entities.OTP.OtpType;
 import org.spacehub.entities.Auth.RegistrationRequest;
 import org.spacehub.entities.User.User;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.security.SecureRandom;
 
 @Service
+@RequiredArgsConstructor
 public class OTPService implements IOTPService {
 
   private final RedisService redisService;
@@ -29,16 +31,6 @@ public class OTPService implements IOTPService {
   private static final int TEMP_REGISTRATION_EXPIRE = 600;
   private static final int BLOCK_DURATION = 300;
   private static final int TEMP_TOKEN_EXPIRE = 2592000;
-
-  public OTPService(RedisService redisService, IEmailService emailService, SmsService smsService, EmailValidator emailValidator,
-                    PhoneNumberValidator phoneNumberValidator, VerificationService verificationService) {
-    this.redisService = redisService;
-    this.emailService = emailService;
-    this.smsService = smsService;
-    this.emailValidator = emailValidator;
-    this.phoneNumberValidator = phoneNumberValidator;
-    this.verificationService = verificationService;
-  }
 
   private String generateOtp() {
     int otp = 100000 + random.nextInt(900000);

@@ -1,6 +1,7 @@
 package org.spacehub.service.serviceAuth;
 
-import lombok.Getter;
+import lombok.Data;
+import lombok.RequiredArgsConstructor;
 import org.spacehub.service.serviceAuth.authInterfaces.IRedisService;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -8,15 +9,12 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
-@Getter
+@Data
 @Service
+@RequiredArgsConstructor
 public class RedisService implements IRedisService {
 
   private final StringRedisTemplate redisTemplate;
-
-  public RedisService(StringRedisTemplate redisTemplate) {
-    this.redisTemplate = redisTemplate;
-  }
 
   public void saveValue(String key, String value, long ttlSeconds) {
     redisTemplate.opsForValue().set(key, value, Duration.ofSeconds(ttlSeconds));

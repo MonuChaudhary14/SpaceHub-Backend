@@ -1,5 +1,6 @@
 package org.spacehub.service.LocalRoom;
 
+import lombok.RequiredArgsConstructor;
 import org.spacehub.DTO.LocalGroup.DeleteLocalGroupRequest;
 import org.spacehub.DTO.LocalGroup.JoinLocalGroupRequest;
 import org.spacehub.DTO.LocalGroup.LocalGroupMemberDTO;
@@ -30,6 +31,7 @@ import java.util.*;
 
 @Transactional
 @Service
+@RequiredArgsConstructor
 public class LocalGroupService implements ILocalGroupService {
 
   private final LocalGroupRepository localGroupRepository;
@@ -42,15 +44,6 @@ public class LocalGroupService implements ILocalGroupService {
     public ResourceNotFoundException(String message) {
       super(message);
     }
-  }
-
-  public LocalGroupService(LocalGroupRepository localGroupRepository, UserRepository userRepository,
-                           S3Service s3Service, S3UrlHelper s3UrlHelper, LocalGroupInviteRepository inviteRepository) {
-    this.localGroupRepository = localGroupRepository;
-    this.userRepository = userRepository;
-    this.s3Service = s3Service;
-    this.s3UrlHelper = s3UrlHelper;
-    this.inviteRepository = inviteRepository;
   }
 
   public ResponseEntity<ApiResponse<LocalGroupResponse>> createLocalGroup(

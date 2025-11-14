@@ -1,5 +1,6 @@
 package org.spacehub.service.serviceAuth;
 
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spacehub.service.serviceAuth.authInterfaces.ISmsService;
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 @Service
+@RequiredArgsConstructor
 public class SmsService implements ISmsService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SmsService.class);

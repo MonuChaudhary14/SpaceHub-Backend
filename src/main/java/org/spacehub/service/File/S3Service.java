@@ -1,5 +1,6 @@
 package org.spacehub.service.File;
 
+import lombok.RequiredArgsConstructor;
 import org.spacehub.service.Interface.IS3Service;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,7 @@ import java.time.Duration;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class S3Service implements IS3Service {
 
   private final S3Client s3Client;
@@ -22,11 +24,6 @@ public class S3Service implements IS3Service {
 
   @Value("${aws.s3.bucket}")
   private String bucketName;
-
-  public S3Service(S3Client s3Client, S3Presigner s3Presigner) {
-    this.s3Client = s3Client;
-    this.s3Presigner = s3Presigner;
-  }
 
   public void uploadFile(String key, InputStream inputStream, long contentLength) {
     PutObjectRequest request = PutObjectRequest.builder()

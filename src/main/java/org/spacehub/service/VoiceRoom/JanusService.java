@@ -1,6 +1,7 @@
 package org.spacehub.service.VoiceRoom;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,6 +15,7 @@ import java.util.concurrent.*;
 import java.util.function.Consumer;
 
 @Service
+@RequiredArgsConstructor
 public class JanusService {
 
   private static final Logger logger = LoggerFactory.getLogger(JanusService.class);

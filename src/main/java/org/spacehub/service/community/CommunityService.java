@@ -1,5 +1,6 @@
 package org.spacehub.service.community;
 
+import lombok.RequiredArgsConstructor;
 import org.spacehub.DTO.Community.CommunityMemberDTO;
 import org.spacehub.DTO.Community.CommunityMemberRequest;
 import org.spacehub.DTO.Community.CommunityPendingRequestDTO;
@@ -51,6 +52,7 @@ import java.util.stream.Collectors;
 import java.io.IOException;
 import java.time.LocalDateTime;
 
+@RequiredArgsConstructor
 @Transactional
 @Service
 public class CommunityService implements ICommunityService {
@@ -69,21 +71,6 @@ public class CommunityService implements ICommunityService {
     public ResourceNotFoundException(String message) {
       super(message);
     }
-  }
-
-  public CommunityService(CommunityRepository communityRepository, UserRepository userRepository,
-                          ChatRoomRepository chatRoomRepository, S3Service s3Service,
-                          CommunityUserRepository communityUserRepository, S3UrlHelper s3UrlHelper,
-                          NotificationRepository notificationRepository,
-                          NotificationService notificationService) {
-    this.communityRepository = communityRepository;
-    this.userRepository = userRepository;
-    this.chatRoomRepository = chatRoomRepository;
-    this.communityUserRepository = communityUserRepository;
-    this.s3Service = s3Service;
-    this.s3UrlHelper = s3UrlHelper;
-    this.notificationRepository = notificationRepository;
-    this.notificationService = notificationService;
   }
 
   public ResponseEntity<ApiResponse<Map<String, Object>>> createCommunity(

@@ -1,5 +1,6 @@
 package org.spacehub.service.serviceAuth;
 
+import lombok.RequiredArgsConstructor;
 import org.spacehub.DTO.DTO_auth.LoginRequest;
 import org.spacehub.DTO.DTO_auth.OTPRequest;
 import org.spacehub.DTO.DTO_auth.RefreshRequest;
@@ -19,6 +20,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class UserAccountService implements IUserAccountService {
 
   private final VerificationService verificationService;
@@ -32,26 +34,6 @@ public class UserAccountService implements IUserAccountService {
   private final UserNameService userNameService;
   private static final int TEMP_TOKEN_EXPIRE = 300;
   private static final long FORGOT_TOKEN_EXPIRE_SECONDS = 2_592_000L;
-
-  public UserAccountService(VerificationService verificationService,
-                            EmailValidator emailValidator,
-                            PhoneNumberValidator phoneNumberValidator, // New
-                            OTPService otpService,
-                            UserService userService,
-                            RefreshTokenService refreshTokenService,
-                            PasswordEncoder passwordEncoder,
-                            RedisService redisService,
-                            UserNameService userNameService) {
-    this.verificationService = verificationService;
-    this.emailValidator = emailValidator;
-    this.phoneNumberValidator = phoneNumberValidator; // New
-    this.otpService = otpService;
-    this.userService = userService;
-    this.refreshTokenService = refreshTokenService;
-    this.passwordEncoder = passwordEncoder;
-    this.redisService = redisService;
-    this.userNameService = userNameService;
-  }
 
   public ApiResponse<TokenResponse> login(LoginRequest request) {
 

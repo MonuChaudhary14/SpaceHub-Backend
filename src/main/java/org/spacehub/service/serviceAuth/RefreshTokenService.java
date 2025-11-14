@@ -1,5 +1,6 @@
 package org.spacehub.service.serviceAuth;
 
+import lombok.RequiredArgsConstructor;
 import org.spacehub.entities.Auth.RefreshToken;
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.User.RefreshTokenRepository;
@@ -9,14 +10,11 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
 @Service
+@RequiredArgsConstructor
 public class RefreshTokenService implements IRefreshTokenService {
 
   private final RefreshTokenRepository refreshTokenRepository;
   private static final long refreshTokenDay = 365;
-
-  public RefreshTokenService(RefreshTokenRepository refreshTokenRepository) {
-    this.refreshTokenRepository = refreshTokenRepository;
-  }
 
   public RefreshToken createRefreshToken(User user) {
     Instant now = Instant.now();

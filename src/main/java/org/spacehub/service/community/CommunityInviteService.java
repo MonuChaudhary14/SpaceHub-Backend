@@ -1,5 +1,6 @@
 package org.spacehub.service.community;
 
+import lombok.RequiredArgsConstructor;
 import org.spacehub.DTO.Community.CommunityInviteAcceptDTO;
 import org.spacehub.DTO.Community.CommunityInviteRequestDTO;
 import org.spacehub.DTO.Community.CommunityInviteResponseDTO;
@@ -29,6 +30,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Transactional
+@RequiredArgsConstructor
 @Service
 public class CommunityInviteService implements ICommunityInviteService {
 
@@ -37,19 +39,6 @@ public class CommunityInviteService implements ICommunityInviteService {
   private final CommunityUserRepository communityUserRepository;
   private final UserRepository userRepository;
   private final NotificationService notificationService;
-
-  public CommunityInviteService(
-          CommunityInviteRepository inviteRepository,
-          CommunityRepository communityRepository,
-          CommunityUserRepository communityUserRepository,
-          UserRepository userRepository,
-          NotificationService notificationService) {
-    this.inviteRepository = inviteRepository;
-    this.communityRepository = communityRepository;
-    this.communityUserRepository = communityUserRepository;
-    this.userRepository = userRepository;
-    this.notificationService = notificationService;
-  }
 
   private String generateInviteCode() {
     return UUID.randomUUID().toString().substring(0, 8);
@@ -197,23 +186,6 @@ public class CommunityInviteService implements ICommunityInviteService {
     }
 
     return invite;
-  }
-
-  private boolean isAlreadyMember(Community community, User user) {
-    return community.getMembers().stream()
-      .anyMatch(u -> u.getId().equals(user.getId()));
-  }
-
-  private void addUserToCommunity(Community community, User user) {
-    community.getMembers().add(user);
-    communityRepository.save(community);
-
-    CommunityUser communityUser = new CommunityUser();
-    communityUser.setCommunity(community);
-    communityUser.setUser(user);
-    communityUser.setRole(Role.MEMBER);
-    communityUser.setJoinDate(LocalDateTime.now());
-    communityUserRepository.save(communityUser);
   }
 
   private void incrementInviteUsage(CommunityInvite invite) {

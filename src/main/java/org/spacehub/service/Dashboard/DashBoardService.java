@@ -1,5 +1,6 @@
 package org.spacehub.service.Dashboard;
 
+import lombok.RequiredArgsConstructor;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.User.UserRepository;
@@ -25,20 +26,13 @@ import java.util.function.Function;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class DashBoardService implements IDashBoardService {
 
   private final UserRepository userRepository;
   private final S3Service s3Service;
   private final PasswordEncoder passwordEncoder;
   private final EmailValidator emailValidator;
-
-  public DashBoardService(UserRepository userRepository, S3Service s3Service, PasswordEncoder passwordEncoder,
-                          EmailValidator emailValidator) {
-    this.userRepository = userRepository;
-    this.s3Service = s3Service;
-    this.passwordEncoder = passwordEncoder;
-    this.emailValidator = emailValidator;
-  }
 
   public ApiResponse<String> saveUsernameByEmail(String email, String username) {
 
