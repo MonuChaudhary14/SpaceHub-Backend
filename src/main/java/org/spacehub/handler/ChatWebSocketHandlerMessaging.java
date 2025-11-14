@@ -89,7 +89,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
         return;
       }
 
-      if (!friendService.areFriends(senderEmail, receiverEmail)) {
+      if (friendService.areFriends(senderEmail, receiverEmail)) {
         sendSystemMessage(session, "You can only chat with friends.");
         session.close(CloseStatus.NOT_ACCEPTABLE);
         return;
@@ -234,7 +234,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
 
   private void handleTextOnlyMessage(String senderEmail, String receiverEmail, Map<String, Object> payload) throws IOException {
 
-    if (!friendService.areFriends(senderEmail, receiverEmail)) {
+    if (friendService.areFriends(senderEmail, receiverEmail)) {
       throw new RuntimeException("Cannot message non-friends.");
     }
 
@@ -256,7 +256,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
 
   private void handleFileMessage(String senderEmail, String receiverEmail, Map<String, Object> payload) throws IOException {
 
-    if (!friendService.areFriends(senderEmail, receiverEmail)) {
+    if (friendService.areFriends(senderEmail, receiverEmail)) {
       throw new RuntimeException("Cannot message non-friends.");
     }
 
