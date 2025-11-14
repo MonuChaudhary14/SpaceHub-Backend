@@ -23,7 +23,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 @Component
 public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
@@ -152,7 +151,8 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
       try {
         if (shouldHideForRequester(message, senderEmail)) continue;
         Map<String, Object> payload = buildPayload(message);
-        payload.put("optimistic", false);
+        boolean pending = messageQueueService.isPending(message.getMessageUuid());
+        payload.put("optimistic", pending);
         addPreviewIfFileQuiet(payload, message.getType(), message.getFileKey());
         formatted.add(payload);
       }
@@ -169,51 +169,23 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
   }
 
   private void processHistoryForReceiver(WebSocketSession session, String senderEmail, String receiverEmail) throws Exception {
-    List<Message> dbMessages = Collections.emptyList();
-    List<Message> pending = Collections.emptyList();
+    List<Message> dbMessages = messageService.getChat(senderEmail, receiverEmail);
+    if (dbMessages == null) dbMessages = Collections.emptyList();
 
-    try {
-      dbMessages = messageService.getChat(senderEmail, receiverEmail);
-      if (dbMessages == null) dbMessages = Collections.emptyList();
-    }
-    catch (Exception e) { dbMessages = Collections.emptyList(); }
+    List<Message> pending = messageQueueService.getPendingForChat(senderEmail, receiverEmail);
+    if (pending == null) pending = Collections.emptyList();
 
-    try {
-      pending = messageQueueService.getPendingForChat(senderEmail, receiverEmail);
-      if (pending == null) pending = Collections.emptyList();
-    }
-    catch (Exception ignored) { pending = Collections.emptyList(); }
-
-    List<Message> filteredDb = dbMessages.stream()
-            .filter(m -> !shouldHideForRequester(m, senderEmail))
-            .filter(m -> m.getDeletedAt() == null)
-            .collect(Collectors.toList());
-
-    List<Message> filteredPending = pending.stream()
-            .filter(m -> !shouldHideForRequester(m, senderEmail))
-            .collect(Collectors.toList());
-
-    List<Map<String, Object>> formatted = new ArrayList<>();
-
-    for (Message message : filteredDb) {
-      try {
-        Map<String, Object> payload = buildPayload(message);
-        payload.put("optimistic", false);
-        addPreviewIfFileQuiet(payload, message.getType(), message.getFileKey());
-        formatted.add(payload);
-      } catch (Exception ignored) {}
+    List<Message> filteredDb = new ArrayList<>();
+    for (Message m : dbMessages) {
+      if (!shouldHideForRequester(m, senderEmail) && m.getDeletedAt() == null) filteredDb.add(m);
     }
 
-    for (Message message : filteredPending) {
-      try {
-        Map<String, Object> payload = buildPayload(message);
-        payload.put("optimistic", true);
-        addPreviewIfFileQuiet(payload, message.getType(), message.getFileKey());
-        formatted.add(payload);
-      } catch (Exception ignored) {}
+    List<Message> filteredPending = new ArrayList<>();
+    for (Message m : pending) {
+      if (!shouldHideForRequester(m, senderEmail)) filteredPending.add(m);
     }
 
-    formatted.sort(Comparator.comparingLong(m -> ((Number) m.get("timestamp")).longValue()));
+    List<Map<String, Object>> formatted = mergeAndFormatMessages(filteredDb, filteredPending);
 
     Map<String, Object> payload = Map.of(
             "type", "history",
@@ -222,37 +194,67 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
     session.sendMessage(new TextMessage(objectMapper.writeValueAsString(payload)));
   }
 
+  private List<Map<String, Object>> mergeAndFormatMessages(List<Message> dbMessages, List<Message> pendingMessages) {
+    Map<String, MessageEntry> byUuid = new LinkedHashMap<>();
+
+    for (Message m : dbMessages) {
+      byUuid.put(m.getMessageUuid(), new MessageEntry(m, false));
+    }
+
+    for (Message m : pendingMessages) {
+      byUuid.put(m.getMessageUuid(), new MessageEntry(m, true));
+    }
+
+    List<MessageEntry> entries = new ArrayList<>(byUuid.values());
+
+    entries.sort((a, b) -> {
+      long ta = a.msg.getTimestamp() == null ? 0L : a.msg.getTimestamp();
+      long tb = b.msg.getTimestamp() == null ? 0L : b.msg.getTimestamp();
+      int cmp = Long.compare(ta, tb);
+      if (cmp != 0) return cmp;
+      return a.msg.getMessageUuid().compareTo(b.msg.getMessageUuid());
+    });
+
+    List<Map<String, Object>> formatted = new ArrayList<>();
+    for (MessageEntry e : entries) {
+      try {
+        Map<String, Object> payload = buildPayload(e.msg);
+        payload.put("optimistic", e.optimistic);
+        addPreviewIfFileQuiet(payload, e.msg.getType(), e.msg.getFileKey());
+        formatted.add(payload);
+      } catch (Exception ignored) {}
+    }
+    return formatted;
+  }
+
+  private static class MessageEntry {
+    final Message msg;
+    final boolean optimistic;
+    MessageEntry(Message m, boolean o) { this.msg = m; this.optimistic = o; }
+  }
+
   private boolean shouldHideForRequester(Message m, String requesterEmail) {
     if (m == null || requesterEmail == null) return false;
-    try {
-      if (requesterEmail.equalsIgnoreCase(m.getSenderEmail()) && Boolean.TRUE.equals(m.getSenderDeleted())) return true;
-      if (requesterEmail.equalsIgnoreCase(m.getReceiverEmail()) && Boolean.TRUE.equals(m.getReceiverDeleted())) return true;
-      return m.getDeletedAt() != null;
-    } catch (Exception e) {
-      return false;
-    }
+    if (requesterEmail.equalsIgnoreCase(m.getSenderEmail()) && Boolean.TRUE.equals(m.getSenderDeleted())) return true;
+    if (requesterEmail.equalsIgnoreCase(m.getReceiverEmail()) && Boolean.TRUE.equals(m.getReceiverDeleted())) return true;
+    return m.getDeletedAt() != null;
   }
 
   private void sendChatSummary(WebSocketSession session, String senderEmail) throws Exception {
-    List<String> partners;
-    try {
-      partners = messageService.getAllChatPartners(senderEmail);
-    } catch (Exception e) {
-      sendSystemMessage(session, "Unable to load chat partners.");
-      return;
-    }
-
+    List<String> partners = messageService.getAllChatPartners(senderEmail);
     if (partners == null || partners.isEmpty()) {
       Map<String, Object> empty = Map.of("type", "chatSummary", "rooms", List.of());
       session.sendMessage(new TextMessage(objectMapper.writeValueAsString(empty)));
       return;
     }
 
-    List<Map<String, Object>> summary = partners.stream()
-            .map(partner -> Map.<String, Object>of(
-                    "chatPartner", partner,
-                    "unreadCount", messageService.countUnreadMessagesInChat(senderEmail, partner)
-            )).toList();
+    List<Map<String, Object>> summary = new ArrayList<>();
+    for (String partner : partners) {
+      summary.add(Map.of(
+              "chatPartner", partner,
+              "unreadCount", messageService.countUnreadMessagesInChat(senderEmail, partner)
+      ));
+    }
 
     Map<String, Object> summaryPayload = Map.of("type", "chatSummary", "rooms", summary);
     session.sendMessage(new TextMessage(objectMapper.writeValueAsString(summaryPayload)));
@@ -263,7 +265,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
       try {
         String previewUrl = s3Service.generatePresignedDownloadUrl(fileKey, Duration.ofMinutes(10));
         payload.put("previewUrl", previewUrl);
-      } catch (Exception ignored) { }
+      } catch (Exception ignored) {}
     }
   }
 
@@ -396,9 +398,9 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
     }
 
     String messageUuid = uuidObj.toString();
-    boolean deleted = messageQueueService.deleteMessageByUuid(messageUuid);
+    boolean removedFromMemoryOrDb = messageQueueService.deleteMessageByUuid(messageUuid);
 
-    if (!deleted) {
+    if (!removedFromMemoryOrDb) {
       sendSystemMessage(senderSession, "Message not found or already deleted");
       return;
     }
@@ -480,7 +482,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
 
   @Override
   public void afterConnectionClosed(@NonNull WebSocketSession session, @NonNull CloseStatus status) {
-    Map<String, String> meta = sessionMetadata.remove(session);
+    sessionMetadata.remove(session);
     String email = userSessions.remove(session);
     String room = sessionRoom.remove(session);
 
@@ -501,7 +503,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
 
   @Override
   public void handleTransportError(@NonNull WebSocketSession session, @NonNull Throwable exception) throws Exception {
-    Map<String, String> meta = sessionMetadata.remove(session);
+    sessionMetadata.remove(session);
     String email = userSessions.remove(session);
     String room = sessionRoom.remove(session);
 
@@ -547,6 +549,30 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
             "timestamp", Instant.now().toEpochMilli()
     );
     session.sendMessage(new TextMessage(objectMapper.writeValueAsString(sys)));
+  }
+
+  public void confirmAndBroadcast(Message message) {
+    try {
+      Map<String, Object> payload = buildPayload(message);
+      payload.put("optimistic", false);
+
+      Map<String, Object> confirm = Map.of(
+              "type", "CONFIRM",
+              "messageUuid", message.getMessageUuid(),
+              "messageId", message.getId(),
+              "timestamp", message.getTimestamp(),
+              "message", payload
+      );
+
+      try {
+        sendToUsers(Set.of(message.getSenderEmail(), message.getReceiverEmail()), confirm);
+      } catch (IOException ignored) {}
+
+      try {
+        sendToUsers(Set.of(message.getSenderEmail(), message.getReceiverEmail()), payload);
+      } catch (IOException ignored) {}
+
+    } catch (Exception ignored) {}
   }
 
   public void broadcastMessageToUsers(Message message) {

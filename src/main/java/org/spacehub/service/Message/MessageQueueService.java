@@ -68,7 +68,7 @@ public class MessageQueueService implements IMessageQueueService {
       if (messagingHandler != null && persisted != null) {
         for (Message persistedMessage : persisted) {
           try {
-            messagingHandler.broadcastMessageToUsers(persistedMessage);
+            messagingHandler.confirmAndBroadcast(persistedMessage);
           } catch (Exception ignored) {}
         }
       }

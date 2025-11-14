@@ -44,6 +44,6 @@ public interface IMessageService {
   boolean deleteMessageByUuid(String messageUuid);
 
   ResponseEntity<?> handleDeleteRequest(Long id, String requesterEmail, boolean forEveryone);
+
   ResponseEntity<?> handleHardDeleteRequest(Long id);
 }
-

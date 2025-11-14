@@ -2,6 +2,7 @@ package org.spacehub.entities.DirectMessaging;
 
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.util.UUID;
 
 @Entity

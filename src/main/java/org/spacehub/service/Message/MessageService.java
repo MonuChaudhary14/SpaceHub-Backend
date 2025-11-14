@@ -151,11 +151,16 @@ public class MessageService implements IMessageService {
     return repo.countUnreadMessagesInChat(userEmail, chatPartner);
   }
 
+  @Override
   @Transactional
   public boolean deleteMessageByUuid(String messageUuid) {
     Optional<Message> message = repo.findByMessageUuid(messageUuid);
     if (message.isPresent()) {
-      repo.deleteByMessageUuid(messageUuid);
+      Message m = message.get();
+      m.setSenderDeleted(true);
+      m.setReceiverDeleted(true);
+      m.setDeletedAt(java.time.Instant.now().toEpochMilli());
+      repo.save(m);
       return true;
     }
     return false;
