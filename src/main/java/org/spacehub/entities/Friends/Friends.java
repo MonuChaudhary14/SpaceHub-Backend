@@ -31,4 +31,6 @@ public class Friends {
 
   private LocalDateTime createdAt = LocalDateTime.now();
 
+  private UUID notificationReference;
+
 }

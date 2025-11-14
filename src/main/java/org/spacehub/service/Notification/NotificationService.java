@@ -44,7 +44,8 @@ public class NotificationService implements INotificationService {
     Community community = null;
     if (request.getCommunityId() != null) {
       community = communityRepository.findById(request.getCommunityId())
-              .orElseThrow(() -> new RuntimeException("Community not found with ID: " + request.getCommunityId()));
+              .orElseThrow(() -> new RuntimeException("Community not found with ID: " +
+                request.getCommunityId()));
     }
 
     String title = request.getTitle();
@@ -88,31 +89,36 @@ public class NotificationService implements INotificationService {
 
         case COMMUNITY_JOINED:
           title = title != null ? title : senderName + " joined the community";
-          message = message != null ? message : (senderName + " is now a member of " + (communityName != null ? communityName : "the community"));
+          message = message != null ? message : (senderName + " is now a member of " + (communityName != null ?
+            communityName : "the community"));
           if (scope == null) scope = "community";
           break;
 
         case COMMUNITY_REQUEST_ACCEPTED:
           title = title != null ? title : "Community Join Request Accepted";
-          message = message != null ? message : "Your request to join " + (communityName != null ? communityName : "the community") + " has been accepted.";
+          message = message != null ? message : "Your request to join " + (communityName != null ? communityName :
+            "the community") + " has been accepted.";
           if (scope == null) scope = "community";
           break;
 
         case COMMUNITY_INVITE_REVOKED:
           title = title != null ? title : "Community Invite Revoked";
-          message = message != null ? message : "Your invite to join " + (communityName != null ? communityName : "the community") + " has been revoked.";
+          message = message != null ? message : "Your invite to join " + (communityName != null ? communityName :
+            "the community") + " has been revoked.";
           if (scope == null) scope = "community";
           break;
 
         case COMMUNITY_MEMBER_LEFT:
           title = title != null ? title : senderName + " left the community";
-          message = message != null ? message : senderName + " is no longer a member of " + (communityName != null ? communityName : "the community");
+          message = message != null ? message : senderName + " is no longer a member of " +
+            (communityName != null ? communityName : "the community");
           if (scope == null) scope = "community";
           break;
 
         case COMMUNITY_MEMBER_REMOVED:
           title = title != null ? title : "Removed from Community";
-          message = message != null ? message : "You have been removed from " + (communityName != null ? communityName : "the community");
+          message = message != null ? message : "You have been removed from " + (communityName != null ?
+            communityName : "the community");
           if (scope == null) scope = "community";
           break;
 
@@ -198,7 +204,7 @@ public class NotificationService implements INotificationService {
     if (scope != null && !scope.isBlank()) {
       list = list.stream()
               .filter(n -> scope.equalsIgnoreCase(n.getScope()))
-              .collect(Collectors.toList());
+              .toList();
     }
 
     int start = page * size;
@@ -254,13 +260,8 @@ public class NotificationService implements INotificationService {
   @Override
   @Transactional(readOnly = true)
   public long countUnreadNotifications(String email) {
-    return notificationRepository.findByRecipientEmailOrderByCreatedAtDesc(email).stream().filter(n -> !n.isRead()).count();
-  }
-
-  @Transactional(readOnly = true)
-  public List<NotificationResponseDTO> getAllNotificationsForWebSocket(String email) {
-    List<Notification> list = notificationRepository.findAllByRecipientWithDetails(email);
-    return list.stream().map(this::mapToDTO).collect(Collectors.toList());
+    return notificationRepository.findByRecipientEmailOrderByCreatedAtDesc(email).stream()
+      .filter(n -> !n.isRead()).count();
   }
 
   @Override
@@ -297,25 +298,6 @@ public class NotificationService implements INotificationService {
             .build();
   }
 
-  @Transactional
-  public void deleteActionableByReference(UUID referenceId) {
-    if (referenceId == null) return;
-    notificationRepository.deleteActionableByReference(referenceId);
-  }
-
-  public void sendFriendRequestNotification(User sender, User recipient) {
-    NotificationRequestDTO request = NotificationRequestDTO.builder()
-            .senderEmail(sender.getEmail())
-            .email(recipient.getEmail())
-            .type(NotificationType.FRIEND_REQUEST)
-            .scope("friend")
-            .actionable(true)
-            .referenceId(UUID.randomUUID())
-            .build();
-
-    createNotification(request);
-  }
-
   public void sendLocalGroupJoinNotification(User newMember, User inviter, UUID groupId) {
     NotificationRequestDTO request = NotificationRequestDTO.builder()
             .senderEmail(newMember.getEmail())
@@ -328,5 +310,31 @@ public class NotificationService implements INotificationService {
 
     createNotification(request);
   }
+
+  @Transactional
+  public void deleteActionableByReference(UUID referenceId) {
+    if (referenceId == null) return;
+
+    notificationRepository.deleteActionableByReference(referenceId);
+  }
+
+  @Override
+  public void sendFriendRequestNotification(User sender, User recipient) {
+    sendFriendRequestNotification(sender, recipient, UUID.randomUUID());
+  }
+
+  public void sendFriendRequestNotification(User sender, User recipient, UUID referenceId) {
+    NotificationRequestDTO request = NotificationRequestDTO.builder()
+      .senderEmail(sender.getEmail())
+      .email(recipient.getEmail())
+      .type(NotificationType.FRIEND_REQUEST)
+      .scope("friend")
+      .actionable(true)
+      .referenceId(referenceId != null ? referenceId : UUID.randomUUID())
+      .build();
+
+    createNotification(request);
+  }
+
 
 }

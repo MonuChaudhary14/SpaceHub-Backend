@@ -40,4 +40,6 @@ public class CommunityInvite {
 
   private LocalDateTime createdAt = LocalDateTime.now();
 
+  private UUID notificationReference;
+
 }

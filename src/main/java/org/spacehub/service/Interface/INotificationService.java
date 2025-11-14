@@ -9,22 +9,24 @@ import java.util.UUID;
 
 public interface INotificationService {
 
-    void createNotification(NotificationRequestDTO request);
+  void createNotification(NotificationRequestDTO request);
 
-    List<NotificationResponseDTO> getUserNotifications(String email, String scope, int page, int size);
+  List<NotificationResponseDTO> getUserNotifications(String email, String scope, int page, int size);
 
-    List<NotificationResponseDTO> fetchAndMarkRead(String email, int page, int size);
+  List<NotificationResponseDTO> fetchAndMarkRead(String email, int page, int size);
 
-    void markAsRead(UUID id);
+  void markAsRead(UUID id);
 
-    void deleteNotification(UUID id);
+  void deleteNotification(UUID id);
 
-    void deleteByPublicId(UUID publicId, String userEmail);
+  void deleteByPublicId(UUID publicId, String userEmail);
 
-    long countUnreadNotifications(String email);
+  long countUnreadNotifications(String email);
 
-    void sendFriendRequestNotification(User sender, User recipient);
+  void sendFriendRequestNotification(User sender, User recipient);
 
-    void sendLocalGroupJoinNotification(User newMember, User inviter, UUID groupId);
+  void sendLocalGroupJoinNotification(User newMember, User inviter, UUID groupId);
+
+  void deleteActionableByReference(UUID referenceId);
 
 }

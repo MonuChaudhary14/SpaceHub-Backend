@@ -88,6 +88,21 @@ public class CommunityInviteService implements ICommunityInviteService {
 
     inviteRepository.save(invite);
 
+    UUID notifRef = UUID.randomUUID();
+    invite.setNotificationReference(notifRef);
+    inviteRepository.save(invite);
+
+    NotificationRequestDTO notif = NotificationRequestDTO.builder()
+      .senderEmail(invite.getInviterEmail())
+      .type(NotificationType.COMMUNITY_INVITE)
+      .scope("community")
+      .actionable(true)
+      .referenceId(notifRef)
+      .communityId(communityId)
+      .build();
+
+    notificationService.createNotification(notif);
+
     String inviteLink = String.format("https://codewithketan.me/invite/%s/%s", communityId, invite.getInviteCode());
 
     CommunityInviteResponseDTO response = CommunityInviteResponseDTO.builder()
@@ -123,6 +138,11 @@ public class CommunityInviteService implements ICommunityInviteService {
     CommunityInvite invite = validateInvite(inviteCode, communityId);
     if (invite == null) {
       return new ApiResponse<>(400, "Invalid or expired invite", null);
+    }
+
+    UUID notifRef = invite.getNotificationReference();
+    if (notifRef != null) {
+      notificationService.deleteActionableByReference(notifRef);
     }
 
     boolean isMember = communityUserRepository.findByCommunityAndUser(community, user).isPresent();
@@ -223,6 +243,10 @@ public class CommunityInviteService implements ICommunityInviteService {
     }
 
     CommunityInvite invite = optionalInvite.get();
+    UUID ref = invite.getNotificationReference();
+    if (ref != null) {
+      notificationService.deleteActionableByReference(ref);
+    }
     inviteRepository.delete(invite);
 
     NotificationRequestDTO notification = NotificationRequestDTO.builder()
