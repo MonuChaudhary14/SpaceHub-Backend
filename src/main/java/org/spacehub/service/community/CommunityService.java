@@ -2286,4 +2286,19 @@ public class CommunityService implements ICommunityService {
         }
       });
   }
+
+  @Override
+  public ResponseEntity<?> checkCommunityNameExists(String name) {
+    if (name == null || name.isBlank()) {
+      return ResponseEntity.badRequest()
+        .body(new ApiResponse<>(400, "name is required", null));
+    }
+
+    boolean exists = communityRepository.existsByNameIgnoreCase(name.trim());
+
+    return ResponseEntity.ok(
+      new ApiResponse<>(200, "Check completed", Map.of("exists", exists))
+    );
+  }
+
 }
