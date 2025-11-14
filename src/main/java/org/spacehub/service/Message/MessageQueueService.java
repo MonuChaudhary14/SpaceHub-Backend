@@ -85,12 +85,6 @@ public class MessageQueueService implements IMessageQueueService {
     return new ArrayList<>(pending);
   }
 
-  public boolean isPending(String messageUuid) {
-    return pendingByChat.values().stream()
-            .flatMap(Collection::stream)
-            .anyMatch(m -> Objects.equals(m.getMessageUuid(), messageUuid));
-  }
-
   private String buildChatKey(String a, String b) {
     if (a == null || b == null) return a + "::" + b;
     String lowerA = a.toLowerCase();

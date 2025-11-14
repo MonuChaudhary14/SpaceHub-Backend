@@ -35,7 +35,7 @@ public class MessageService implements IMessageService {
     return repo.getChatAsc(user1, user2);
   }
 
-    @Override
+  @Override
   public List<Message> getAllMessagesForUser(String email) {
     return repo.findBySenderEmailOrReceiverEmailOrderByTimestampDesc(email, email);
   }

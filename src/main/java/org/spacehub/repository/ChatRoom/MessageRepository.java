@@ -15,7 +15,7 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
   @Query("""
       SELECT m
       FROM Message m
-      WHERE 
+      WHERE
           (m.senderEmail = :user1 AND m.receiverEmail = :user2)
           OR
           (m.senderEmail = :user2 AND m.receiverEmail = :user1)
@@ -54,7 +54,7 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
   @Query("""
       SELECT COUNT(m)
       FROM Message m
-      WHERE 
+      WHERE
           m.senderEmail = :chatPartner
           AND m.receiverEmail = :userEmail
           AND m.readStatus = false
