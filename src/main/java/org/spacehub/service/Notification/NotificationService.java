@@ -29,14 +29,16 @@ public class NotificationService implements INotificationService {
   private final CommunityRepository communityRepository;
   private final NotificationWebSocketHandler notificationWebSocketHandler;
 
-  @Override
   public void createNotification(NotificationRequestDTO request) {
 
     User recipient = userRepository.findByEmail(request.getEmail())
             .orElseThrow(() -> new RuntimeException("User not found: " + request.getEmail()));
 
-    User sender = userRepository.findByEmail(request.getSenderEmail())
-            .orElseThrow(() -> new RuntimeException("Sender not found: " + request.getSenderEmail()));
+    User sender = null;
+    if (request.getSenderEmail() != null) {
+      sender = userRepository.findByEmail(request.getSenderEmail())
+              .orElseThrow(() -> new RuntimeException("Sender not found: " + request.getSenderEmail()));
+    }
 
     Community community = null;
     if (request.getCommunityId() != null) {
@@ -47,26 +49,105 @@ public class NotificationService implements INotificationService {
     String title = request.getTitle();
     String message = request.getMessage();
 
-    if (request.getType() != null) {
-      switch (request.getType()) {
+    NotificationType type = request.getType();
+
+    if (type != null) {
+      switch (type) {
+
+        case FRIEND_REQUEST:
+          if (sender == null) break;
+          title = title != null ? title : sender.getUsername() + " sent you a friend request";
+          message = message != null ? message : sender.getUsername() + " wants to connect with you.";
+          break;
+
         case FRIEND_ACCEPTED:
-          title = sender.getUsername() + " accepted your friend request";
-          message = "You are now friends with " + sender.getUsername();
+          if (sender == null) break;
+          title = title != null ? title : sender.getUsername() + " accepted your friend request";
+          message = message != null ? message : "You and " + sender.getUsername() + " are now friends!";
           break;
+
+        case FRIEND_REJECTED:
+          if (sender == null) break;
+          title = title != null ? title : sender.getUsername() + " rejected your request";
+          message = message != null ? message : sender.getUsername() + " declined your friend request.";
+          break;
+
         case COMMUNITY_INVITE:
-          title = "Community Invite: " + (community != null ? community.getName() : "");
-          message = sender.getUsername() + " invited you to join the community.";
+          if (sender == null) break;
+          title = title != null ? title :
+                  "Community Invite" + (community != null ? ": " + community.getName() : "");
+          message = message != null ? message : sender.getUsername() + " invited you to join this community.";
           break;
+
+        case COMMUNITY_JOINED:
+          if (sender == null || community == null) break;
+          title = title != null ? title : sender.getUsername() + " joined the community";
+          message = message != null ? message : sender.getUsername() + " is now a member of " + community.getName();
+          break;
+
+        case COMMUNITY_REQUEST_ACCEPTED:
+          if (community == null) break;
+          title = title != null ? title : "Community Join Request Accepted";
+          message = message != null ? message : "Your request to join " + community.getName() + " has been accepted.";
+          break;
+
+        case COMMUNITY_INVITE_REVOKED:
+          if (community == null) break;
+          title = title != null ? title : "Community Invite Revoked";
+          message = message != null ? message : "Your invite to join " + community.getName() + " has been revoked.";
+          break;
+
+        case COMMUNITY_MEMBER_LEFT:
+          if (sender == null || community == null) break;
+          title = title != null ? title : sender.getUsername() + " left the community";
+          message = message != null ? message : sender.getUsername() + " is no longer a member of " + community.getName();
+          break;
+
+        case COMMUNITY_MEMBER_REMOVED:
+          if (community == null) break;
+          title = title != null ? title : "Removed from Community";
+          message = message != null ? message : "You have been removed from " + community.getName();
+          break;
+
         case LOCAL_GROUP_INVITE:
-          title = "Local Group Invitation";
-          message = sender.getUsername() + " invited you to join a local group.";
+          if (sender == null) break;
+          title = title != null ? title : "Local Group Invitation";
+          message = message != null ? message : sender.getUsername() + " invited you to join a local group.";
           break;
+
+        case LOCAL_GROUP_JOIN:
+          if (sender == null) break;
+          title = title != null ? title : sender.getUsername() + " joined the local group";
+          message = message != null ? message : sender.getUsername() + " is now part of the local group.";
+          break;
+
+        case REPORT_MESSAGE_DIRECT:
+          title = title != null ? title : "Direct Message Report Submitted";
+          message = message != null ? message : "A direct message report has been filed.";
+          break;
+
+        case REPORT_MESSAGE_CHATROOM:
+          title = title != null ? title : "Chatroom Message Report Submitted";
+          message = message != null ? message : "A chatroom message was reported.";
+          break;
+
+        case REPORT_REVIEW:
+          title = title != null ? title : "Your Report Has Been Reviewed";
+          message = message != null ? message : "Your report has been reviewed by moderators.";
+          break;
+
+        case COMMUNITY:
+          title = title != null ? title : "Community Update";
+          break;
+
         case SYSTEM_UPDATE:
-          title = "System Update";
-          message = "New feature or announcement: " + request.getMessage();
+          title = title != null ? title : "System Update";
+          message = message != null ? message : "A system update is available.";
           break;
+
         default:
-          break;
+          if (title == null) title = "Notification";
+          if (message == null) message = "You have a new notification.";
       }
     }
 
@@ -78,7 +159,7 @@ public class NotificationService implements INotificationService {
             .recipient(recipient)
             .sender(sender)
             .community(community)
-            .referenceId(request.getReferenceId())
+            .referenceId(request.getReferenceId() != null ? request.getReferenceId() : UUID.randomUUID())
             .scope(request.getScope())
             .actionable(request.isActionable())
             .createdAt(LocalDateTime.now())
@@ -87,6 +168,7 @@ public class NotificationService implements INotificationService {
             .build();
 
     notificationRepository.save(notification);
+
     NotificationResponseDTO dto = mapToDTO(notification);
     notificationWebSocketHandler.sendNotification(request.getEmail(), dto);
   }
