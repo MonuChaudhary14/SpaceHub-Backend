@@ -111,7 +111,7 @@ public class JanusService {
     restTemplate.postForEntity(handleUrl, request, JsonNode.class);
   }
 
-  public void joinAudioRoom(String sessionId, String handleId, int roomId, String displayName) {
+  public JsonNode joinAudioRoom(String sessionId, String handleId, int roomId, String displayName) {
     Map<String, Object> body = Map.of(
       "request", "join", "room", roomId, "display", displayName
     );
@@ -119,7 +119,10 @@ public class JanusService {
       "janus", "message", "transaction", UUID.randomUUID().toString(), "body", body
     );
     String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
-    restTemplate.postForEntity(handleUrl, request, JsonNode.class);
+
+    ResponseEntity<JsonNode> response = restTemplate.postForEntity(handleUrl, request, JsonNode.class);
+    logger.info("Janus join response: {}", response.getBody());
+    return response.getBody();
   }
 
   public void sendOffer(String sessionId, String handleId, String sdpOffer,
