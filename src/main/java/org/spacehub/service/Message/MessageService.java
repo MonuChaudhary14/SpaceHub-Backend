@@ -24,8 +24,11 @@ public class MessageService implements IMessageService {
   }
 
   @Override
+  @Transactional
   public List<Message> saveMessageBatch(List<Message> messages) {
-    return repo.saveAll(messages);
+    List<Message> saved = repo.saveAll(messages);
+    repo.flush();
+    return saved;
   }
 
   @Override
@@ -59,31 +62,25 @@ public class MessageService implements IMessageService {
 
   private Message applySoftDelete(Message message, String requesterEmail) {
     boolean changed = false;
-
     if (requesterEmail.equals(message.getSenderEmail())) {
       if (!Boolean.TRUE.equals(message.getSenderDeleted())) {
         message.setSenderDeleted(true);
         changed = true;
       }
-    }
-    else if (requesterEmail.equals(message.getReceiverEmail())) {
+    } else if (requesterEmail.equals(message.getReceiverEmail())) {
       if (!Boolean.TRUE.equals(message.getReceiverDeleted())) {
         message.setReceiverDeleted(true);
         changed = true;
       }
-    }
-    else {
+    } else {
       throw new SecurityException("Not allowed to delete this message");
     }
-
     if (changed) {
-      if (Boolean.TRUE.equals(message.getSenderDeleted()) &&
-              Boolean.TRUE.equals(message.getReceiverDeleted())) {
+      if (Boolean.TRUE.equals(message.getSenderDeleted()) && Boolean.TRUE.equals(message.getReceiverDeleted())) {
         message.setDeletedAt(java.time.Instant.now().toEpochMilli());
       }
       message = repo.save(message);
     }
-
     return message;
   }
 
@@ -173,27 +170,21 @@ public class MessageService implements IMessageService {
       if (forEveryone) {
         Message mess = getMessageById(id);
         if (mess == null) return ResponseEntity.notFound().build();
-
         if (!requesterEmail.equals(mess.getSenderEmail())) {
-          return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                  .body("Only sender can delete for everyone");
+          return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Only sender can delete for everyone");
         }
-
         mess.setSenderDeleted(true);
         mess.setReceiverDeleted(true);
         saveMessage(mess);
         return ResponseEntity.ok(mess);
-      }
-      else {
+      } else {
         Message updated = deleteMessageForUser(id, requesterEmail);
         if (updated == null) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(updated);
       }
-    }
-    catch (SecurityException se) {
+    } catch (SecurityException se) {
       return ResponseEntity.status(HttpStatus.FORBIDDEN).body(se.getMessage());
-    }
-    catch (Exception e) {
+    } catch (Exception e) {
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
     }
   }

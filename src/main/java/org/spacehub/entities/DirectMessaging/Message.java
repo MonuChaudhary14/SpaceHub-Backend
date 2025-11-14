@@ -2,7 +2,6 @@ package org.spacehub.entities.DirectMessaging;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.util.UUID;
 
 @Entity
@@ -64,11 +63,7 @@ public class Message {
 
   @PrePersist
   public void prePersist() {
-    if (this.messageUuid == null) {
-      this.messageUuid = UUID.randomUUID().toString();
-    }
-    if (this.timestamp == null) {
-      this.timestamp = java.time.Instant.now().toEpochMilli();
-    }
+    if (this.messageUuid == null) this.messageUuid = UUID.randomUUID().toString();
+    if (this.timestamp == null) this.timestamp = java.time.Instant.now().toEpochMilli();
   }
 }

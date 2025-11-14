@@ -2,7 +2,6 @@ package org.spacehub.service.Interface;
 
 import org.spacehub.entities.DirectMessaging.Message;
 import org.springframework.http.ResponseEntity;
-
 import java.util.List;
 
 public interface IMessageService {
