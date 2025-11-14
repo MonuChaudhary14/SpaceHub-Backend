@@ -13,9 +13,9 @@ import java.util.UUID;
 @Table(
         name = "direct_messages",
         indexes = {
-          @Index(name = "idx_receiver_read_status", columnList = "receiverEmail, readStatus"),
-          @Index(name = "idx_sender_receiver_ts", columnList = "senderEmail, receiverEmail, timestamp"),
-          @Index(name = "idx_message_uuid", columnList = "messageUuid")
+                @Index(name = "idx_receiver_read_status", columnList = "receiverEmail, readStatus"),
+                @Index(name = "idx_sender_receiver_ts", columnList = "senderEmail, receiverEmail, timestamp"),
+                @Index(name = "idx_message_uuid", columnList = "messageUuid")
         }
 )
 public class Message {
