@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import lombok.RequiredArgsConstructor;
 import org.spacehub.DTO.Notification.NotificationResponseDTO;
 import org.spacehub.entities.Notification.Notification;
+import org.spacehub.mapper.NotificationMapper;
 import org.spacehub.repository.Notification.NotificationRepository;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
@@ -18,13 +19,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
 public class NotificationWebSocketHandler extends TextWebSocketHandler{
 
   private final NotificationRepository notificationRepository;
+  private final NotificationMapper notificationMapper;
 
   private final Map<String, WebSocketSession> userSessions = new ConcurrentHashMap<>();
 
@@ -56,24 +57,8 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler{
       List<Notification> history = notificationRepository.findAllByRecipientWithDetails(email);
 
       List<NotificationResponseDTO> dtoList = history.stream()
-              .map(n -> NotificationResponseDTO.builder()
-                      .id(n.getId())
-                      .publicId(n.getPublicId())
-                      .title(n.getTitle())
-                      .message(n.getMessage())
-                      .type(n.getType())
-                      .scope(n.getScope())
-                      .actionable(n.isActionable())
-                      .read(n.isRead())
-                      .createdAt(n.getCreatedAt())
-                      .communityId(n.getCommunity() != null ? n.getCommunity().getId() : null)
-                      .communityName(n.getCommunity() != null ? n.getCommunity().getName() : null)
-                      .referenceId(n.getReferenceId())
-                      .senderName(n.getSender() != null ? n.getSender().getUsername() : null)
-                      .senderEmail(n.getSender() != null ? n.getSender().getEmail() : null)
-                      .senderProfileImageUrl(n.getSender() != null ? n.getSender().getAvatarUrl() : null)
-                      .build())
-              .collect(Collectors.toList());
+        .map(notificationMapper::mapToDTO)
+        .toList();
 
       WebSocketSession session = userSessions.get(email);
       if (session != null && session.isOpen()) {
@@ -86,9 +71,7 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler{
       System.out.println("Sent previous notifications to " + email);
 
     }
-    catch (Exception e) {
-      e.printStackTrace();
-    }
+    catch (Exception ignored) {}
   }
 
 //  @Override
