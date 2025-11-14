@@ -23,6 +23,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @Component
 public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
@@ -88,14 +89,12 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
         return;
       }
 
-      if (friendService.areFriends(senderEmail, receiverEmail)) {
+      if (!friendService.areFriends(senderEmail, receiverEmail)) {
         sendSystemMessage(session, "You can only chat with friends.");
         session.close(CloseStatus.NOT_ACCEPTABLE);
         return;
       }
     }
-
-    processUnreadMessages(session, senderEmail);
 
     if (receiverEmail != null) {
       processHistoryForReceiver(session, senderEmail, receiverEmail);
@@ -108,6 +107,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
 
     List<Map<String, Object>> formatted = new ArrayList<>();
     for (Message message : unread) {
+      if (shouldHideForRequester(message, senderEmail)) continue;
       formatted.add(buildPayload(message));
     }
 
@@ -121,18 +121,63 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
 
   private void processHistoryForReceiver(WebSocketSession session, String senderEmail, String receiverEmail)
           throws Exception {
-    List<Message> history = messageService.getChat(senderEmail, receiverEmail);
-    if (history == null || history.isEmpty()) return;
+
+    List<Message> dbMessages = messageService.getChat(senderEmail, receiverEmail);
+    if (dbMessages == null) dbMessages = Collections.emptyList();
+
+    List<Message> pending = messageQueueService.getPendingForChat(senderEmail, receiverEmail);
+
+    List<Message> filteredDb = dbMessages.stream()
+            .filter(m -> !shouldHideForRequester(m, senderEmail))
+            .filter(m -> m.getDeletedAt() == null)
+            .collect(Collectors.toList());
+
+    List<Message> filteredPending = pending.stream()
+            .filter(m -> !shouldHideForRequester(m, senderEmail))
+            .collect(Collectors.toList());
 
     List<Map<String, Object>> formatted = new ArrayList<>();
-    for (Message message : history) {
+
+    for (Message message : filteredDb) {
       Map<String, Object> payload = buildPayload(message);
+      payload.put("optimistic", false);
       addPreviewIfFile(payload, message.getType(), message.getFileKey());
       formatted.add(payload);
     }
 
-    Map<String, Object> payload = Map.of("type", "history", "chatWith", receiverEmail, "messages", formatted);
+    for (Message message : filteredPending) {
+      Map<String, Object> payload = buildPayload(message);
+      payload.put("optimistic", true);
+      addPreviewIfFile(payload, message.getType(), message.getFileKey());
+      formatted.add(payload);
+    }
+
+    formatted.sort(Comparator.comparing(m -> {
+      Object t = m.get("timestamp");
+      if (t instanceof String) {
+        return (String) t;
+      }
+      return String.valueOf(t);
+    }));
+
+    Map<String, Object> payload = Map.of(
+            "type", "history",
+            "chatWith", receiverEmail,
+            "messages", formatted);
     session.sendMessage(new TextMessage(objectMapper.writeValueAsString(payload)));
+  }
+
+  private boolean shouldHideForRequester(Message m, String requesterEmail) {
+    if (m == null || requesterEmail == null) return false;
+    if (requesterEmail.equalsIgnoreCase(m.getSenderEmail()) && Boolean.TRUE.equals(m.getSenderDeleted())) {
+      return true;
+    }
+
+    if (requesterEmail.equalsIgnoreCase(m.getReceiverEmail()) && Boolean.TRUE.equals(m.getReceiverDeleted())) {
+      return true;
+    }
+    if (m.getDeletedAt() != null) return true;
+    return false;
   }
 
   private void sendChatSummary(WebSocketSession session, String senderEmail) throws Exception {
@@ -189,7 +234,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
 
   private void handleTextOnlyMessage(String senderEmail, String receiverEmail, Map<String, Object> payload) throws IOException {
 
-    if (friendService.areFriends(senderEmail, receiverEmail)) {
+    if (!friendService.areFriends(senderEmail, receiverEmail)) {
       throw new RuntimeException("Cannot message non-friends.");
     }
 
@@ -211,7 +256,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
 
   private void handleFileMessage(String senderEmail, String receiverEmail, Map<String, Object> payload) throws IOException {
 
-    if (friendService.areFriends(senderEmail, receiverEmail)) {
+    if (!friendService.areFriends(senderEmail, receiverEmail)) {
       throw new RuntimeException("Cannot message non-friends.");
     }
 
@@ -219,7 +264,15 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
     String fileName = (String) payload.get("fileName");
     String contentType = (String) payload.get("contentType");
 
-    String previewUrl = s3Service.generatePresignedDownloadUrl(fileKey, Duration.ofMinutes(15));
+    String previewUrl = null;
+    if (fileKey != null) {
+      try {
+        previewUrl = s3Service.generatePresignedDownloadUrl(fileKey, Duration.ofMinutes(15));
+      }
+      catch (Exception ignored) {
+
+      }
+    }
 
     Message mess = Message.builder()
             .messageUuid(UUID.randomUUID().toString())
@@ -235,7 +288,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
 
     messageQueueService.enqueue(mess);
     Map<String, Object> payloadSend = buildPayload(mess);
-    payloadSend.put("previewUrl", previewUrl);
+    if (previewUrl != null) payloadSend.put("previewUrl", previewUrl);
     payloadSend.put("optimistic", true);
     sendToReceiver(senderEmail, payloadSend);
     sendToReceiver(receiverEmail, payloadSend);
@@ -377,7 +430,10 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
       payload.put("optimistic", false);
       sendToReceiver(message.getSenderEmail(), payload);
       sendToReceiver(message.getReceiverEmail(), payload);
-    } catch (Exception ignored) {}
+    }
+    catch (Exception ignored) {
+
+    }
   }
 
 }

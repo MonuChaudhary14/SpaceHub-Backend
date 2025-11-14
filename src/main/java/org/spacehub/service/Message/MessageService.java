@@ -160,32 +160,35 @@ public class MessageService implements IMessageService {
     }
     return false;
   }
-
+  
   @Override
   @Transactional
   public ResponseEntity<?> handleDeleteRequest(Long id, String requesterEmail, boolean forEveryone) {
     try {
       if (forEveryone) {
-        Message msg = getMessageById(id);
-        if (msg == null) return ResponseEntity.notFound().build();
+        Message mess = getMessageById(id);
+        if (mess == null) return ResponseEntity.notFound().build();
 
-        if (!requesterEmail.equals(msg.getSenderEmail())) {
+        if (!requesterEmail.equals(mess.getSenderEmail())) {
           return ResponseEntity.status(HttpStatus.FORBIDDEN)
-            .body("Only sender can delete for everyone");
+                  .body("Only sender can delete for everyone");
         }
 
-        msg.setSenderDeleted(true);
-        msg.setReceiverDeleted(true);
-        saveMessage(msg);
-        return ResponseEntity.ok(msg);
-      } else {
+        mess.setSenderDeleted(true);
+        mess.setReceiverDeleted(true);
+        saveMessage(mess);
+        return ResponseEntity.ok(mess);
+      }
+      else {
         Message updated = deleteMessageForUser(id, requesterEmail);
         if (updated == null) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(updated);
       }
-    } catch (SecurityException se) {
+    }
+    catch (SecurityException se) {
       return ResponseEntity.status(HttpStatus.FORBIDDEN).body(se.getMessage());
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
     }
   }

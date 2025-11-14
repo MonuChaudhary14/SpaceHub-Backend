@@ -10,15 +10,16 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class MessageQueueService implements IMessageQueueService {
 
-  private final List<Message> queue = new ArrayList<>();
+  private final Map<String, List<Message>> pendingByChat = new ConcurrentHashMap<>();
+
   private final IMessageService messageService;
   private ChatWebSocketHandlerMessaging messagingHandler;
 
@@ -28,31 +29,70 @@ public class MessageQueueService implements IMessageQueueService {
     this.messagingHandler = handler;
   }
 
+  @Override
   public synchronized void enqueue(Message message) {
-    queue.add(message);
-    if (queue.size() >= 10)
-      flushQueue();
+    String chatKey = buildChatKey(message.getSenderEmail(), message.getReceiverEmail());
+    pendingByChat.computeIfAbsent(chatKey, k -> Collections.synchronizedList(new ArrayList<>())).add(message);
+    List<Message> list = pendingByChat.get(chatKey);
+    if (list != null && list.size() >= 10) {
+      flushRoom(chatKey);
+    }
   }
 
-  @Scheduled(fixedRate = 10000)
+  @Scheduled(fixedRate = 2000)
   public synchronized void flushQueue() {
-    if (queue.isEmpty()) return;
-    List<Message> batch = new ArrayList<>(queue);
-    queue.clear();
+    List<String> chats = new ArrayList<>(pendingByChat.keySet());
+    for (String chatKey : chats) {
+      flushRoom(chatKey);
+    }
+  }
 
-    List<Message> saved = messageService.saveMessageBatch(batch);
-    if (messagingHandler != null) {
-      for (Message message : saved) {
-        try {
-          messagingHandler.broadcastMessageToUsers(message);
-        } catch (Exception ignored) {}
-      }
+  private synchronized void flushRoom(String chatKey) {
+    List<Message> pending = pendingByChat.getOrDefault(chatKey, Collections.emptyList());
+    if (pending.isEmpty()) return;
+
+    List<Message> batch = new ArrayList<>(pending);
+    pending.clear();
+    pendingByChat.remove(chatKey);
+
+    try {
+      messageService.saveMessageBatch(batch);
+    }
+    catch (Exception e) {
+      pendingByChat.computeIfAbsent(chatKey, k -> Collections.synchronizedList(new ArrayList<>())).addAll(batch);
     }
   }
 
   public synchronized boolean deleteMessageByUuid(String messageUuid) {
-    queue.removeIf(m -> Objects.equals(m.getMessageUuid(), messageUuid));
-    return messageService.deleteMessageByUuid(messageUuid);
+    boolean removedFromMemory = pendingByChat.values().stream()
+            .anyMatch(list -> list.removeIf(m -> Objects.equals(m.getMessageUuid(), messageUuid)));
+
+    boolean removedFromDb = messageService.deleteMessageByUuid(messageUuid);
+
+    return removedFromMemory || removedFromDb;
+  }
+
+  public List<Message> getPendingForChat(String userA, String userB) {
+    String chatKey = buildChatKey(userA, userB);
+    List<Message> pending = pendingByChat.getOrDefault(chatKey, Collections.emptyList());
+    return new ArrayList<>(pending);
+  }
+
+  public boolean isPending(String messageUuid) {
+    return pendingByChat.values().stream()
+            .flatMap(Collection::stream).anyMatch(m -> Objects.equals(m.getMessageUuid(), messageUuid));
+  }
+
+  private String buildChatKey(String a, String b) {
+    if (a == null || b == null) return a + "::" + b;
+    String lowerA = a.toLowerCase();
+    String lowerB = b.toLowerCase();
+    if (lowerA.compareTo(lowerB) <= 0) {
+      return lowerA + "::" + lowerB;
+    }
+    else {
+      return lowerB + "::" + lowerA;
+    }
   }
 
 }
