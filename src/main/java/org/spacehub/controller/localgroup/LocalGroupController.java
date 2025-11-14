@@ -10,7 +10,7 @@ import org.spacehub.service.Interface.ILocalGroupService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
+import java.util.Map;
 import java.util.List;
 import java.util.UUID;
 
@@ -80,6 +80,13 @@ public class LocalGroupController {
     @RequestParam(value = "imageFile", required = false) MultipartFile imageFile,
     @RequestParam(value = "name", required = false) String newName) {
     return localGroupService.updateLocalGroupSettings(id, requesterEmail, imageFile, newName);
+  }
+
+  @GetMapping("/exists")
+  public ResponseEntity<ApiResponse<Map<String, Boolean>>> checkGroupNameExists(
+    @RequestParam("name") String name
+  ) {
+    return localGroupService.checkGroupNameExists(name);
   }
 
 }
