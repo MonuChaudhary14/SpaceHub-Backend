@@ -208,4 +208,9 @@ public class CommunityController {
     return communityService.getPendingRequests(communityId, requesterEmail);
   }
 
+  @GetMapping("/exists")
+  public ResponseEntity<?> checkCommunityNameExists(@RequestParam("name") String name) {
+    return communityService.checkCommunityNameExists(name);
+  }
+
 }
