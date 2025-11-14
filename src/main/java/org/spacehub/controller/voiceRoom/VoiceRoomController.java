@@ -12,7 +12,9 @@ import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.JsonNode;
+
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -62,11 +64,10 @@ public class VoiceRoomController {
       String sessionId = janusService.createSession();
       String handleId = janusService.attachAudioBridgePlugin(sessionId);
 
-      JsonNode janusResponse = janusService.joinAudioRoom(sessionId, handleId, janusRoomId, displayName);
+      janusService.joinAudioRoom(sessionId, handleId, janusRoomId, displayName);
+      JsonNode participantsNode = janusService.listParticipants(sessionId, handleId, janusRoomId);
 
-      JsonNode participantsNode = janusResponse.path("plugindata").path("data").path("participants");
-
-      Map<String, Object> responseData = new java.util.HashMap<>();
+      Map<String, Object> responseData = new HashMap<>();
       responseData.put("message", "Joined voice room successfully");
       responseData.put("janusRoomId", janusRoomId);
       responseData.put("sessionId", sessionId);
