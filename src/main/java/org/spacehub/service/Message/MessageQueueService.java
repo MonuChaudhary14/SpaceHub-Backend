@@ -23,6 +23,8 @@ public class MessageQueueService implements IMessageQueueService {
 
   private ChatWebSocketHandlerMessaging messagingHandler;
 
+  private static final int FLUSH_BATCH_SIZE = 10;
+
   @Autowired
   @Lazy
   public void setMessagingHandler(ChatWebSocketHandlerMessaging handler) {
@@ -35,7 +37,7 @@ public class MessageQueueService implements IMessageQueueService {
     pendingByChat.computeIfAbsent(chatKey, k -> Collections.synchronizedList(new ArrayList<>())).add(message);
 
     List<Message> list = pendingByChat.get(chatKey);
-    if (list != null && list.size() >= 10) {
+    if (list != null && list.size() >= FLUSH_BATCH_SIZE) {
       flushRoom(chatKey);
     }
   }
@@ -59,10 +61,14 @@ public class MessageQueueService implements IMessageQueueService {
     try {
       List<Message> persisted = messageService.saveMessageBatch(batch);
 
-      for (Message persistedMessage : persisted) {
-        messagingHandler.broadcastMessageToUsers(persistedMessage);
+      if (messagingHandler != null && persisted != null) {
+        for (Message persistedMessage : persisted) {
+          try {
+            messagingHandler.broadcastMessageToUsers(persistedMessage);
+          }
+          catch (Exception ignored) { }
+        }
       }
-
     }
     catch (Exception e) {
       pendingByChat.computeIfAbsent(chatKey, k -> Collections.synchronizedList(new ArrayList<>()))
@@ -91,13 +97,14 @@ public class MessageQueueService implements IMessageQueueService {
             .anyMatch(m -> Objects.equals(m.getMessageUuid(), messageUuid));
   }
 
-  private String buildChatKey(String a, String b) {
-    if (a == null || b == null) return a + "::" + b;
+  public String buildChatKey(String a, String b) {
+    if (a == null || b == null) return (a == null ? "" : a) + "::" + (b == null ? "" : b);
     String lowerA = a.toLowerCase();
     String lowerB = b.toLowerCase();
     if (lowerA.compareTo(lowerB) <= 0) {
       return lowerA + "::" + lowerB;
-    } else {
+    }
+    else {
       return lowerB + "::" + lowerA;
     }
   }
