@@ -67,6 +67,9 @@ public class FriendService implements IFriendService {
 
     friendsRepository.save(request);
 
+    UUID notifRef = UUID.randomUUID();
+    request.setNotificationReference(notifRef);
+    friendsRepository.save(request);
     notificationService.sendFriendRequestNotification(user, friend);
 
     return "Friend request sent successfully.";
@@ -91,6 +94,11 @@ public class FriendService implements IFriendService {
 
     Friends request = friendsRepository.findByUserAndFriend(requester, user).orElseThrow(() ->
       new RuntimeException("Friend request not found"));
+
+    UUID ref = request.getNotificationReference();
+    if (ref != null) {
+      notificationService.deleteActionableByReference(ref);
+    }
 
     if (!"pending".equals(request.getStatus())) {
       return "This request is no longer pending.";
