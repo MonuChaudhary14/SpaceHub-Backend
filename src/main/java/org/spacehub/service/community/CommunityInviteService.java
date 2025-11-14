@@ -3,6 +3,7 @@ package org.spacehub.service.community;
 import org.spacehub.DTO.Community.CommunityInviteAcceptDTO;
 import org.spacehub.DTO.Community.CommunityInviteRequestDTO;
 import org.spacehub.DTO.Community.CommunityInviteResponseDTO;
+import org.spacehub.DTO.Community.CommunityJoinResponseDTO;
 import org.spacehub.DTO.Notification.NotificationRequestDTO;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.Community.Community;
@@ -19,6 +20,7 @@ import org.spacehub.repository.community.CommunityUserRepository;
 import org.spacehub.service.Notification.NotificationService;
 import org.spacehub.service.community.CommunityInterfaces.ICommunityInviteService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,6 +28,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Transactional
 @Service
 public class CommunityInviteService implements ICommunityInviteService {
 
@@ -161,7 +164,12 @@ public class CommunityInviteService implements ICommunityInviteService {
             .build();
     notificationService.createNotification(notification);
 
-    return new ApiResponse<>(200, "User joined community successfully", community);
+    return new ApiResponse<>(200, "User joined community successfully",
+      new CommunityJoinResponseDTO(
+        community.getId(), community.getName(), community.getDescription()
+      )
+    );
+
   }
 
   private String extractInviteCode(String rawCode) {

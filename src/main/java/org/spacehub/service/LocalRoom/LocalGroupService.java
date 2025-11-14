@@ -9,6 +9,7 @@ import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.LocalGroup.LocalGroup;
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.User.UserRepository;
+import org.spacehub.repository.localgroup.LocalGroupInviteRepository;
 import org.spacehub.repository.localgroup.LocalGroupRepository;
 import org.spacehub.service.Interface.ILocalGroupService;
 import org.spacehub.service.File.S3Service;
@@ -35,6 +36,7 @@ public class LocalGroupService implements ILocalGroupService {
   private final UserRepository userRepository;
   private final S3Service s3Service;
   private final S3UrlHelper s3UrlHelper;
+  private final LocalGroupInviteRepository inviteRepository;
 
   public static class ResourceNotFoundException extends RuntimeException {
     public ResourceNotFoundException(String message) {
@@ -43,11 +45,12 @@ public class LocalGroupService implements ILocalGroupService {
   }
 
   public LocalGroupService(LocalGroupRepository localGroupRepository, UserRepository userRepository,
-                           S3Service s3Service, S3UrlHelper s3UrlHelper) {
+                           S3Service s3Service, S3UrlHelper s3UrlHelper, LocalGroupInviteRepository inviteRepository) {
     this.localGroupRepository = localGroupRepository;
     this.userRepository = userRepository;
     this.s3Service = s3Service;
     this.s3UrlHelper = s3UrlHelper;
+    this.inviteRepository = inviteRepository;
   }
 
   public ResponseEntity<ApiResponse<LocalGroupResponse>> createLocalGroup(
@@ -151,6 +154,7 @@ public class LocalGroupService implements ILocalGroupService {
         "Only the group creator can delete this group", null));
     }
 
+    inviteRepository.deleteByLocalGroupId(req.getGroupId());
     localGroupRepository.delete(group);
     return ResponseEntity.ok(new ApiResponse<>(200, "Local group deleted successfully",
       null));

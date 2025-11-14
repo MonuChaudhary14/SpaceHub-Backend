@@ -3,6 +3,7 @@ package org.spacehub.service.LocalRoom;
 import org.spacehub.DTO.LocalGroup.LocalGroupInviteAcceptDTO;
 import org.spacehub.DTO.LocalGroup.LocalGroupInviteRequestDTO;
 import org.spacehub.DTO.LocalGroup.LocalGroupInviteResponseDTO;
+import org.spacehub.DTO.LocalGroup.LocalGroupJoinResponseDTO;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.LocalGroup.LocalGroup;
 import org.spacehub.entities.LocalGroup.LocalGroupInvite;
@@ -13,11 +14,13 @@ import org.spacehub.repository.localgroup.LocalGroupRepository;
 import org.spacehub.service.Interface.ILocalGroupInviteService;
 import org.spacehub.service.Notification.NotificationService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Transactional
 @Service
 public class LocalGroupInviteService implements ILocalGroupInviteService {
 
@@ -171,9 +174,15 @@ public class LocalGroupInviteService implements ILocalGroupInviteService {
     return new ApiResponse<>(404, "User not found", null);
   }
 
-  private ApiResponse<?> success(Object data) {
-    return new ApiResponse<>(200, "User joined local group successfully", data);
+  private ApiResponse<?> success(LocalGroup group) {
+    LocalGroupJoinResponseDTO dto = new LocalGroupJoinResponseDTO(
+      group.getId(),
+      group.getName(),
+      group.getDescription()
+    );
+    return new ApiResponse<>(200, "User joined local group successfully", dto);
   }
+
 
 
   @Override
