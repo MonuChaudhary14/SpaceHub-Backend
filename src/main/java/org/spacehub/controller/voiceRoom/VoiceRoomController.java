@@ -91,29 +91,29 @@ public class VoiceRoomController {
   public ResponseEntity<?> listVoiceRooms(@PathVariable UUID chatRoomId) {
     try {
       ChatRoom chatRoom = chatRoomRepository.findById(chatRoomId)
-              .orElseThrow(() -> new RuntimeException("ChatRoom not found: " + chatRoomId));
+        .orElseThrow(() -> new RuntimeException("ChatRoom not found: " + chatRoomId));
 
       List<VoiceRoom> rooms = voiceRoomService.getVoiceRoomsForChatRoom(chatRoom);
 
       return ResponseEntity.ok(Map.of(
-              "count", rooms.size(),
-              "voiceRooms", rooms
+        "count", rooms.size(),
+        "voiceRooms", rooms
       ));
     }
     catch (Exception e) {
       return ResponseEntity.status(500)
-              .body(Map.of("error", "Failed to list voice rooms", "message", e.getMessage()));
+        .body(Map.of("error", "Failed to list voice rooms", "message", e.getMessage()));
     }
   }
 
   @DeleteMapping("/delete")
   public ResponseEntity<?> deleteVoiceRoom(
-          @RequestParam UUID chatRoomId,
-          @RequestParam String roomName,
-          @RequestParam String requester) {
+    @RequestParam UUID chatRoomId,
+    @RequestParam String roomName,
+    @RequestParam String requester) {
     try {
       ChatRoom chatRoom = chatRoomRepository.findById(chatRoomId)
-              .orElseThrow(() -> new RuntimeException("ChatRoom not found with ID: " + chatRoomId));
+        .orElseThrow(() -> new RuntimeException("ChatRoom not found with ID: " + chatRoomId));
 
       voiceRoomService.deleteVoiceRoom(chatRoom, roomName, requester);
 
@@ -122,7 +122,7 @@ public class VoiceRoomController {
     catch (Exception e) {
       logger.error("Error deleting voice room: {}", e.getMessage());
       return ResponseEntity.status(500)
-              .body(Map.of("error", "Failed to delete voice room", "message", e.getMessage()));
+        .body(Map.of("error", "Failed to delete voice room", "message", e.getMessage()));
     }
   }
 
