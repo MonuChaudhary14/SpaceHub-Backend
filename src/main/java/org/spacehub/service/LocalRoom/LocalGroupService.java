@@ -476,4 +476,21 @@ public class LocalGroupService implements ILocalGroupService {
     }
   }
 
+  public ResponseEntity<ApiResponse<Map<String, Boolean>>> checkGroupNameExists(String name) {
+
+    if (name == null || name.isBlank()) {
+      return ResponseEntity.badRequest().body(
+        new ApiResponse<>(400, "Group name is required", null)
+      );
+    }
+
+    boolean exists = localGroupRepository.existsByNameIgnoreCase(name.trim());
+
+    Map<String, Boolean> response = Map.of("exists", exists);
+
+    return ResponseEntity.ok(
+      new ApiResponse<>(200, "Group name check completed", response)
+    );
+  }
+
 }

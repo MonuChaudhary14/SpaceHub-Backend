@@ -137,7 +137,8 @@ public class ReportService implements IReportService {
               .type(NotificationType.SYSTEM_UPDATE)
               .title(isOwner ? "Message reported in your workspace" : "ChatRoom message reported")
               .message(isOwner ?
-                      "A message in chat room `" + chatRoomCode + "` was reported by " + reporter + ". Please review it."
+                      "A message in chat room `" + chatRoomCode + "` was reported by " + reporter +
+                        ". Please review it."
                       :
                       "A message in chat room `" + chatRoomCode + "` was reported by " + reporter + ".")
               .scope("community")

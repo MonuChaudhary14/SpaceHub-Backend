@@ -43,4 +43,5 @@ public interface ILocalGroupService {
     String newName
   );
 
+  ResponseEntity<ApiResponse<Map<String, Boolean>>> checkGroupNameExists(String name);
 }
