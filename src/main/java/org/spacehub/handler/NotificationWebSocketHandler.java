@@ -1,12 +1,12 @@
 package org.spacehub.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.databind.SerializationFeature;
 
 import java.io.IOException;
 import java.net.URLDecoder;
@@ -22,7 +22,6 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler{
   private final ObjectMapper objectMapper = new ObjectMapper()
           .registerModule(new JavaTimeModule())
           .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-
 
   @Override
   public void afterConnectionEstablished(@NonNull WebSocketSession session) throws Exception {

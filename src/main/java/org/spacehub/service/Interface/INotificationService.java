@@ -2,6 +2,7 @@ package org.spacehub.service.Interface;
 
 import org.spacehub.DTO.Notification.NotificationRequestDTO;
 import org.spacehub.DTO.Notification.NotificationResponseDTO;
+import org.spacehub.entities.User.User;
 
 import java.util.List;
 import java.util.UUID;
@@ -18,6 +19,12 @@ public interface INotificationService {
 
     void deleteNotification(UUID id);
 
+    void deleteByPublicId(UUID publicId, String userEmail);
+
     long countUnreadNotifications(String email);
+
+    void sendFriendRequestNotification(User sender, User recipient);
+
+    void sendLocalGroupJoinNotification(User newMember, User inviter, UUID groupId);
 
 }

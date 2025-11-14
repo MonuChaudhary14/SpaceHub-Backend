@@ -10,6 +10,7 @@ import org.spacehub.DTO.Community.AcceptRequest;
 import org.spacehub.DTO.Community.LeaveCommunity;
 import org.spacehub.DTO.Community.RenameRoomRequest;
 import org.spacehub.DTO.Community.RejectRequest;
+import org.spacehub.DTO.Notification.NotificationRequestDTO;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.Community.Community;
@@ -17,6 +18,7 @@ import org.spacehub.entities.Community.CommunityUser;
 import org.spacehub.DTO.Community.CommunityChangeRoleRequest;
 import org.spacehub.DTO.Community.PendingRequestUserDTO;
 import org.spacehub.entities.Community.Role;
+import org.spacehub.entities.Notification.NotificationType;
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.ChatRoom.ChatRoomRepository;
 import org.spacehub.repository.Notification.NotificationRepository;
@@ -26,6 +28,7 @@ import org.spacehub.repository.community.CommunityUserRepository;
 import org.spacehub.DTO.Community.CommunityBlockRequest;
 import org.spacehub.DTO.Community.UpdateCommunityDTO;
 import org.spacehub.service.File.S3Service;
+import org.spacehub.service.Notification.NotificationService;
 import org.spacehub.service.community.CommunityInterfaces.ICommunityService;
 import org.spacehub.utils.ImageValidator;
 import org.spacehub.utils.S3UrlHelper;
@@ -59,6 +62,7 @@ public class CommunityService implements ICommunityService {
   private final S3Service s3Service;
   private final S3UrlHelper s3UrlHelper;
   private final NotificationRepository notificationRepository;
+  private final NotificationService notificationService;
 
 
   public static class ResourceNotFoundException extends RuntimeException {
@@ -70,7 +74,8 @@ public class CommunityService implements ICommunityService {
   public CommunityService(CommunityRepository communityRepository, UserRepository userRepository,
                           ChatRoomRepository chatRoomRepository, S3Service s3Service,
                           CommunityUserRepository communityUserRepository, S3UrlHelper s3UrlHelper,
-                          NotificationRepository notificationRepository) {
+                          NotificationRepository notificationRepository,
+                          NotificationService notificationService) {
     this.communityRepository = communityRepository;
     this.userRepository = userRepository;
     this.chatRoomRepository = chatRoomRepository;
@@ -78,6 +83,7 @@ public class CommunityService implements ICommunityService {
     this.s3Service = s3Service;
     this.s3UrlHelper = s3UrlHelper;
     this.notificationRepository = notificationRepository;
+    this.notificationService = notificationService;
   }
 
   public ResponseEntity<ApiResponse<Map<String, Object>>> createCommunity(
@@ -272,6 +278,25 @@ public class CommunityService implements ICommunityService {
       community.getPendingRequests().add(user);
       communityRepository.save(community);
 
+      community.getCommunityUsers().stream()
+              .filter(cu -> cu.getRole() == Role.ADMIN || cu.getRole() == Role.WORKSPACE_OWNER)
+              .forEach(adminCU -> {
+                User admin = adminCU.getUser();
+                notificationService.createNotification(
+                        NotificationRequestDTO.builder()
+                                .email(admin.getEmail())
+                                .senderEmail(user.getEmail())
+                                .type(NotificationType.COMMUNITY_JOINED)
+                                .title("Community Join Request")
+                                .message(user.getUsername() + " requested to join " + community.getName())
+                                .scope("community-request")
+                                .actionable(true)
+                                .communityId(community.getId())
+                                .referenceId(community.getId())
+                                .build()
+                );
+              });
+
       return ResponseEntity.ok().body(
         new ApiResponse<>(200, "Request send to community")
       );
@@ -305,6 +330,25 @@ public class CommunityService implements ICommunityService {
 
       community.getPendingRequests().remove(user);
       communityRepository.save(community);
+
+      community.getCommunityUsers().stream()
+              .filter(cu -> cu.getRole() == Role.ADMIN || cu.getRole() == Role.WORKSPACE_OWNER)
+              .forEach(adminCU -> {
+                User admin = adminCU.getUser();
+                notificationService.createNotification(
+                        NotificationRequestDTO.builder()
+                                .email(admin.getEmail())
+                                .senderEmail(user.getEmail())
+                                .type(NotificationType.COMMUNITY_INVITE_REVOKED)
+                                .title("Join Request Cancelled")
+                                .message(user.getUsername() + " cancelled their join request")
+                                .scope("community-request")
+                                .actionable(false)
+                                .communityId(community.getId())
+                                .referenceId(community.getId())
+                                .build()
+                );
+              });
 
       return ResponseEntity.ok(
         new ApiResponse<>(200, "Cancelled the join request successfully", null)
@@ -347,6 +391,20 @@ public class CommunityService implements ICommunityService {
       }
 
       approveRequest(community, user);
+
+      notificationService.createNotification(
+              NotificationRequestDTO.builder()
+                      .email(user.getEmail())
+                      .senderEmail(creator.getEmail())
+                      .type(NotificationType.COMMUNITY_REQUEST_ACCEPTED)
+                      .title("Join Request Accepted")
+                      .message("Your request to join " + community.getName() + " has been approved.")
+                      .scope("community-request")
+                      .actionable(false)
+                      .communityId(community.getId())
+                      .referenceId(community.getId())
+                      .build()
+      );
 
       return ResponseEntity.ok(new ApiResponse<>(200,
         "User has been added to the community successfully", null));
@@ -495,6 +553,21 @@ public class CommunityService implements ICommunityService {
       }
 
       removePendingRequest(community, user);
+
+      notificationService.createNotification(
+              NotificationRequestDTO.builder()
+                      .email(user.getEmail())
+                      .senderEmail(creator.getEmail())
+                      .type(NotificationType.COMMUNITY_INVITE_REVOKED)
+                      .title("Join Request Rejected")
+                      .message("Your request to join " + community.getName() + " has been rejected.")
+                      .scope("community-request")
+                      .actionable(false)
+                      .communityId(community.getId())
+                      .referenceId(community.getId())
+                      .build()
+      );
+
       return ok("Join request rejected successfully");
 
     } catch (Exception e) {
@@ -1488,6 +1561,26 @@ public class CommunityService implements ICommunityService {
 
       community.getPendingRequests().add(user);
       communityRepository.save(community);
+
+      community.getCommunityUsers().stream()
+              .filter(cu -> cu.getRole() == Role.ADMIN || cu.getRole() == Role.WORKSPACE_OWNER)
+              .forEach(adminCU -> {
+                User admin = adminCU.getUser();
+                notificationService.createNotification(
+                        NotificationRequestDTO.builder()
+                                .email(admin.getEmail())
+                                .senderEmail(user.getEmail())
+                                .type(NotificationType.COMMUNITY_JOINED)
+                                .title("Join Request")
+                                .message(user.getUsername() + " requested to join " + community.getName())
+                                .scope("community-request")
+                                .actionable(true)
+                                .communityId(community.getId())
+                                .referenceId(community.getId())
+                                .build()
+                );
+              });
+
 
       return ResponseEntity.ok(
               new ApiResponse<>(200, "Join request sent successfully",

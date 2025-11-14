@@ -21,11 +21,15 @@ public class Notification {
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;
 
+  @Column(nullable = false, unique = true, updatable = false)
+  private UUID publicId;
+
   private String title;
 
   @Column(length = 1000)
   private String message;
 
+  @Enumerated(EnumType.STRING)
   private NotificationType type;
 
   private boolean read = false;
@@ -34,10 +38,10 @@ public class Notification {
   @JoinColumn(name = "sender_id")
   private User sender;
 
-  private LocalDateTime createdAt = LocalDateTime.now();
+  private LocalDateTime createdAt;
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "user_id")
+  @JoinColumn(name = "recipient_id")
   private User recipient;
 
   @ManyToOne(fetch = FetchType.LAZY)
@@ -50,10 +54,18 @@ public class Notification {
 
   private boolean actionable = false;
 
+  private LocalDateTime expiresAt;
+
   @PrePersist
   public void prePersist() {
+    if (this.publicId == null) {
+      this.publicId = UUID.randomUUID();
+    }
     if (this.createdAt == null) {
       this.createdAt = LocalDateTime.now();
+    }
+    if (this.expiresAt == null) {
+      this.expiresAt = LocalDateTime.now().plusDays(30);
     }
   }
 
