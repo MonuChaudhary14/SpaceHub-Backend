@@ -1,5 +1,6 @@
 package org.spacehub.service.chatRoom;
 
+import lombok.RequiredArgsConstructor;
 import org.spacehub.entities.ChatRoom.ChatMessage;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.ChatRoom.NewChatRoom;
@@ -15,15 +16,12 @@ import java.util.List;
 import java.util.Objects;
 
 @Service
+@RequiredArgsConstructor
 public class ChatMessageQueue implements IChatMessageQueue {
 
   private final List<ChatMessage> queue = new ArrayList<>();
   private final ChatMessageService chatMessageService;
   private ChatWebSocketHandler chatWebSocketHandler;
-
-  public ChatMessageQueue(ChatMessageService chatMessageService) {
-    this.chatMessageService = chatMessageService;
-  }
 
   @Autowired
   @Lazy

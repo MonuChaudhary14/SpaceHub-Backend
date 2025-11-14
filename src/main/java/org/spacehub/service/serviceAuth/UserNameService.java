@@ -3,6 +3,7 @@ package org.spacehub.service.serviceAuth;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
 import org.spacehub.entities.User.User;
 import org.spacehub.service.serviceAuth.authInterfaces.IUserNameService;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -16,6 +17,7 @@ import java.util.function.Function;
 import org.springframework.beans.factory.annotation.Value;
 
 @Service
+@RequiredArgsConstructor
 public class UserNameService implements IUserNameService {
 
   @Value("${SECRET_KEY}")

@@ -1,5 +1,6 @@
 package org.spacehub.service.chatRoom;
 
+import lombok.RequiredArgsConstructor;
 import org.spacehub.entities.ChatRoom.ChatPoll;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.ChatRoom.ChatVote;
@@ -16,22 +17,13 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class ChatPollService implements IChatPollService {
 
   private final ChatPollRepository pollRepository;
   private final ChatVoteRepository voteRepository;
   private final ChatRoomUserService chatRoomUserService;
   private final ChatRoomService chatRoomService;
-
-  public ChatPollService(ChatPollRepository pollRepository,
-                         ChatVoteRepository voteRepository,
-                         ChatRoomUserService chatRoomUserService,
-                         ChatRoomService chatRoomService) {
-    this.pollRepository = pollRepository;
-    this.voteRepository = voteRepository;
-    this.chatRoomUserService = chatRoomUserService;
-    this.chatRoomService = chatRoomService;
-  }
 
   public ChatPoll createPoll(String roomCode, String email, Map<String, Object> body) {
 

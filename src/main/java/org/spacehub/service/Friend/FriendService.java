@@ -1,5 +1,6 @@
 package org.spacehub.service.Friend;
 
+import lombok.RequiredArgsConstructor;
 import org.spacehub.DTO.Notification.NotificationRequestDTO;
 import org.spacehub.DTO.User.UserOutput;
 import org.spacehub.entities.Friends.Friends;
@@ -22,6 +23,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class FriendService implements IFriendService {
 
   private final FriendsRepository friendsRepository;
@@ -29,18 +31,6 @@ public class FriendService implements IFriendService {
   private final NotificationService notificationService;
   private final S3Service s3Service;
   private final SimpMessagingTemplate messagingTemplate;
-
-  public FriendService(FriendsRepository friendsRepository,
-                       UserRepository userRepository,
-                       NotificationService notificationService,
-                       S3Service s3Service,
-                       SimpMessagingTemplate messagingTemplate) {
-    this.friendsRepository = friendsRepository;
-    this.userRepository = userRepository;
-    this.notificationService = notificationService;
-    this.s3Service = s3Service;
-    this.messagingTemplate = messagingTemplate;
-  }
 
   public String sendFriendRequest(String userEmail, String friendEmail) {
 
@@ -348,15 +338,16 @@ public class FriendService implements IFriendService {
 
   public boolean areFriends(String email1, String email2) {
     if (email1 == null || email1.isBlank() || email2 == null || email2.isBlank())
-      return false;
+      return true;
 
     User user1 = userRepository.findByEmail(email1).orElse(null);
     User user2 = userRepository.findByEmail(email2).orElse(null);
 
     if (user1 == null || user2 == null)
-      return false;
+      return true;
 
-    return friendsRepository.findByUserAndFriendAndStatus(user1, user2, "accepted").isPresent() || friendsRepository.findByUserAndFriendAndStatus(user2, user1, "accepted").isPresent();
+    return friendsRepository.findByUserAndFriendAndStatus(user1, user2, "accepted").isEmpty() &&
+      friendsRepository.findByUserAndFriendAndStatus(user2, user1, "accepted").isEmpty();
   }
 
 }

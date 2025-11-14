@@ -1,5 +1,6 @@
 package org.spacehub.service.chatRoom;
 
+import lombok.RequiredArgsConstructor;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.ChatRoom.NewChatRoom;
@@ -15,16 +16,12 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@RequiredArgsConstructor
 @Service
 public class NewChatRoomService implements INewChatRoomService {
 
   private final ChatRoomRepository chatRoomRepository;
   private final NewChatRoomRepository newChatRoomRepository;
-
-  public NewChatRoomService(ChatRoomRepository chatRoomRepository, NewChatRoomRepository newChatRoomRepository) {
-    this.chatRoomRepository = chatRoomRepository;
-    this.newChatRoomRepository = newChatRoomRepository;
-  }
 
   public ApiResponse<NewChatRoom> createNewChatRoom(String roomCode, String name) {
     Optional<ChatRoom> optionalChatRoom = chatRoomRepository.findByRoomCode(UUID.fromString(roomCode));
@@ -99,7 +96,6 @@ public class NewChatRoomService implements INewChatRoomService {
       if (optionalChatRoom.isEmpty()) {
         return new ApiResponse<>(404, "Parent ChatRoom not found", null);
       }
-      ChatRoom parentRoom = optionalChatRoom.get();
 
       Optional<NewChatRoom> optionalNewRoom = newChatRoomRepository.findByRoomCode(newUUID);
       if (optionalNewRoom.isEmpty()) {

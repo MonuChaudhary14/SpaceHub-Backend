@@ -1,5 +1,6 @@
 package org.spacehub.service.chatRoom;
 
+import lombok.RequiredArgsConstructor;
 import org.spacehub.ExceptionHandler.ResourceNotFoundException;
 import org.spacehub.entities.ChatRoom.ChatMessage;
 import org.spacehub.entities.ChatRoom.NewChatRoom;
@@ -17,19 +18,12 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class ChatFileService implements IChatFileService {
 
   private final S3Service s3Service;
   private final NewChatRoomService newChatRoomService;
   private final ChatMessageQueue chatMessageQueue;
-
-  public ChatFileService(S3Service s3Service,
-                         NewChatRoomService newChatRoomService,
-                         ChatMessageQueue chatMessageQueue) {
-    this.s3Service = s3Service;
-    this.newChatRoomService = newChatRoomService;
-    this.chatMessageQueue = chatMessageQueue;
-  }
 
   public ChatMessage uploadChatFile(MultipartFile file, String senderEmail, String roomCode) throws IOException {
     if (file == null || file.isEmpty()) {

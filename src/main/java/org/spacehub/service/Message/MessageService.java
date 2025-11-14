@@ -1,5 +1,6 @@
 package org.spacehub.service.Message;
 
+import lombok.RequiredArgsConstructor;
 import org.spacehub.entities.DirectMessaging.Message;
 import org.spacehub.repository.ChatRoom.MessageRepository;
 import org.spacehub.service.Interface.IMessageService;
@@ -13,13 +14,10 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class MessageService implements IMessageService {
 
   private final MessageRepository repo;
-
-  public MessageService(MessageRepository repo) {
-    this.repo = repo;
-  }
 
   @Override
   public void saveMessage(Message message) {

@@ -1,5 +1,6 @@
 package org.spacehub.service.chatRoom;
 
+import lombok.RequiredArgsConstructor;
 import org.spacehub.DTO.chatroom.CreateRoomRequest;
 import org.spacehub.DTO.chatroom.LeaveRoomRequest;
 import org.spacehub.DTO.chatroom.RoleChangeAction;
@@ -21,6 +22,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Transactional
+@RequiredArgsConstructor
 @Service
 public class ChatRoomService implements IChatRoomService {
 
@@ -28,15 +30,6 @@ public class ChatRoomService implements IChatRoomService {
   private final ChatMessageRepository chatMessageRepository;
   private final ChatRoomUserService chatRoomUserService;
   private final CommunityRepository communityRepository;
-
-  public ChatRoomService(ChatRoomRepository chatRoomRepository,
-                         ChatMessageRepository chatMessageRepository,
-                         ChatRoomUserService chatRoomUserService, CommunityRepository communityRepository) {
-    this.chatRoomRepository = chatRoomRepository;
-    this.chatMessageRepository = chatMessageRepository;
-    this.chatRoomUserService = chatRoomUserService;
-    this.communityRepository = communityRepository;
-  }
 
   public Optional<ChatRoom> findByRoomCode(UUID roomCode) {
     return chatRoomRepository.findByRoomCode(roomCode);

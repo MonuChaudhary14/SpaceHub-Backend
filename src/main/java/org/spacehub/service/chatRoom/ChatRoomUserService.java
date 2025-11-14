@@ -1,5 +1,6 @@
 package org.spacehub.service.chatRoom;
 
+import lombok.RequiredArgsConstructor;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.ChatRoom.ChatRoomUser;
 import org.spacehub.entities.Community.Role;
@@ -11,13 +12,10 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class ChatRoomUserService implements IChatRoomUserService {
 
   private final ChatRoomUserRepository chatRoomUserRepository;
-
-  public ChatRoomUserService(ChatRoomUserRepository chatRoomUserRepository) {
-    this.chatRoomUserRepository = chatRoomUserRepository;
-  }
 
   public void addUserToRoom(ChatRoom room, String email, Role role) {
     if (getUserInRoom(room, email).isEmpty()) {

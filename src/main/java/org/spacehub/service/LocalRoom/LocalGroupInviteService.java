@@ -1,5 +1,6 @@
 package org.spacehub.service.LocalRoom;
 
+import lombok.RequiredArgsConstructor;
 import org.spacehub.DTO.LocalGroup.LocalGroupInviteAcceptDTO;
 import org.spacehub.DTO.LocalGroup.LocalGroupInviteRequestDTO;
 import org.spacehub.DTO.LocalGroup.LocalGroupInviteResponseDTO;
@@ -22,22 +23,13 @@ import java.util.stream.Collectors;
 
 @Transactional
 @Service
+@RequiredArgsConstructor
 public class LocalGroupInviteService implements ILocalGroupInviteService {
 
   private final LocalGroupInviteRepository inviteRepository;
   private final LocalGroupRepository groupRepository;
   private final UserRepository userRepository;
   private final NotificationService notificationService;
-
-  public LocalGroupInviteService(LocalGroupInviteRepository inviteRepository,
-                                 LocalGroupRepository groupRepository,
-                                 UserRepository userRepository,
-                                 NotificationService notificationService) {
-    this.inviteRepository = inviteRepository;
-    this.groupRepository = groupRepository;
-    this.userRepository = userRepository;
-    this.notificationService = notificationService;
-  }
 
   private String generateInviteCode() {
     return UUID.randomUUID().toString().substring(0, 8);

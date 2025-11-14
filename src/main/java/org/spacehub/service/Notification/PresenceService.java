@@ -1,5 +1,6 @@
 package org.spacehub.service.Notification;
 
+import lombok.RequiredArgsConstructor;
 import org.spacehub.service.Interface.IPresenceService;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -9,15 +10,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 @Service
+@RequiredArgsConstructor
 public class PresenceService implements IPresenceService {
 
   private final SimpMessagingTemplate messagingTemplate;
   private final ConcurrentMap<Long, ConcurrentMap<String, Integer>> online = new ConcurrentHashMap<>();
   private final ConcurrentMap<String, PresenceSession> sessions = new ConcurrentHashMap<>();
-
-  public PresenceService(SimpMessagingTemplate messagingTemplate) {
-    this.messagingTemplate = messagingTemplate;
-  }
 
   public record PresenceSession(Long communityId, String email) {}
 

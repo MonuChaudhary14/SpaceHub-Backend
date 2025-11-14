@@ -1,5 +1,6 @@
 package org.spacehub.service.Message;
 
+import lombok.RequiredArgsConstructor;
 import org.spacehub.entities.DirectMessaging.Message;
 import org.spacehub.handler.ChatWebSocketHandlerMessaging;
 import org.spacehub.service.Interface.IMessageQueueService;
@@ -14,15 +15,12 @@ import java.util.List;
 import java.util.Objects;
 
 @Service
+@RequiredArgsConstructor
 public class MessageQueueService implements IMessageQueueService {
 
   private final List<Message> queue = new ArrayList<>();
   private final IMessageService messageService;
   private ChatWebSocketHandlerMessaging messagingHandler;
-
-  public MessageQueueService(IMessageService messageService) {
-    this.messageService = messageService;
-  }
 
   @Autowired
   @Lazy

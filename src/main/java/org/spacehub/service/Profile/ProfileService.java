@@ -1,5 +1,6 @@
 package org.spacehub.service.Profile;
 
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spacehub.DTO.User.DeleteAccount;
@@ -29,6 +30,7 @@ import java.util.Optional;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class ProfileService implements IProfileService {
 
   private final UserRepository userRepository;
@@ -40,22 +42,6 @@ public class ProfileService implements IProfileService {
   private final NotificationRepository notificationRepository;
   private final RefreshTokenRepository refreshTokenRepository;
   private final ScheduledMessageRepository scheduledMessageRepository;
-
-  public ProfileService(UserRepository userRepository, S3Service s3Service,
-                        CommunityRepository communityRepository,
-                        CommunityUserRepository communityUserRepository,
-                        LocalGroupRepository localGroupRepository, NotificationRepository notificationRepository,
-                        RefreshTokenRepository refreshTokenRepository,
-                        ScheduledMessageRepository scheduledMessageRepository) {
-    this.userRepository = userRepository;
-    this.s3Service = s3Service;
-    this.communityRepository = communityRepository;
-    this.communityUserRepository = communityUserRepository;
-    this.localGroupRepository = localGroupRepository;
-    this.notificationRepository = notificationRepository;
-    this.refreshTokenRepository = refreshTokenRepository;
-    this.scheduledMessageRepository = scheduledMessageRepository;
-  }
 
   @Override
   public UserProfileResponse getProfileByEmail(String email) {

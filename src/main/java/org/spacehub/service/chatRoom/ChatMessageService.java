@@ -1,5 +1,6 @@
 package org.spacehub.service.chatRoom;
 
+import lombok.RequiredArgsConstructor;
 import org.spacehub.entities.ChatRoom.ChatMessage;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.ChatRoom.NewChatRoom;
@@ -12,13 +13,10 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class ChatMessageService implements IChatMessageService {
 
   private final ChatMessageRepository chatMessageRepository;
-
-  public ChatMessageService(ChatMessageRepository chatMessageRepository) {
-    this.chatMessageRepository = chatMessageRepository;
-  }
 
   @Transactional
   public List<ChatMessage> saveAll(List<ChatMessage> messages) {

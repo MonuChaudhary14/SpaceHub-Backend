@@ -1,5 +1,6 @@
 package org.spacehub.service.serviceAuth;
 
+import lombok.RequiredArgsConstructor;
 import org.spacehub.DTO.User.UserSearchDTO;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.User.User;
@@ -22,6 +23,7 @@ import java.util.Optional;
 import java.time.Duration;
 
 @Service
+@RequiredArgsConstructor
 public class UserService implements UserDetailsService, IUserService {
 
   private final UserRepository userRepository;
@@ -29,16 +31,6 @@ public class UserService implements UserDetailsService, IUserService {
   private final PhoneNumberValidator phoneNumberValidator;
   private final S3Service s3Service;
   private final FriendsRepository friendsRepository;
-
-  public UserService(UserRepository userRepository, EmailValidator emailValidator,
-                     PhoneNumberValidator phoneNumberValidator, S3Service s3Service,
-                     FriendsRepository friendsRepository) {
-    this.userRepository = userRepository;
-    this.emailValidator = emailValidator;
-    this.phoneNumberValidator = phoneNumberValidator;
-    this.s3Service = s3Service;
-    this.friendsRepository = friendsRepository;
-  }
 
   @Override
   public UserDetails loadUserByUsername(String identifier) throws UsernameNotFoundException {

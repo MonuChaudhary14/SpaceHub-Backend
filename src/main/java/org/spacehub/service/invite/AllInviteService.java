@@ -1,5 +1,6 @@
 package org.spacehub.service.invite;
 
+import lombok.RequiredArgsConstructor;
 import org.spacehub.DTO.Community.CommunityInviteAcceptDTO;
 import org.spacehub.DTO.invite.InviteAcceptDTO;
 import org.spacehub.DTO.LocalGroup.LocalGroupInviteAcceptDTO;
@@ -10,15 +11,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 @Service
+@RequiredArgsConstructor
 public class AllInviteService {
 
   private final CommunityInviteService communityInviteService;
   private final LocalGroupInviteService localGroupInviteService;
-
-  public AllInviteService(CommunityInviteService communityInviteService, LocalGroupInviteService localGroupInviteService) {
-    this.communityInviteService = communityInviteService;
-    this.localGroupInviteService = localGroupInviteService;
-  }
 
   public ApiResponse<?> acceptInvite(InviteAcceptDTO req) {
 

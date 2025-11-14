@@ -2,6 +2,7 @@ package org.spacehub.service.serviceAuth;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import lombok.RequiredArgsConstructor;
 import org.spacehub.service.serviceAuth.authInterfaces.IEmailService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -10,16 +11,13 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class EmailService implements IEmailService {
 
   private final JavaMailSender mailSender;
 
   @Value("${spring.mail.username}")
   private String fromEmail;
-
-  public EmailService(JavaMailSender mailSender) {
-    this.mailSender = mailSender;
-  }
 
   @Async
   public void sendEmail(String to, String body) {

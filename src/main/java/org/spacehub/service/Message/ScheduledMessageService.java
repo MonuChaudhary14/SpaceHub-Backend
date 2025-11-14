@@ -1,5 +1,6 @@
 package org.spacehub.service.Message;
 
+import lombok.RequiredArgsConstructor;
 import org.spacehub.entities.ChatRoom.ChatMessage;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.ScheduledMessage.ScheduledMessage;
@@ -16,19 +17,12 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class ScheduledMessageService implements IScheduledMessageService {
 
   private final ScheduledMessageRepository scheduledMessageRepository;
   private final ChatMessageQueue chatMessageQueue;
   private final ChatRoomService chatRoomService;
-
-  public ScheduledMessageService(ScheduledMessageRepository scheduledMessageRepository,
-                                 ChatMessageQueue chatMessageQueue,
-                                 ChatRoomService chatRoomService) {
-    this.scheduledMessageRepository = scheduledMessageRepository;
-    this.chatMessageQueue = chatMessageQueue;
-    this.chatRoomService = chatRoomService;
-  }
 
   public ScheduledMessage addScheduledMessage(ScheduledMessage message) {
     message.setSent(false);
