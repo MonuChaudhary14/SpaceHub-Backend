@@ -112,22 +112,31 @@ public class LocalGroupService implements ILocalGroupService {
         "groupId and userEmail are required", null));
     }
 
-    LocalGroup group = localGroupRepository.findById(req.getGroupId())
-      .orElseThrow(() -> new ResourceNotFoundException("Local group not found"));
+    try {
+      LocalGroup group = localGroupRepository.findById(req.getGroupId())
+        .orElseThrow(() -> new ResourceNotFoundException("Local group not found"));
 
-    User user = userRepository.findByEmail(req.getUserEmail())
-      .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+      User user = userRepository.findByEmail(req.getUserEmail())
+        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-    boolean alreadyMember = group.getMembers().stream().anyMatch(u -> u.getId().equals(user.getId()));
-    if (alreadyMember) {
-      return ResponseEntity.status(403).body(new ApiResponse<>(403, "User already a member",
+      boolean alreadyMember = group.getMembers().stream().anyMatch(u -> u.getId().equals(user.getId()));
+      if (alreadyMember) {
+        return ResponseEntity.status(403).body(new ApiResponse<>(403, "User already a member",
+          null));
+      }
+
+      group.getMembers().add(user);
+      localGroupRepository.save(group);
+
+      return ResponseEntity.ok(new ApiResponse<>(200, "Joined local group successfully",
         null));
+
+    } catch (ResourceNotFoundException e) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
+    } catch (Exception e) {
+      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: "
+        + e.getMessage(), null));
     }
-
-    group.getMembers().add(user);
-    localGroupRepository.save(group);
-
-    return ResponseEntity.ok(new ApiResponse<>(200, "Joined local group successfully", null));
   }
 
   public ResponseEntity<ApiResponse<String>> deleteLocalGroup(DeleteLocalGroupRequest req) {
