@@ -12,8 +12,16 @@ import java.util.Optional;
 @Repository
 public interface MessageRepository extends JpaRepository<Message, Long> {
 
-  List<Message> findBySenderEmailAndReceiverEmailOrReceiverEmailAndSenderEmailOrderByTimestampAsc(
-          String sender, String receiver, String receiverAlt, String senderAlt);
+  @Query("""
+      SELECT m
+      FROM Message m
+      WHERE 
+          (m.senderEmail = :user1 AND m.receiverEmail = :user2)
+          OR
+          (m.senderEmail = :user2 AND m.receiverEmail = :user1)
+      ORDER BY m.timestamp ASC
+      """)
+  List<Message> getChatAsc(String user1, String user2);
 
   List<Message> findBySenderEmailOrReceiverEmailOrderByTimestampDesc(String email1, String email2);
 
@@ -34,15 +42,22 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
 
   List<Message> findByReceiverEmailAndReadStatusFalse(String receiverEmail);
 
-  @Query("SELECT COUNT(m) FROM Message m WHERE m.receiverEmail = :receiverEmail AND m.readStatus = false")
+
+  @Query("""
+      SELECT COUNT(m)
+      FROM Message m
+      WHERE m.receiverEmail = :receiverEmail
+        AND m.readStatus = false
+      """)
   long countUnreadMessages(String receiverEmail);
 
   @Query("""
       SELECT COUNT(m)
       FROM Message m
-      WHERE (
-          (m.senderEmail = :chatPartner AND m.receiverEmail = :userEmail)
-      ) AND m.readStatus = false
+      WHERE 
+          m.senderEmail = :chatPartner
+          AND m.receiverEmail = :userEmail
+          AND m.readStatus = false
       """)
   long countUnreadMessagesInChat(String userEmail, String chatPartner);
 
@@ -50,8 +65,8 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
   @Query("""
       UPDATE Message m
       SET m.readStatus = true
-      WHERE m.senderEmail = :senderEmail
-        AND m.receiverEmail = :receiverEmail
+      WHERE m.receiverEmail = :receiverEmail
+        AND m.senderEmail = :senderEmail
         AND m.readStatus = false
       """)
   void markAllAsReadBetweenUsers(String receiverEmail, String senderEmail);

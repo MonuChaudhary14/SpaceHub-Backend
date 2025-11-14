@@ -19,8 +19,7 @@ import org.spacehub.service.File.S3Service;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -33,11 +32,11 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
   private final S3Service s3Service;
   private final UserRepository userRepository;
   private final ObjectMapper objectMapper;
+  private final FriendService friendService;
 
   private final Map<String, WebSocketSession> activeUsers = new ConcurrentHashMap<>();
   private final Map<WebSocketSession, Map<String, String>> sessionMetadata = new ConcurrentHashMap<>();
   private final Map<String, String> usernameCache = new ConcurrentHashMap<>();
-  private final FriendService friendService;
 
   public ChatWebSocketHandlerMessaging(
           MessageQueueService messageQueueService,
@@ -89,7 +88,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
         return;
       }
 
-      if (friendService.areFriends(senderEmail, receiverEmail)) {
+      if (!friendService.areFriends(senderEmail, receiverEmail)) {
         sendSystemMessage(session, "You can only chat with friends.");
         session.close(CloseStatus.NOT_ACCEPTABLE);
         return;
@@ -108,24 +107,28 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
     List<Map<String, Object>> formatted = new ArrayList<>();
     for (Message message : unread) {
       if (shouldHideForRequester(message, senderEmail)) continue;
-      formatted.add(buildPayload(message));
+      Map<String, Object> payload = buildPayload(message);
+      payload.put("optimistic", false);
+      addPreviewIfFile(payload, message.getType(), message.getFileKey());
+      formatted.add(payload);
     }
+
+    formatted.sort(Comparator.comparingLong(m -> ((Number) m.get("timestamp")).longValue()));
 
     Map<String, Object> unreadPayload = Map.of(
             "type", "unread",
             "count", formatted.size(),
-            "messages", formatted
-    );
+            "messages", formatted);
     session.sendMessage(new TextMessage(objectMapper.writeValueAsString(unreadPayload)));
   }
 
-  private void processHistoryForReceiver(WebSocketSession session, String senderEmail, String receiverEmail)
-          throws Exception {
+  private void processHistoryForReceiver(WebSocketSession session, String senderEmail, String receiverEmail) throws Exception {
 
     List<Message> dbMessages = messageService.getChat(senderEmail, receiverEmail);
     if (dbMessages == null) dbMessages = Collections.emptyList();
 
     List<Message> pending = messageQueueService.getPendingForChat(senderEmail, receiverEmail);
+    if (pending == null) pending = Collections.emptyList();
 
     List<Message> filteredDb = dbMessages.stream()
             .filter(m -> !shouldHideForRequester(m, senderEmail))
@@ -152,13 +155,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
       formatted.add(payload);
     }
 
-    formatted.sort(Comparator.comparing(m -> {
-      Object t = m.get("timestamp");
-      if (t instanceof String) {
-        return (String) t;
-      }
-      return String.valueOf(t);
-    }));
+    formatted.sort(Comparator.comparingLong(m -> ((Number) m.get("timestamp")).longValue()));
 
     Map<String, Object> payload = Map.of(
             "type", "history",
@@ -234,12 +231,13 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
 
   private void handleTextOnlyMessage(String senderEmail, String receiverEmail, Map<String, Object> payload) throws IOException {
 
-    if (friendService.areFriends(senderEmail, receiverEmail)) {
+    if (!friendService.areFriends(senderEmail, receiverEmail)) {
       throw new RuntimeException("Cannot message non-friends.");
     }
 
+    String messageUuid = UUID.randomUUID().toString();
     Message mess = Message.builder()
-            .messageUuid(UUID.randomUUID().toString())
+            .messageUuid(messageUuid)
             .senderEmail(senderEmail)
             .receiverEmail(receiverEmail)
             .content((String) payload.get("content"))
@@ -248,15 +246,15 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
             .build();
 
     messageQueueService.enqueue(mess);
+
     Map<String, Object> sendPayload = buildPayload(mess);
     sendPayload.put("optimistic", true);
-    sendToReceiver(senderEmail, sendPayload);
-    sendToReceiver(receiverEmail, sendPayload);
+    sendToUsers(Set.of(receiverEmail), sendPayload);
   }
 
   private void handleFileMessage(String senderEmail, String receiverEmail, Map<String, Object> payload) throws IOException {
 
-    if (friendService.areFriends(senderEmail, receiverEmail)) {
+    if (!friendService.areFriends(senderEmail, receiverEmail)) {
       throw new RuntimeException("Cannot message non-friends.");
     }
 
@@ -269,13 +267,12 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
       try {
         previewUrl = s3Service.generatePresignedDownloadUrl(fileKey, Duration.ofMinutes(15));
       }
-      catch (Exception ignored) {
-
-      }
+      catch (Exception ignored) { }
     }
 
+    String messageUuid = UUID.randomUUID().toString();
     Message mess = Message.builder()
-            .messageUuid(UUID.randomUUID().toString())
+            .messageUuid(messageUuid)
             .senderEmail(senderEmail)
             .receiverEmail(receiverEmail)
             .content(fileName)
@@ -287,11 +284,11 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
             .build();
 
     messageQueueService.enqueue(mess);
+
     Map<String, Object> payloadSend = buildPayload(mess);
     if (previewUrl != null) payloadSend.put("previewUrl", previewUrl);
     payloadSend.put("optimistic", true);
-    sendToReceiver(senderEmail, payloadSend);
-    sendToReceiver(receiverEmail, payloadSend);
+    sendToUsers(Set.of(receiverEmail), payloadSend);
   }
 
   private void handleReadMessages(Map<String, Object> payload) {
@@ -326,18 +323,32 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
             "type", "DELETE",
             "messageUuid", messageUuid,
             "deletedBy", senderEmail,
-            "timestamp", LocalDateTime.now().toString()
-    );
-    sendToReceiver(senderEmail, resp);
-    sendToReceiver(receiverEmail, resp);
+            "timestamp", Instant.now().toEpochMilli());
+
+    sendToUsers(Set.of(senderEmail, receiverEmail), resp);
   }
 
-  private void sendToReceiver(String email, Map<String, Object> payload) throws IOException {
-    WebSocketSession session = activeUsers.get(email);
-    if (session != null && session.isOpen()) {
-      session.sendMessage(new TextMessage(objectMapper.writeValueAsString(payload)));
+  private void sendToUsers(Set<String> emails, Map<String, Object> payload) throws IOException {
+    if (emails == null || emails.isEmpty()) return;
+    String json = objectMapper.writeValueAsString(payload);
+    Set<WebSocketSession> targets = emails.stream()
+            .map(activeUsers::get)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+
+    for (WebSocketSession session : targets) {
+      if (session != null && session.isOpen()) {
+        session.sendMessage(new TextMessage(json));
+      }
     }
   }
+
+//  private void sendToReceiver(String email, Map<String, Object> payload) throws IOException {
+//    WebSocketSession session = activeUsers.get(email);
+//    if (session != null && session.isOpen()) {
+//      session.sendMessage(new TextMessage(objectMapper.writeValueAsString(payload)));
+//    }
+//  }
 
 
   private Map<String, Object> buildPayload(Message message) {
@@ -348,7 +359,17 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
     payload.put("senderEmail", message.getSenderEmail());
     payload.put("receiverEmail", message.getReceiverEmail());
     payload.put("content", message.getContent());
-    payload.put("timestamp", message.getTimestamp().toString());
+
+    long epochMillis = 0L;
+    try {
+      LocalDateTime ts = message.getTimestamp();
+      if (ts != null) {
+        epochMillis = ts.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+      }
+    }
+    catch (Exception ignored) { epochMillis = Instant.now().toEpochMilli(); }
+    payload.put("timestamp", epochMillis);
+
     payload.put("readStatus", message.getReadStatus());
     payload.put("senderDeleted", message.getSenderDeleted());
     payload.put("receiverDeleted", message.getReceiverDeleted());
@@ -403,7 +424,8 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
 
   private Map<String, String> parseQueryParams(WebSocketSession session) {
     Map<String, String> map = new HashMap<>();
-    String query = Objects.requireNonNull(session.getUri()).getQuery();
+    if (session.getUri() == null) return map;
+    String query = session.getUri().getQuery();
     if (query != null && !query.isBlank()) {
       for (String param : query.split("&")) {
         String[] parts = param.split("=", 2);
@@ -419,20 +441,31 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
     Map<String, Object> sys = Map.of(
             "type", "system",
             "system", content,
-            "timestamp", LocalDateTime.now().toString()
+            "timestamp", Instant.now().toEpochMilli()
     );
     session.sendMessage(new TextMessage(objectMapper.writeValueAsString(sys)));
   }
+
+//  public void broadcastMessageToUsers(Message message) {
+//    try {
+//      Map<String, Object> payload = buildPayload(message);
+//      payload.put("optimistic", false);
+//      sendToReceiver(message.getSenderEmail(), payload);
+//      sendToReceiver(message.getReceiverEmail(), payload);
+//    }
+//    catch (Exception ignored) {
+//
+//    }
+//  }
 
   public void broadcastMessageToUsers(Message message) {
     try {
       Map<String, Object> payload = buildPayload(message);
       payload.put("optimistic", false);
-      sendToReceiver(message.getSenderEmail(), payload);
-      sendToReceiver(message.getReceiverEmail(), payload);
+
+      sendToUsers(Set.of(message.getSenderEmail(), message.getReceiverEmail()), payload);
     }
     catch (Exception ignored) {
-
     }
   }
 

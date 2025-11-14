@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +20,7 @@ public class MessageQueueService implements IMessageQueueService {
   private final Map<String, List<Message>> pendingByChat = new ConcurrentHashMap<>();
 
   private final IMessageService messageService;
+
   private ChatWebSocketHandlerMessaging messagingHandler;
 
   @Autowired
@@ -33,13 +33,14 @@ public class MessageQueueService implements IMessageQueueService {
   public synchronized void enqueue(Message message) {
     String chatKey = buildChatKey(message.getSenderEmail(), message.getReceiverEmail());
     pendingByChat.computeIfAbsent(chatKey, k -> Collections.synchronizedList(new ArrayList<>())).add(message);
+
     List<Message> list = pendingByChat.get(chatKey);
     if (list != null && list.size() >= 10) {
       flushRoom(chatKey);
     }
   }
 
-  @Scheduled(fixedRate = 2000)
+  @Scheduled(fixedRate = 5000)
   public synchronized void flushQueue() {
     List<String> chats = new ArrayList<>(pendingByChat.keySet());
     for (String chatKey : chats) {
@@ -56,10 +57,16 @@ public class MessageQueueService implements IMessageQueueService {
     pendingByChat.remove(chatKey);
 
     try {
-      messageService.saveMessageBatch(batch);
+      List<Message> persisted = messageService.saveMessageBatch(batch);
+
+      for (Message persistedMessage : persisted) {
+        messagingHandler.broadcastMessageToUsers(persistedMessage);
+      }
+
     }
     catch (Exception e) {
-      pendingByChat.computeIfAbsent(chatKey, k -> Collections.synchronizedList(new ArrayList<>())).addAll(batch);
+      pendingByChat.computeIfAbsent(chatKey, k -> Collections.synchronizedList(new ArrayList<>()))
+              .addAll(batch);
     }
   }
 
@@ -80,7 +87,8 @@ public class MessageQueueService implements IMessageQueueService {
 
   public boolean isPending(String messageUuid) {
     return pendingByChat.values().stream()
-            .flatMap(Collection::stream).anyMatch(m -> Objects.equals(m.getMessageUuid(), messageUuid));
+            .flatMap(Collection::stream)
+            .anyMatch(m -> Objects.equals(m.getMessageUuid(), messageUuid));
   }
 
   private String buildChatKey(String a, String b) {
@@ -89,8 +97,7 @@ public class MessageQueueService implements IMessageQueueService {
     String lowerB = b.toLowerCase();
     if (lowerA.compareTo(lowerB) <= 0) {
       return lowerA + "::" + lowerB;
-    }
-    else {
+    } else {
       return lowerB + "::" + lowerA;
     }
   }

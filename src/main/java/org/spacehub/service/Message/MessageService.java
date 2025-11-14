@@ -32,10 +32,10 @@ public class MessageService implements IMessageService {
   @Override
   @Transactional(readOnly = true)
   public List<Message> getChat(String user1, String user2) {
-    return repo.findBySenderEmailAndReceiverEmailOrReceiverEmailAndSenderEmailOrderByTimestampAsc(user1, user2, user1, user2);
+    return repo.getChatAsc(user1, user2);
   }
 
-  @Override
+    @Override
   public List<Message> getAllMessagesForUser(String email) {
     return repo.findBySenderEmailOrReceiverEmailOrderByTimestampDesc(email, email);
   }
@@ -78,7 +78,8 @@ public class MessageService implements IMessageService {
     }
 
     if (changed) {
-      if (Boolean.TRUE.equals(message.getSenderDeleted()) && Boolean.TRUE.equals(message.getReceiverDeleted())) {
+      if (Boolean.TRUE.equals(message.getSenderDeleted()) &&
+              Boolean.TRUE.equals(message.getReceiverDeleted())) {
         message.setDeletedAt(LocalDateTime.now());
       }
       message = repo.save(message);
@@ -136,6 +137,7 @@ public class MessageService implements IMessageService {
     }
   }
 
+
   @Override
   public void markAllAsRead(String receiverEmail, String senderEmail) {
     repo.markAllAsReadBetweenUsers(receiverEmail, senderEmail);
@@ -160,7 +162,7 @@ public class MessageService implements IMessageService {
     }
     return false;
   }
-  
+
   @Override
   @Transactional
   public ResponseEntity<?> handleDeleteRequest(Long id, String requesterEmail, boolean forEveryone) {
