@@ -10,8 +10,7 @@ import java.io.Serializable;
 import java.time.Instant;
 
 @Entity
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

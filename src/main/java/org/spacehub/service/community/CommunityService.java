@@ -701,67 +701,117 @@ public class CommunityService implements ICommunityService {
 
   public ResponseEntity<ApiResponse<String>> removeMemberFromCommunity(CommunityMemberRequest request) {
     try {
-      Community community = communityRepository.findById(request.getCommunityId()).orElseThrow(() ->
-        new ResourceNotFoundException("Community not found"));
+      Community community = loadCommunity(request.getCommunityId());
+      User requester = loadUser(request.getRequesterEmail());
+      User target = loadUser(request.getUserEmail());
 
-      User requester = findUserByEmail(request.getRequesterEmail());
-      User target = findUserByEmail(request.getUserEmail());
-
-      MembershipCheckResult m = checkMembershipsAndRoles(community, requester, target);
-      if (m.hasError()) {
-        return m.error();
+      ResponseEntity<ApiResponse<String>> creatorCheck = checkCannotRemoveCreator(community, target);
+      if (creatorCheck != null) {
+        return creatorCheck;
       }
 
-      Role requesterRole = m.requesterRole();
-      Role targetRole = m.targetRole();
+      CommunityUser requesterCU = getCommunityUser(community, requester,
+        "Requester is not a member of this community");
+      CommunityUser targetCU = getCommunityUser(community, target,
+        "User is not a member of this community");
 
-
-      if (!canRequesterRemoveTarget(requesterRole, targetRole)) {
-        return ResponseEntity.status(403).body(new ApiResponse<>(403,
-          "You do not have permission to remove this member", null));
+      ResponseEntity<ApiResponse<String>> permissionCheck =
+        checkRemovalPermissions(community, requesterCU, targetCU);
+      if (permissionCheck != null) {
+        return permissionCheck;
       }
 
-      CommunityUser communityUser = communityUserRepository
-        .findByCommunityIdAndUserId(community.getId(), target.getId())
-        .orElseThrow(() -> new ResourceNotFoundException("User is not a member of this community"));
-
-      if (community.getMembers().contains(target)) {
-        community.getMembers().remove(target);
-        communityRepository.save(community);
-      }
-
-      communityUserRepository.delete(communityUser);
-
-      NotificationRequestDTO nrequest = NotificationRequestDTO.builder()
-        .senderEmail(requester.getEmail())
-        .email(target.getEmail())
-        .title("You were removed from a community")
-        .message("An admin has removed you from the community '" + community.getName() + "'.")
-        .type(NotificationType.COMMUNITY_MEMBER_REMOVED)
-        .scope("community")
-        .communityId(community.getId())
-        .build();
-      notificationService.createNotification(nrequest);
+      performRemoval(community, target, targetCU);
+      notifyRemovedUser(community, requester, target);
 
       return ResponseEntity.ok(new ApiResponse<>(200, "Member removed successfully", null));
 
     } catch (ResourceNotFoundException ex) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, ex.getMessage(), null));
     } catch (Exception e) {
-      return ResponseEntity.internalServerError().body(new ApiResponse<>(500,
-        "Unexpected error: " + e.getMessage(), null));
+      return ResponseEntity.internalServerError()
+        .body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
     }
   }
 
-  private boolean canRequesterRemoveTarget(Role requesterRole, Role targetRole) {
-    return switch (requesterRole) {
-      case ADMIN ->
-        targetRole == Role.MEMBER || targetRole == Role.WORKSPACE_OWNER;
-      case WORKSPACE_OWNER ->
-        targetRole == Role.MEMBER;
-      default ->
-        false;
-    };
+  private Community loadCommunity(UUID id) {
+    return communityRepository.findByIdWithUsers(id)
+      .orElseThrow(() -> new ResourceNotFoundException("Community not found"));
+  }
+
+  private User loadUser(String email) {
+    return findUserByEmail(email);
+  }
+
+  private ResponseEntity<ApiResponse<String>> checkCannotRemoveCreator(Community c, User target) {
+    if (c.getCreatedBy() != null && c.getCreatedBy().getId().equals(target.getId())) {
+      return ResponseEntity.status(403)
+        .body(new ApiResponse<>(403, "Cannot remove community creator", null));
+    }
+    return null;
+  }
+
+  private CommunityUser getCommunityUser(Community c, User u, String errorMessage) {
+    return c.getCommunityUsers().stream()
+      .filter(cu -> cu.getUser().getId().equals(u.getId()))
+      .findFirst()
+      .orElseThrow(() -> new ResourceNotFoundException(errorMessage));
+  }
+
+  private ResponseEntity<ApiResponse<String>> checkRemovalPermissions(
+    Community community, CommunityUser requesterCU, CommunityUser targetCU) {
+
+    boolean isCreator = community.getCreatedBy().getId().equals(requesterCU.getUser().getId());
+    Role reqRole = requesterCU.getRole();
+    Role tarRole = targetCU.getRole();
+
+    if (isCreator) {
+      return null;
+    }
+
+    if (reqRole == Role.WORKSPACE_OWNER && tarRole == Role.WORKSPACE_OWNER) {
+      return ResponseEntity.status(403).body(new ApiResponse<>(403,
+        "Cannot remove another workspace owner", null));
+    }
+
+    if (reqRole == Role.ADMIN && (tarRole == Role.ADMIN || tarRole == Role.WORKSPACE_OWNER)) {
+      return ResponseEntity.status(403).body(new ApiResponse<>(403,
+        "Admins can only remove members, not other admins or workspace owners", null));
+    }
+
+    if (reqRole == Role.MEMBER) {
+      return ResponseEntity.status(403).body(new ApiResponse<>(403,
+        "You do not have permission to remove this member", null));
+    }
+
+    return null;
+  }
+
+  private void performRemoval(Community community, User target, CommunityUser targetCU) {
+
+    if (community.getMembers() != null) {
+      community.getMembers().removeIf(u -> u.getId().equals(target.getId()));
+    }
+
+    if (community.getCommunityUsers() != null) {
+      community.getCommunityUsers().removeIf(cu -> cu.getId().equals(targetCU.getId()));
+    }
+
+    communityUserRepository.delete(targetCU);
+    communityRepository.save(community);
+  }
+
+  private void notifyRemovedUser(Community community, User requester, User target) {
+    NotificationRequestDTO req = NotificationRequestDTO.builder()
+      .senderEmail(requester.getEmail())
+      .email(target.getEmail())
+      .title("You were removed from a community")
+      .message("An admin has removed you from the community '" + community.getName() + "'.")
+      .type(NotificationType.COMMUNITY_MEMBER_REMOVED)
+      .scope("community")
+      .communityId(community.getId())
+      .build();
+    notificationService.createNotification(req);
   }
 
   private Role getUserRoleInCommunity(Community community, User user) {
@@ -1085,24 +1135,20 @@ public class CommunityService implements ICommunityService {
 
       List<Map<String, Object>> userCommunities = buildCommunityListForUser(normalizedEmail);
 
-// replace current loop that sets memberCount
       for (Map<String, Object> community : userCommunities) {
         UUID communityId = (UUID) community.get("communityId");
 
-        // load Community with users
         Community c = communityRepository.findByIdWithUsers(communityId)
-          .orElse(null); // make sure method exists / returns community users eagerly or via JOIN FETCH
+          .orElse(null);
 
         long memberCount = 0;
         if (c != null) {
           memberCount = c.getCommunityUsers().stream()
-            // include members, admins and workspace owners
             .filter(cu -> cu.getRole() == Role.MEMBER
               || cu.getRole() == Role.ADMIN
               || cu.getRole() == Role.WORKSPACE_OWNER)
-            // exclude blocked / banned if you want
             .filter(cu -> !cu.isBlocked() && !cu.isBanned())
-            .map(CommunityUser::getUser)      // in case same user has multiple entries (rare)
+            .map(CommunityUser::getUser)
             .filter(Objects::nonNull)
             .map(User::getId)
             .distinct()
