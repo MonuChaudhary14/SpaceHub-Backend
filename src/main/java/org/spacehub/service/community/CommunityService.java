@@ -157,11 +157,20 @@ public class CommunityService implements ICommunityService {
   }
 
   private void addAdminUser(Community community, User creator) {
+
+    if (community.getMembers() == null) {
+      community.setMembers(new HashSet<>());
+    }
+    community.getMembers().add(creator);
+
+    communityRepository.save(community);
+
     CommunityUser admin = new CommunityUser();
     admin.setCommunity(community);
     admin.setUser(creator);
     admin.setRole(Role.ADMIN);
     admin.setJoinDate(LocalDateTime.now());
+    admin.setBlocked(false);
     admin.setBanned(false);
 
     communityUserRepository.save(admin);
@@ -170,6 +179,7 @@ public class CommunityService implements ICommunityService {
       community.setCommunityUsers(new HashSet<>());
     }
     community.getCommunityUsers().add(admin);
+
     communityRepository.save(community);
   }
 

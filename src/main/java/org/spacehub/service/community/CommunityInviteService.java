@@ -55,7 +55,6 @@ public class CommunityInviteService implements ICommunityInviteService {
     return UUID.randomUUID().toString().substring(0, 8);
   }
 
-  @Override
   public ApiResponse<CommunityInviteResponseDTO> createInvite(UUID communityId, CommunityInviteRequestDTO request) {
 
     Community community = communityRepository.findById(communityId).orElse(null);
@@ -68,15 +67,16 @@ public class CommunityInviteService implements ICommunityInviteService {
       return new ApiResponse<>(404, "Inviter not found", null);
     }
 
-    boolean isMember = community.getMembers().stream()
-            .anyMatch(u -> u.getId().equals(inviter.getId()));
+    CommunityUser membership =
+            communityUserRepository.findByCommunityAndUser(community, inviter).orElse(null);
 
-    if (!isMember) {
+    if (membership == null) {
       return new ApiResponse<>(403, "You are not a member of this community", null);
     }
 
-    CommunityUser membership = communityUserRepository.findByCommunityAndUser(community, inviter).orElse(null);
-    if (membership == null || (membership.getRole() != Role.WORKSPACE_OWNER && membership.getRole() != Role.ADMIN)) {
+    boolean hasPermission = membership.getRole() == Role.ADMIN || membership.getRole() == Role.WORKSPACE_OWNER;
+
+    if (!hasPermission) {
       return new ApiResponse<>(403, "Only admins or owners can create invites", null);
     }
 
