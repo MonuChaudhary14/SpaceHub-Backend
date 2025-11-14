@@ -112,53 +112,14 @@ public class JanusService {
   }
 
   public void joinAudioRoom(String sessionId, String handleId, int roomId, String displayName) {
-    Map<String, Object> body = Map.of("request", "join", "room", roomId, "display", displayName);
-    Map<String, Object> request = Map.of("janus", "message", "transaction", UUID.randomUUID().toString(), "body", body);
+    Map<String, Object> body = Map.of(
+      "request", "join", "room", roomId, "display", displayName
+    );
+    Map<String, Object> request = Map.of(
+      "janus", "message", "transaction", UUID.randomUUID().toString(), "body", body
+    );
     String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
-
-    ResponseEntity<JsonNode> response = restTemplate.postForEntity(handleUrl, request, JsonNode.class);
-    JsonNode respBody = response.getBody();
-    logger.info("Janus join response: {}", respBody);
-
-    JsonNode participantsNode = respBody != null
-      ? respBody.path("plugindata").path("data").path("participants")
-      : null;
-    if (participantsNode != null && !participantsNode.isMissingNode() && participantsNode.isArray()) {
-      return;
-    }
-
-    JsonNode listResp;
-    int attempts = 3;
-    for (int i = 0; i < attempts; i++) {
-      try {
-        listResp = listParticipants(sessionId, handleId, roomId);
-        if (listResp != null) {
-          JsonNode listParticipantsNode = listResp.path("plugindata").path("data").path("participants");
-          if (listParticipantsNode != null && listParticipantsNode.isArray() && !listParticipantsNode.isEmpty()) {
-            logger.info("Found participants via listparticipants on attempt {}", i + 1);
-            return;
-          }
-        }
-      } catch (Exception ex) {
-        logger.warn("listparticipants attempt {} failed: {}", i + 1, ex.getMessage());
-      }
-      try {
-        Thread.sleep(200L);
-      } catch (InterruptedException ie) {
-        Thread.currentThread().interrupt();
-        break;
-      }
-    }
-    logger.info("Returning join response without participants.");
-  }
-
-  public JsonNode listParticipants(String sessionId, String handleId, int roomId) {
-    String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
-    Map<String, Object> body = Map.of("request", "listparticipants", "room", roomId);
-    Map<String, Object> request = Map.of("janus", "message", "transaction", UUID.randomUUID().toString(), "body", body);
-    ResponseEntity<JsonNode> response = restTemplate.postForEntity(handleUrl, request, JsonNode.class);
-    logger.info("Janus listparticipants response: {}", response.getBody());
-    return response.getBody();
+    restTemplate.postForEntity(handleUrl, request, JsonNode.class);
   }
 
   public void sendOffer(String sessionId, String handleId, String sdpOffer,
