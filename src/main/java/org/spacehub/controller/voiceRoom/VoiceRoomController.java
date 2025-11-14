@@ -11,7 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import com.fasterxml.jackson.databind.JsonNode;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -54,25 +55,34 @@ public class VoiceRoomController {
 
   @PostMapping("/join")
   public ResponseEntity<?> joinVoiceRoom(
-          @RequestParam int janusRoomId,
-          @RequestParam String displayName) {
+    @RequestParam int janusRoomId,
+    @RequestParam String displayName) {
 
     try {
       String sessionId = janusService.createSession();
       String handleId = janusService.attachAudioBridgePlugin(sessionId);
-      janusService.joinAudioRoom(sessionId, handleId, janusRoomId, displayName);
 
-      return ResponseEntity.ok(Map.of(
-              "message", "Joined voice room successfully",
-              "janusRoomId", janusRoomId,
-              "sessionId", sessionId,
-              "handleId", handleId
-      ));
-    }
-    catch (Exception e) {
+      JsonNode janusResponse = janusService.joinAudioRoom(sessionId, handleId, janusRoomId, displayName);
+
+      JsonNode participantsNode = janusResponse.path("plugindata").path("data").path("participants");
+
+      Map<String, Object> responseData = new java.util.HashMap<>();
+      responseData.put("message", "Joined voice room successfully");
+      responseData.put("janusRoomId", janusRoomId);
+      responseData.put("sessionId", sessionId);
+      responseData.put("handleId", handleId);
+      if (participantsNode.isArray()) {
+        responseData.put("participants", participantsNode);
+      } else {
+        responseData.put("participants", new ArrayList<>());
+      }
+
+      return ResponseEntity.ok(responseData);
+
+    } catch (Exception e) {
       logger.error("Error joining voice room: {}", e.getMessage(), e);
       return ResponseEntity.status(500)
-              .body(Map.of("error", "Failed to join voice room", "message", e.getMessage()));
+        .body(Map.of("error", "Failed to join room", "message", e.getMessage()));
     }
   }
 
