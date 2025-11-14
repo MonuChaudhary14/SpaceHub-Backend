@@ -1,7 +1,7 @@
-package org.spacehub.service;
+package org.spacehub.service.invite;
 
 import org.spacehub.DTO.Community.CommunityInviteAcceptDTO;
-import org.spacehub.DTO.InviteAcceptDTO;
+import org.spacehub.DTO.invite.InviteAcceptDTO;
 import org.spacehub.DTO.LocalGroup.LocalGroupInviteAcceptDTO;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.service.LocalRoom.LocalGroupInviteService;
@@ -21,6 +21,17 @@ public class AllInviteService {
   }
 
   public ApiResponse<?> acceptInvite(InviteAcceptDTO req) {
+
+    ApiResponse<?> validation = validateInviteRequest(req);
+    if (validation != null) {
+      return validation;
+    }
+
+    return dispatchInvite(req);
+  }
+
+  private ApiResponse<?> validateInviteRequest(InviteAcceptDTO req) {
+
     if (req == null) {
       return new ApiResponse<>(400, "Request body is required", null);
     }
@@ -37,28 +48,42 @@ public class AllInviteService {
       return new ApiResponse<>(400, "acceptorEmail is required", null);
     }
 
+    return null;
+  }
+
+  private ApiResponse<?> dispatchInvite(InviteAcceptDTO req) {
+
     String t = req.getType().trim().toLowerCase();
 
     return switch (t) {
-      case "community", "comm", "c" -> {
-        CommunityInviteAcceptDTO cDto = CommunityInviteAcceptDTO.builder()
-          .communityId(req.getId())
-          .inviteCode(req.getInviteCode())
-          .acceptorEmail(req.getAcceptorEmail())
-          .build();
-        yield communityInviteService.acceptInvite(cDto);
-      }
-      case "local_group", "localgroup", "group", "g" -> {
-        LocalGroupInviteAcceptDTO lDto = LocalGroupInviteAcceptDTO.builder()
-          .groupId(req.getId())
-          .inviteCode(req.getInviteCode())
-          .acceptorEmail(req.getAcceptorEmail())
-          .build();
-        yield localGroupInviteService.acceptInvite(lDto);
-      }
-      default -> new ApiResponse<>(400, "Unknown invite type: " + req.getType() +
-        " (expected 'community' or 'local_group')", null);
+
+      case "community", "comm", "c" -> handleCommunityAccept(req);
+
+      case "local_group", "localgroup", "group", "g" -> handleLocalGroupAccept(req);
+
+      default -> new ApiResponse<>(400,
+        "Unknown invite type: " + req.getType() +
+          " (expected 'community' or 'local_group')",
+        null);
     };
+  }
+
+  private ApiResponse<?> handleCommunityAccept(InviteAcceptDTO req) {
+    CommunityInviteAcceptDTO dto = CommunityInviteAcceptDTO.builder()
+      .communityId(req.getId())
+      .inviteCode(req.getInviteCode())
+      .acceptorEmail(req.getAcceptorEmail())
+      .build();
+    return communityInviteService.acceptInvite(dto);
+  }
+
+  private ApiResponse<?> handleLocalGroupAccept(InviteAcceptDTO req) {
+    LocalGroupInviteAcceptDTO dto = LocalGroupInviteAcceptDTO.builder()
+      .groupId(req.getId())
+      .inviteCode(req.getInviteCode())
+      .acceptorEmail(req.getAcceptorEmail())
+      .build();
+    return localGroupInviteService.acceptInvite(dto);
   }
 
 }

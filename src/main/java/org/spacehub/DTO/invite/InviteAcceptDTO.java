@@ -1,4 +1,4 @@
-package org.spacehub.DTO;
+package org.spacehub.DTO.invite;
 
 import lombok.*;
 import java.util.UUID;

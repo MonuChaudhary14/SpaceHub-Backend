@@ -1,9 +1,9 @@
-package org.spacehub.controller;
+package org.spacehub.controller.invite;
 
 import lombok.RequiredArgsConstructor;
-import org.spacehub.DTO.InviteAcceptDTO;
+import org.spacehub.DTO.invite.InviteAcceptDTO;
 import org.spacehub.entities.ApiResponse.ApiResponse;
-import org.spacehub.service.AllInviteService;
+import org.spacehub.service.invite.AllInviteService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

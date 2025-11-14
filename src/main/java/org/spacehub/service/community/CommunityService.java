@@ -19,6 +19,7 @@ import org.spacehub.DTO.Community.PendingRequestUserDTO;
 import org.spacehub.entities.Community.Role;
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.ChatRoom.ChatRoomRepository;
+import org.spacehub.repository.Notification.NotificationRepository;
 import org.spacehub.repository.community.CommunityRepository;
 import org.spacehub.repository.User.UserRepository;
 import org.spacehub.repository.community.CommunityUserRepository;
@@ -57,6 +58,7 @@ public class CommunityService implements ICommunityService {
   private final CommunityUserRepository communityUserRepository;
   private final S3Service s3Service;
   private final S3UrlHelper s3UrlHelper;
+  private final NotificationRepository notificationRepository;
 
 
   public static class ResourceNotFoundException extends RuntimeException {
@@ -67,13 +69,15 @@ public class CommunityService implements ICommunityService {
 
   public CommunityService(CommunityRepository communityRepository, UserRepository userRepository,
                           ChatRoomRepository chatRoomRepository, S3Service s3Service,
-                          CommunityUserRepository communityUserRepository, S3UrlHelper s3UrlHelper) {
+                          CommunityUserRepository communityUserRepository, S3UrlHelper s3UrlHelper,
+                          NotificationRepository notificationRepository) {
     this.communityRepository = communityRepository;
     this.userRepository = userRepository;
     this.chatRoomRepository = chatRoomRepository;
     this.communityUserRepository = communityUserRepository;
     this.s3Service = s3Service;
     this.s3UrlHelper = s3UrlHelper;
+    this.notificationRepository = notificationRepository;
   }
 
   public ResponseEntity<ApiResponse<Map<String, Object>>> createCommunity(
@@ -182,6 +186,7 @@ public class CommunityService implements ICommunityService {
       clearCommunityRelations(community);
 
       communityRepository.save(community);
+      notificationRepository.deleteByCommunityId(community.getId());
       communityRepository.delete(community);
 
       return ok("Community deleted successfully");
@@ -219,7 +224,7 @@ public class CommunityService implements ICommunityService {
       community.getChatRooms().clear();
     }
 
-    if (community.getMembers() != null) {
+    if (community.getMembers() != null && !community.getMembers().isEmpty()) {
       community.getMembers().clear();
     }
   }
