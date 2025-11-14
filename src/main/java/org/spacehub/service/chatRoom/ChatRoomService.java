@@ -66,8 +66,17 @@ public class ChatRoomService implements IChatRoomService {
   }
 
   public ApiResponse<String> deleteRoomResponse(String roomCode, String requesterEmail) {
-    Optional<ChatRoom> optionalRoom = chatRoomRepository.findByRoomCode(UUID.fromString(roomCode));
-    if (optionalRoom.isEmpty()) return new ApiResponse<>(403, "Room not found", null);
+    Optional<ChatRoom> optionalRoom;
+    try {
+      optionalRoom = chatRoomRepository.findByRoomCode(UUID.fromString(roomCode));
+
+    } catch (IllegalArgumentException e) {
+      return new ApiResponse<>(400, "Invalid room code format. Must be a valid UUID.", null);
+    }
+
+    if (optionalRoom.isEmpty()) {
+      return new ApiResponse<>(404, "Room not found", null);
+    }
 
     ChatRoom room = optionalRoom.get();
 
@@ -81,12 +90,12 @@ public class ChatRoomService implements IChatRoomService {
 
     chatMessageRepository.deleteAll(chatMessageRepository.findByRoomOrderByTimestampAsc(room));
     chatRoomUserService.getMembers(room)
-            .forEach(user -> chatRoomUserService.removeUserFromRoom(room, user.getEmail()));
+      .forEach(user -> chatRoomUserService.removeUserFromRoom(room, user.getEmail()));
 
     chatRoomRepository.delete(room);
 
     return new ApiResponse<>(200, "Room deleted successfully",
-            "Room with code " + roomCode + " deleted.");
+      "Room with code " + roomCode + " deleted.");
   }
 
   public ApiResponse<String> joinRoomResponse(String roomCode, String email) {
