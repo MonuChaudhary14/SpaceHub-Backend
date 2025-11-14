@@ -19,13 +19,14 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.time.*;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Component
-public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
+public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
 
   private final MessageQueueService messageQueueService;
   private final IMessageService messageService;
@@ -112,7 +113,6 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
       processUnreadMessages(session, senderEmail);
     }
     catch (Exception e) {
-
       try { sendSystemMessage(session, "Unable to load unread messages right now."); } catch (IOException ignored) {}
     }
 
@@ -125,10 +125,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
           sendSystemMessage(session, "You can only chat with friends.");
         }
         else {
-          try {
-            processHistoryForReceiver(session, senderEmail, receiverEmail);
-          }
-          catch (Exception e) {
+          try { processHistoryForReceiver(session, senderEmail, receiverEmail); } catch (Exception e) {
             sendSystemMessage(session, "Unable to load chat history right now.");
           }
         }
@@ -183,7 +180,6 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
       if (dbMessages == null) dbMessages = Collections.emptyList();
     }
     catch (Exception e) {
-
       dbMessages = Collections.emptyList();
     }
 
@@ -212,8 +208,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
         payload.put("optimistic", false);
         addPreviewIfFileQuiet(payload, message.getType(), message.getFileKey());
         formatted.add(payload);
-      }
-      catch (Exception ignored) { }
+      } catch (Exception ignored) {}
     }
 
     for (Message message : filteredPending) {
@@ -222,8 +217,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
         payload.put("optimistic", true);
         addPreviewIfFileQuiet(payload, message.getType(), message.getFileKey());
         formatted.add(payload);
-      }
-      catch (Exception ignored) { }
+      } catch (Exception ignored) {}
     }
 
     formatted.sort(Comparator.comparingLong(m -> ((Number) m.get("timestamp")).longValue()));
@@ -238,12 +232,8 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
   private boolean shouldHideForRequester(Message m, String requesterEmail) {
     if (m == null || requesterEmail == null) return false;
     try {
-      if (requesterEmail.equalsIgnoreCase(m.getSenderEmail()) && Boolean.TRUE.equals(m.getSenderDeleted())) {
-        return true;
-      }
-      if (requesterEmail.equalsIgnoreCase(m.getReceiverEmail()) && Boolean.TRUE.equals(m.getReceiverDeleted())) {
-        return true;
-      }
+      if (requesterEmail.equalsIgnoreCase(m.getSenderEmail()) && Boolean.TRUE.equals(m.getSenderDeleted())) return true;
+      if (requesterEmail.equalsIgnoreCase(m.getReceiverEmail()) && Boolean.TRUE.equals(m.getReceiverDeleted())) return true;
       return m.getDeletedAt() != null;
     }
     catch (Exception e) {
@@ -281,8 +271,8 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
       try {
         String previewUrl = s3Service.generatePresignedDownloadUrl(fileKey, Duration.ofMinutes(10));
         payload.put("previewUrl", previewUrl);
-      } catch (Exception ignored) {
       }
+      catch (Exception ignored) { }
     }
   }
 
@@ -301,12 +291,8 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
     String type = (String) clientPayload.getOrDefault("type", "MESSAGE");
 
     switch (type.toUpperCase()) {
-      case "FILE" -> {
-        handleFileMessage(chatKey, senderEmail, clientPayload, session);
-      }
-      case "DELETE" -> {
-        handleDeleteMessage(chatKey, senderEmail, clientPayload, session);
-      }
+      case "FILE" -> handleFileMessage(chatKey, senderEmail, clientPayload, session);
+      case "DELETE" -> handleDeleteMessage(chatKey, senderEmail, clientPayload, session);
       case "READ" -> handleReadMessages(clientPayload);
       case "SUMMARY" -> sendChatSummary(session, senderEmail);
       case "HISTORY" -> {
@@ -340,7 +326,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
             .senderEmail(senderEmail)
             .receiverEmail(receiverEmail)
             .content((String) payload.get("content"))
-            .timestamp(LocalDateTime.now())
+            .timestamp(Instant.now().toEpochMilli())
             .type("MESSAGE")
             .build();
 
@@ -372,7 +358,10 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
     if (fileKey != null) {
       try {
         previewUrl = s3Service.generatePresignedDownloadUrl(fileKey, Duration.ofMinutes(15));
-      } catch (Exception ignored) { }
+      }
+      catch (Exception ignored) {
+
+      }
     }
 
     String messageUuid = UUID.randomUUID().toString();
@@ -384,7 +373,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
             .fileName(fileName)
             .fileKey(fileKey)
             .contentType(contentType)
-            .timestamp(LocalDateTime.now())
+            .timestamp(Instant.now().toEpochMilli())
             .type("FILE")
             .build();
 
@@ -433,8 +422,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
 
     if (receiverEmail != null) {
       sendToUsers(Set.of(senderEmail, receiverEmail), resp);
-    }
-    else {
+    } else {
       sendToUsers(Set.of(senderEmail), resp);
     }
   }
@@ -445,9 +433,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
     Set<WebSocketSession> targets = new LinkedHashSet<>();
     for (String email : emails) {
       Set<WebSocketSession> sessions = activeUsers.get(email.toLowerCase());
-      if (sessions != null) {
-        targets.addAll(sessions);
-      }
+      if (sessions != null) targets.addAll(sessions);
     }
 
     for (WebSocketSession session : targets) {
@@ -456,14 +442,6 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
       }
     }
   }
-
-//  private void sendToReceiver(String email, Map<String, Object> payload) throws IOException {
-//    WebSocketSession session = activeUsers.get(email);
-//    if (session != null && session.isOpen()) {
-//      session.sendMessage(new TextMessage(objectMapper.writeValueAsString(payload)));
-//    }
-//  }
-
 
   private Map<String, Object> buildPayload(Message message) {
     Map<String, Object> payload = new LinkedHashMap<>();
@@ -474,19 +452,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
     payload.put("receiverEmail", message.getReceiverEmail());
     payload.put("content", message.getContent());
 
-    long epochMillis;
-    try {
-      LocalDateTime ts = message.getTimestamp();
-      if (ts != null) {
-        epochMillis = ts.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
-      }
-      else {
-        epochMillis = Instant.now().toEpochMilli();
-      }
-    }
-    catch (Exception ignored) {
-      epochMillis = Instant.now().toEpochMilli();
-    }
+    long epochMillis = message.getTimestamp() != null ? message.getTimestamp() : Instant.now().toEpochMilli();
     payload.put("timestamp", epochMillis);
 
     payload.put("readStatus", message.getReadStatus());
@@ -505,22 +471,9 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
 
   private String getUsername(String email) {
     if (email == null) return null;
-    return usernameCache.computeIfAbsent(email, e -> userRepository.findByEmail(e).map(User::getUsername).orElse(null));
+    return usernameCache.computeIfAbsent(email, e ->
+            userRepository.findByEmail(e).map(User::getUsername).orElse(null));
   }
-
-//  private void sendToBoth(String senderEmail, String receiverEmail, Message message) throws IOException {
-//    String json = objectMapper.writeValueAsString(message);
-//
-  ////    WebSocketSession senderSession = activeUsers.get(senderEmail);
-  ////    if (senderSession != null && senderSession.isOpen()) {
-  ////      senderSession.sendMessage(new TextMessage(json));
-  ////    }
-//
-//    WebSocketSession receiverSession = activeUsers.get(receiverEmail);
-//    if (receiverSession != null && receiverSession.isOpen()) {
-//      receiverSession.sendMessage(new TextMessage(json));
-//    }
-//  }
 
   private String deriveOtherFromChatKey(String chatKey, String selfEmail) {
     if (chatKey == null || selfEmail == null) return null;
@@ -600,30 +553,16 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
     Map<String, Object> sys = Map.of(
             "type", "system",
             "system", content,
-            "timestamp", Instant.now().toEpochMilli());
+            "timestamp", Instant.now().toEpochMilli()
+    );
     session.sendMessage(new TextMessage(objectMapper.writeValueAsString(sys)));
   }
-
-//  public void broadcastMessageToUsers(Message message) {
-//    try {
-//      Map<String, Object> payload = buildPayload(message);
-//      payload.put("optimistic", false);
-//      sendToReceiver(message.getSenderEmail(), payload);
-//      sendToReceiver(message.getReceiverEmail(), payload);
-//    }
-//    catch (Exception ignored) {
-//
-//    }
-//  }
 
   public void broadcastMessageToUsers(Message message) {
     try {
       Map<String, Object> payload = buildPayload(message);
       payload.put("optimistic", false);
       sendToUsers(Set.of(message.getSenderEmail(), message.getReceiverEmail()), payload);
-    }
-    catch (Exception ignored) {
-    }
+    } catch (Exception ignored) {}
   }
-
 }

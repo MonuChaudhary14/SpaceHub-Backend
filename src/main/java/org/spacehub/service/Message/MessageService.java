@@ -9,7 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -80,7 +79,7 @@ public class MessageService implements IMessageService {
     if (changed) {
       if (Boolean.TRUE.equals(message.getSenderDeleted()) &&
               Boolean.TRUE.equals(message.getReceiverDeleted())) {
-        message.setDeletedAt(LocalDateTime.now());
+        message.setDeletedAt(java.time.Instant.now().toEpochMilli());
       }
       message = repo.save(message);
     }
@@ -136,7 +135,6 @@ public class MessageService implements IMessageService {
       repo.save(mess);
     }
   }
-
 
   @Override
   public void markAllAsRead(String receiverEmail, String senderEmail) {
@@ -201,5 +199,4 @@ public class MessageService implements IMessageService {
     deleteMessageHard(id);
     return ResponseEntity.noContent().build();
   }
-
 }

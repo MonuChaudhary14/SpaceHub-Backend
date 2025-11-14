@@ -33,6 +33,10 @@ public class MessageQueueService implements IMessageQueueService {
 
   @Override
   public synchronized void enqueue(Message message) {
+    if (message.getTimestamp() == null) {
+      message.setTimestamp(java.time.Instant.now().toEpochMilli());
+    }
+
     String chatKey = buildChatKey(message.getSenderEmail(), message.getReceiverEmail());
     pendingByChat.computeIfAbsent(chatKey, k -> Collections.synchronizedList(new ArrayList<>())).add(message);
 
@@ -66,7 +70,7 @@ public class MessageQueueService implements IMessageQueueService {
           try {
             messagingHandler.broadcastMessageToUsers(persistedMessage);
           }
-          catch (Exception ignored) { }
+          catch (Exception ignored) {}
         }
       }
     }
@@ -108,5 +112,4 @@ public class MessageQueueService implements IMessageQueueService {
       return lowerB + "::" + lowerA;
     }
   }
-
 }
