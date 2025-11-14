@@ -292,6 +292,18 @@ public class FriendService implements IFriendService {
     }
 
     friendsRepository.delete(rel.get());
+
+    NotificationRequestDTO notification = NotificationRequestDTO.builder()
+      .senderEmail(user.getEmail())
+      .email(friend.getEmail())
+      .type(NotificationType.FRIEND_REMOVED)
+      .title("Friend Removed")
+      .message(user.getUsername() + " removed you from their friends list.")
+      .scope("friend")
+      .actionable(false)
+      .build();
+    notificationService.createNotification(notification);
+
     return "Friend removed successfully.";
   }
 

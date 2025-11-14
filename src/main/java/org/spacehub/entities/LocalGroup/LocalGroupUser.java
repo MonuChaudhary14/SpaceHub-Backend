@@ -2,16 +2,14 @@ package org.spacehub.entities.LocalGroup;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 import lombok.ToString;
 import org.spacehub.entities.User.User;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
 
-@Getter
-@Setter
+@Data
 @Entity
 @ToString
 public class LocalGroupUser {
