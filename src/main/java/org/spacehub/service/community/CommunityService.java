@@ -241,65 +241,23 @@ public class CommunityService implements ICommunityService {
 
   public ResponseEntity<ApiResponse<?>> requestToJoinCommunity(@RequestBody JoinCommunity joinCommunity) {
     try {
-
-      if (joinCommunity == null) {
-        return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Request body cannot be null", null));
-      }
-      if (joinCommunity.getCommunityName() == null || joinCommunity.getCommunityName().trim().isEmpty()) {
-        return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Community name is required", null));
-      }
-      if (joinCommunity.getUserEmail() == null || joinCommunity.getUserEmail().trim().isEmpty()) {
-        return ResponseEntity.badRequest().body(new ApiResponse<>(400, "User email is required", null));
+      String validationError = validateJoinRequest(joinCommunity);
+      if (validationError != null) {
+        return ResponseEntity.badRequest().body(new ApiResponse<>(400, validationError, null));
       }
 
       Community community = findCommunityByName(joinCommunity.getCommunityName());
       User user = findUserByEmail(joinCommunity.getUserEmail());
 
-      Optional<CommunityUser> existingMember = community.getCommunityUsers().stream()
-              .filter(cu -> cu.getUser().getId().equals(user.getId())).findFirst();
-
-      if (existingMember.isPresent()) {
-        CommunityUser cu = existingMember.get();
-
-        if (cu.isBlocked()) {
-          return ResponseEntity.status(403).body(new ApiResponse<>(403,
-            "You are blocked from this community", null));
-        }
-
-        if (cu.isBanned()) {
-          return ResponseEntity.status(403).body(new ApiResponse<>(403,
-            "You are banned from this community", null));
-        }
-
-        return ResponseEntity.status(409).body(new ApiResponse<>(409,
-          "You are already a member of this community", null));
+      ResponseEntity<ApiResponse<?>> membershipCheck = checkExistingMember(community, user);
+      if (membershipCheck != null) {
+        return membershipCheck;
       }
 
-      community.getPendingRequests().add(user);
-      communityRepository.save(community);
+      addPendingRequest(community, user);
+      notifyCommunityAdmins(community, user);
 
-      community.getCommunityUsers().stream()
-              .filter(cu -> cu.getRole() == Role.ADMIN || cu.getRole() == Role.WORKSPACE_OWNER)
-              .forEach(adminCU -> {
-                User admin = adminCU.getUser();
-                notificationService.createNotification(
-                        NotificationRequestDTO.builder()
-                                .email(admin.getEmail())
-                                .senderEmail(user.getEmail())
-                                .type(NotificationType.COMMUNITY_JOINED)
-                                .title("Community Join Request")
-                                .message(user.getUsername() + " requested to join " + community.getName())
-                                .scope("community-request")
-                                .actionable(true)
-                                .communityId(community.getId())
-                                .referenceId(community.getId())
-                                .build()
-                );
-              });
-
-      return ResponseEntity.ok().body(
-        new ApiResponse<>(200, "Request send to community")
-      );
+      return ResponseEntity.ok().body(new ApiResponse<>(200, "Request sent to community"));
 
     } catch (IllegalArgumentException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
@@ -307,6 +265,68 @@ public class CommunityService implements ICommunityService {
       return ResponseEntity.internalServerError()
         .body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
     }
+  }
+
+  private String validateJoinRequest(JoinCommunity req) {
+    if (req == null) return "Request body cannot be null";
+    if (req.getCommunityName() == null || req.getCommunityName().trim().isEmpty())
+      return "Community name is required";
+    if (req.getUserEmail() == null || req.getUserEmail().trim().isEmpty())
+      return "User email is required";
+
+    return null;
+  }
+
+  private ResponseEntity<ApiResponse<?>> checkExistingMember(Community community, User user) {
+
+    Optional<CommunityUser> existingMember = community.getCommunityUsers().stream()
+      .filter(cu -> cu.getUser().getId().equals(user.getId()))
+      .findFirst();
+
+    if (existingMember.isEmpty()) {
+      return null;
+    }
+
+    CommunityUser cu = existingMember.get();
+
+    if (cu.isBlocked()) {
+      return ResponseEntity.status(403).body(new ApiResponse<>(403,
+        "You are blocked from this community", null));
+    }
+
+    if (cu.isBanned()) {
+      return ResponseEntity.status(403).body(new ApiResponse<>(403,
+        "You are banned from this community", null));
+    }
+
+    return ResponseEntity.status(409).body(new ApiResponse<>(409,
+      "You are already a member of this community", null));
+  }
+
+  private void addPendingRequest(Community community, User user) {
+    community.getPendingRequests().add(user);
+    communityRepository.save(community);
+  }
+
+  private void notifyCommunityAdmins(Community community, User user) {
+    community.getCommunityUsers().stream()
+      .filter(cu -> cu.getRole() == Role.ADMIN || cu.getRole() == Role.WORKSPACE_OWNER)
+      .forEach(adminCU -> {
+        User admin = adminCU.getUser();
+        notificationService.createNotification(
+          NotificationRequestDTO.builder()
+            .email(admin.getEmail())
+            .senderEmail(user.getEmail())
+            .type(NotificationType.COMMUNITY_JOINED)
+            .title("Community Join Request")
+            .message(user.getUsername() + " requested to join " + community.getName())
+            .scope("community-request")
+            .actionable(true)
+            .communityId(community.getId())
+            .referenceId(community.getId())
+            .build()
+        );
+      });
   }
 
   public ResponseEntity<ApiResponse<?>> cancelRequestCommunity(@RequestBody CancelJoinRequest cancelJoinRequest) {
@@ -499,6 +519,10 @@ public class CommunityService implements ICommunityService {
 
       removeCommunityUser(community, communityUserOptional.get(), user);
       communityRepository.save(community);
+
+      String title = "Member Left";
+      String message = "User '" + user.getUsername() + "' has left your community '" + community.getName() + "'.";
+      notifyAdmins(community, user, title, message);
 
       return ResponseEntity.ok(new ApiResponse<>(200, "You have left the community successfully",
         null));
@@ -710,6 +734,17 @@ public class CommunityService implements ICommunityService {
       }
 
       communityUserRepository.delete(communityUser);
+
+      NotificationRequestDTO nrequest = NotificationRequestDTO.builder()
+        .senderEmail(requester.getEmail())
+        .email(target.getEmail())
+        .title("You were removed from a community")
+        .message("An admin has removed you from the community '" + community.getName() + "'.")
+        .type(NotificationType.COMMUNITY_MEMBER_REMOVED)
+        .scope("community")
+        .communityId(community.getId())
+        .build();
+      notificationService.createNotification(nrequest);
 
       return ResponseEntity.ok(new ApiResponse<>(200, "Member removed successfully", null));
 
@@ -2175,5 +2210,25 @@ public class CommunityService implements ICommunityService {
     Role targetRole = getUserRoleInCommunity(community, target);
 
     return MembershipCheckResult.ok(requesterRole, targetRole);
+  }
+
+  private void notifyAdmins(Community community, User sender, String title, String message) {
+    community.getCommunityUsers().stream()
+      .filter(cu -> cu.getRole() == Role.ADMIN || cu.getRole() == Role.WORKSPACE_OWNER)
+      .map(CommunityUser::getUser)
+      .forEach(admin -> {
+        if (!admin.equals(sender)) {
+          NotificationRequestDTO request = NotificationRequestDTO.builder()
+            .senderEmail(sender.getEmail())
+            .email(admin.getEmail())
+            .title(title)
+            .message(message)
+            .type(NotificationType.COMMUNITY_MEMBER_LEFT)
+            .scope("community")
+            .communityId(community.getId())
+            .build();
+          notificationService.createNotification(request);
+        }
+      });
   }
 }

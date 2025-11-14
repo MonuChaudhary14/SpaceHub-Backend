@@ -10,12 +10,13 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class NotificationCleanupScheduler {
 
-    private final NotificationRepository notificationRepository;
+  private final NotificationRepository notificationRepository;
 
-    @Scheduled(cron = "0 0 3 * * *")
-    @Transactional
-    public void cleanupOldNotifications() {
-        notificationRepository.deleteExpired();
-        System.out.println("Old notifications cleaned up.");
-    }
+  @Scheduled(cron = "0 0 3 * * *")
+  @Transactional
+  public void cleanupOldNotifications() {
+    notificationRepository.deleteExpired();
+    System.out.println("Old notifications cleaned up.");
+  }
+
 }
