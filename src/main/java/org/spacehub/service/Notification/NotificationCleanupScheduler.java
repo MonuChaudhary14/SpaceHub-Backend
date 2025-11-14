@@ -12,7 +12,7 @@ public class NotificationCleanupScheduler {
 
   private final NotificationRepository notificationRepository;
 
-  @Scheduled(cron = "0 0 3 * * *")
+  @Scheduled(cron = "0 0 0 30 * *")
   @Transactional
   public void cleanupOldNotifications() {
     notificationRepository.deleteExpired();

@@ -177,61 +177,51 @@ public class NotificationService implements INotificationService {
   @Override
   @Transactional
   public List<NotificationResponseDTO> getUserNotifications(String email, String scope, int page, int size) {
-    PageRequest pageable = PageRequest.of(page, size);
 
-    List<Notification> unread = notificationRepository
-            .findByRecipientEmailAndReadFalseOrderByCreatedAtDesc(email, pageable);
+    List<Notification> list = notificationRepository.findAllByRecipientWithDetails(email);
 
-    List<Notification> all = new ArrayList<>(unread);
-    if (unread.size() < size) {
-      int remaining = size - unread.size();
-      List<Notification> read = notificationRepository
-              .findByRecipientEmailAndReadTrueOrderByCreatedAtDesc(email,
-                      PageRequest.of(0, remaining));
-      all.addAll(read);
+    if (scope != null && !scope.isBlank()) {
+      list = list.stream()
+              .filter(n -> scope.equalsIgnoreCase(n.getScope()))
+              .toList();
     }
 
-    return all.stream().map(this::mapToDTO).collect(Collectors.toList());
+    int start = page * size;
+    int end = Math.min(start + size, list.size());
+
+    if (start > end) return Collections.emptyList();
+
+    return list.subList(start, end)
+            .stream().map(this::mapToDTO).collect(Collectors.toList());
   }
 
   @Override
   @Transactional
   public List<NotificationResponseDTO> fetchAndMarkRead(String email, int page, int size) {
 
-    List<Notification> actionable = notificationRepository
-            .findByRecipientEmailAndActionableTrueOrderByCreatedAtDesc(email);
+    List<Notification> all = notificationRepository.findAllByRecipientWithDetails(email);
 
-    List<Notification> unread = notificationRepository
-            .findByRecipientEmailAndReadFalseOrderByCreatedAtDesc(email, PageRequest.of(page, size));
+    all.forEach(n -> {
+      if (!n.isActionable()) n.setRead(true);});
 
-    unread.forEach(n -> {
-      if (!n.isActionable()) {
-        n.setRead(true);
-      }
-    });
-    notificationRepository.saveAll(unread);
+    notificationRepository.saveAll(all);
 
-    List<Notification> read = new ArrayList<>();
-    if (unread.size() < size) {
-      read = notificationRepository
-              .findByRecipientEmailAndReadTrueOrderByCreatedAtDesc(email, PageRequest.of(0, size - unread.size()));
-    }
+    int start = page * size;
+    int end = Math.min(start + size, all.size());
 
-    List<Notification> finalList = new ArrayList<>();
-    finalList.addAll(actionable);
-    finalList.addAll(unread);
-    finalList.addAll(read);
+    if (start > end) return Collections.emptyList();
 
-    return finalList.stream().map(this::mapToDTO).collect(Collectors.toList());
+    return all.subList(start, end).stream().map(this::mapToDTO)
+            .collect(Collectors.toList());
   }
 
   @Override
   @Transactional
   public void markAsRead(UUID id) {
-    Notification notification = notificationRepository.findById(id).orElseThrow(() ->
-            new RuntimeException("Notification not found with ID: " + id));
+    Notification notification = notificationRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Notification not found"));
 
-    if (!notification.isRead()) {
+    if (!notification.isRead() && !notification.isActionable()) {
       notification.setRead(true);
       notificationRepository.save(notification);
     }
@@ -293,7 +283,9 @@ public class NotificationService implements INotificationService {
             .type(NotificationType.FRIEND_REQUEST)
             .scope("friend")
             .actionable(true)
+            .referenceId(UUID.randomUUID())
             .build();
+
     createNotification(request);
   }
 

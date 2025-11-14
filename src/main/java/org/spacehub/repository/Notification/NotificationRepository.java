@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -41,5 +42,21 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
   @Modifying
   @Query("DELETE FROM Notification n WHERE n.expiresAt < CURRENT_TIMESTAMP")
   void deleteExpired();
+
+  @Query("""
+           SELECT n FROM Notification n
+           LEFT JOIN FETCH n.sender
+           LEFT JOIN FETCH n.community
+           WHERE n.recipient.email = :email
+           ORDER BY n.createdAt DESC
+           """)
+  List<Notification> findAllByRecipientWithDetails(@Param("email") String email);
+
+  @Modifying
+  @Transactional
+  @Query("DELETE FROM Notification n WHERE n.referenceId = :referenceId AND n.actionable = true")
+  void deleteActionableByReference(@Param("referenceId") UUID referenceId);
+
+
 
 }
