@@ -42,7 +42,7 @@ public class Message {
   private String fileName;
 
   private String contentType;
-  
+
   @Column(nullable = false)
   private Long timestamp;
 

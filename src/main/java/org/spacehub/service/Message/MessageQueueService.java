@@ -69,8 +69,7 @@ public class MessageQueueService implements IMessageQueueService {
         for (Message persistedMessage : persisted) {
           try {
             messagingHandler.broadcastMessageToUsers(persistedMessage);
-          }
-          catch (Exception ignored) {}
+          } catch (Exception ignored) {}
         }
       }
     }
@@ -102,7 +101,7 @@ public class MessageQueueService implements IMessageQueueService {
   }
 
   public String buildChatKey(String a, String b) {
-    if (a == null || b == null) return (a == null ? "" : a) + "::" + (b == null ? "" : b);
+    if (a == null || b == null) return (a == null ? "" : a.toLowerCase()) + "::" + (b == null ? "" : b.toLowerCase());
     String lowerA = a.toLowerCase();
     String lowerB = b.toLowerCase();
     if (lowerA.compareTo(lowerB) <= 0) {
