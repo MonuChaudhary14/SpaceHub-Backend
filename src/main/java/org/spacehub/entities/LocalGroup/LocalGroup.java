@@ -3,8 +3,6 @@ package org.spacehub.entities.LocalGroup;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
 import lombok.ToString;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.User.User;

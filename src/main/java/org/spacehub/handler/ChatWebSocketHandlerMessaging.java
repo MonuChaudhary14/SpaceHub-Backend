@@ -10,6 +10,7 @@ import org.spacehub.repository.User.UserRepository;
 import org.spacehub.service.Friend.FriendService;
 import org.spacehub.service.Message.MessageQueueService;
 import org.spacehub.service.Interface.IMessageService;
+import org.spacehub.utils.S3PreviewHelper;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
@@ -23,7 +24,6 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 @Component
 public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
@@ -130,11 +130,11 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
     List<Message> filteredDb = dbMessages.stream()
             .filter(m -> !shouldHideForRequester(m, senderEmail))
             .filter(m -> m.getDeletedAt() == null)
-            .collect(Collectors.toList());
+            .toList();
 
     List<Message> filteredPending = pending.stream()
             .filter(m -> !shouldHideForRequester(m, senderEmail))
-            .collect(Collectors.toList());
+            .toList();
 
     List<Map<String, Object>> formatted = new ArrayList<>();
 
@@ -168,7 +168,9 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
   }
 
   private boolean shouldHideForRequester(Message m, String requesterEmail) {
-    if (m == null || requesterEmail == null) return false;
+    if (m == null || requesterEmail == null) {
+      return false;
+    }
     if (requesterEmail.equalsIgnoreCase(m.getSenderEmail()) && Boolean.TRUE.equals(m.getSenderDeleted())) {
       return true;
     }
@@ -176,8 +178,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
     if (requesterEmail.equalsIgnoreCase(m.getReceiverEmail()) && Boolean.TRUE.equals(m.getReceiverDeleted())) {
       return true;
     }
-    if (m.getDeletedAt() != null) return true;
-    return false;
+    return m.getDeletedAt() != null;
   }
 
   private void sendChatSummary(WebSocketSession session, String senderEmail) throws Exception {
@@ -264,15 +265,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
     String fileName = (String) payload.get("fileName");
     String contentType = (String) payload.get("contentType");
 
-    String previewUrl = null;
-    if (fileKey != null) {
-      try {
-        previewUrl = s3Service.generatePresignedDownloadUrl(fileKey, Duration.ofMinutes(15));
-      }
-      catch (Exception ignored) {
-
-      }
-    }
+    String previewUrl = S3PreviewHelper.generatePreviewUrlQuietly(s3Service, fileKey, Duration.ofMinutes(15));
 
     Message mess = Message.builder()
             .messageUuid(UUID.randomUUID().toString())
@@ -422,18 +415,6 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler{
             "timestamp", LocalDateTime.now().toString()
     );
     session.sendMessage(new TextMessage(objectMapper.writeValueAsString(sys)));
-  }
-
-  public void broadcastMessageToUsers(Message message) {
-    try {
-      Map<String, Object> payload = buildPayload(message);
-      payload.put("optimistic", false);
-      sendToReceiver(message.getSenderEmail(), payload);
-      sendToReceiver(message.getReceiverEmail(), payload);
-    }
-    catch (Exception ignored) {
-
-    }
   }
 
 }
