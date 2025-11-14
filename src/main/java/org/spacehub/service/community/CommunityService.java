@@ -1438,7 +1438,8 @@ public class CommunityService implements ICommunityService {
 
     Pageable pageable = PageRequest.of(Math.max(0, page), Math.max(1, size));
 
-    String pattern = Arrays.stream(q.split("")).filter(ch -> !ch.isBlank())
+    String pattern = Arrays.stream(q.split(""))
+            .filter(ch -> !ch.isBlank())
             .collect(Collectors.joining("%"));
 
     Page<Community> communityPage = communityRepository.searchByNamePattern(pattern, pageable);
@@ -1447,18 +1448,33 @@ public class CommunityService implements ICommunityService {
     if (requesterEmail != null && !requesterEmail.isBlank()) {
       requester = userRepository.findByEmail(requesterEmail).orElse(null);
     }
+
     final User finalRequester = requester;
 
     List<Map<String, Object>> results = communityPage.getContent().stream().map(c -> {
       Map<String, Object> m = buildCommunityBasicInfo(c);
 
       if (finalRequester != null) {
-        boolean isMember = c.getCommunityUsers().stream()
-          .anyMatch(cu -> cu.getUser().getId().equals(finalRequester.getId()));
+
+        boolean isMember = c.getMembers().stream()
+                .anyMatch(u -> u.getId().equals(finalRequester.getId()));
+
+        if (!isMember) {
+          isMember = c.getCommunityUsers().stream()
+                  .anyMatch(cu -> cu.getUser().getId().equals(finalRequester.getId()));
+        }
+
         boolean isRequested = c.getPendingRequests().stream()
-          .anyMatch(u -> u.getId().equals(finalRequester.getId()));
+                .anyMatch(u -> u.getId().equals(finalRequester.getId()));
+
+        boolean isBlocked = c.getCommunityUsers().stream()
+                .anyMatch(cu ->
+                        cu.getUser().getId().equals(finalRequester.getId())
+                                && cu.isBlocked());
+
         m.put("isMember", isMember);
         m.put("isRequested", isRequested);
+        m.put("isBlocked", isBlocked);
       }
 
       return m;
