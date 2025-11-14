@@ -65,11 +65,44 @@ public class EmailService implements IEmailService {
       helper.setSubject(subject);
 
       String htmlContent = """
-        <div style="font-family: Arial, sans-serif; max-width: 500px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-          <h2 style="color: #4A90E2; text-align: center;">SpaceHub Notification</h2>
-          <p style="font-size: 15px;">%s</p>
-          <hr style="border: none; border-top: 1px solid #eee;">
-          <p style="text-align: center; font-size: 13px; color: #aaa;">&copy; 2025 SpaceHub. All rights reserved.</p>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; 
+                    padding: 25px; background: #ffffff; border-radius: 12px; 
+                    border: 1px solid #e6e6e6;">
+
+            <div style="text-align: center; margin-bottom: 20px;">
+                <img src="https://img.icons8.com/?size=80&id=23264&format=png" 
+                     alt="SpaceHub" style="width: 70px; opacity: 0.9;">
+                <h2 style="color: #4A90E2; margin-top: 10px;">Stay Connected with SpaceHub 🚀</h2>
+            </div>
+
+            <p style="font-size: 16px; color: #333;">
+                Hey there! 👋<br><br>
+                Thank you for being a part of the <strong>SpaceHub Community</strong>.
+                We're constantly working to bring you:
+            </p>
+
+            <ul style="font-size: 15px; color: #444; line-height: 1.7;">
+                <li>📢 New community updates</li>
+                <li>📚 Inspiring stories from members</li>
+                <li>✨ Exciting new features and improvements</li>
+                <li>🛠 Better tools to enhance your SpaceHub experience</li>
+                <li>🚀 Product updates & future roadmap</li>
+            </ul>
+
+            <p style="font-size: 16px; color: #333; margin-top: 20px;">
+                %s
+            </p>
+
+            <div style="margin-top: 25px; text-align: center;">
+                <a href="https://www.spacehubx.me/" 
+                   style="background: #4A90E2; color: white; padding: 12px 20px; 
+                          border-radius: 8px; text-decoration: none; font-size: 15px;">
+                   Visit SpaceHub
+                </a>
+            </div>
+
+            <hr style="margin-top: 30px; border: none; border-top: 1px solid #eee;">
+            
         </div>
         """.formatted(messageBody);
 

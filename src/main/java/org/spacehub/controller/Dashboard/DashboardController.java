@@ -76,19 +76,29 @@ public class DashboardController {
       String existing = redisService.getValue(key);
       if (existing != null) {
         ApiResponse<String> response = new ApiResponse<>(429,
-          "You may only send a custom email to this recipient once every 24 hours. Try again later.",
-          null);
+                "You may only send a custom email to this recipient once every 24 hours. Try again later.", null);
         return ResponseEntity.status(429).body(response);
       }
 
-      emailService.sendCustomEmail(to, request.getSubject(), request.getMessage());
+      String fixedMessage = """
+Hey there! 👋 
+
+Welcome to SpaceHub — we're excited to have you here!
+
+You're now part of a growing community of creators, learners, and explorers.  
+Stay tuned for upcoming updates, community stories, new features, and exciting product enhancements! 🚀
+""";
+
+      emailService.sendCustomEmail(to, request.getSubject(), fixedMessage);
+
       redisService.saveValue(key, "1", CUSTOM_EMAIL_COOLDOWN_SECONDS);
 
       ApiResponse<String> response = new ApiResponse<>(200, "Email sent successfully!", null);
       return ResponseEntity.ok(response);
-    } catch (Exception e) {
-      ApiResponse<String> response = new ApiResponse<>(500, "Failed to send email: " +
-        e.getMessage(), null);
+    }
+    catch (Exception e) {
+      ApiResponse<String> response = new ApiResponse<>(500,
+              "Failed to send email: " + e.getMessage(), null);
       return ResponseEntity.status(500).body(response);
     }
   }

@@ -13,6 +13,4 @@ public class EmailRequest {
   @NotBlank
   private String subject;
 
-  @NotBlank
-  private String message;
 }
