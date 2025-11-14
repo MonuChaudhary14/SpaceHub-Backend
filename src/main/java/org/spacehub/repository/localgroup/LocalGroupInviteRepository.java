@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -17,5 +18,7 @@ public interface LocalGroupInviteRepository extends JpaRepository<LocalGroupInvi
   @Transactional
   @Query("DELETE FROM LocalGroupInvite i WHERE i.localGroup.id = :groupId")
   void deleteByLocalGroupId(UUID groupId);
+
+  List<LocalGroupInvite> findByLocalGroupId(UUID groupId);
 
 }
