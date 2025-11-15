@@ -9,7 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,14 +24,17 @@ public class MessageService implements IMessageService {
   }
 
   @Override
+  @Transactional
   public List<Message> saveMessageBatch(List<Message> messages) {
-    return repo.saveAll(messages);
+    List<Message> saved = repo.saveAll(messages);
+    repo.flush();
+    return saved;
   }
 
   @Override
   @Transactional(readOnly = true)
   public List<Message> getChat(String user1, String user2) {
-    return repo.findBySenderEmailAndReceiverEmailOrReceiverEmailAndSenderEmailOrderByTimestampAsc(user1, user2, user1, user2);
+    return repo.getChatAsc(user1, user2);
   }
 
   @Override
@@ -60,30 +62,25 @@ public class MessageService implements IMessageService {
 
   private Message applySoftDelete(Message message, String requesterEmail) {
     boolean changed = false;
-
     if (requesterEmail.equals(message.getSenderEmail())) {
       if (!Boolean.TRUE.equals(message.getSenderDeleted())) {
         message.setSenderDeleted(true);
         changed = true;
       }
-    }
-    else if (requesterEmail.equals(message.getReceiverEmail())) {
+    } else if (requesterEmail.equals(message.getReceiverEmail())) {
       if (!Boolean.TRUE.equals(message.getReceiverDeleted())) {
         message.setReceiverDeleted(true);
         changed = true;
       }
-    }
-    else {
+    } else {
       throw new SecurityException("Not allowed to delete this message");
     }
-
     if (changed) {
       if (Boolean.TRUE.equals(message.getSenderDeleted()) && Boolean.TRUE.equals(message.getReceiverDeleted())) {
-        message.setDeletedAt(LocalDateTime.now());
+        message.setDeletedAt(java.time.Instant.now().toEpochMilli());
       }
       message = repo.save(message);
     }
-
     return message;
   }
 
@@ -151,11 +148,16 @@ public class MessageService implements IMessageService {
     return repo.countUnreadMessagesInChat(userEmail, chatPartner);
   }
 
+  @Override
   @Transactional
   public boolean deleteMessageByUuid(String messageUuid) {
     Optional<Message> message = repo.findByMessageUuid(messageUuid);
     if (message.isPresent()) {
-      repo.deleteByMessageUuid(messageUuid);
+      Message m = message.get();
+      m.setSenderDeleted(true);
+      m.setReceiverDeleted(true);
+      m.setDeletedAt(java.time.Instant.now().toEpochMilli());
+      repo.save(m);
       return true;
     }
     return false;
@@ -166,18 +168,15 @@ public class MessageService implements IMessageService {
   public ResponseEntity<?> handleDeleteRequest(Long id, String requesterEmail, boolean forEveryone) {
     try {
       if (forEveryone) {
-        Message msg = getMessageById(id);
-        if (msg == null) return ResponseEntity.notFound().build();
-
-        if (!requesterEmail.equals(msg.getSenderEmail())) {
-          return ResponseEntity.status(HttpStatus.FORBIDDEN)
-            .body("Only sender can delete for everyone");
+        Message mess = getMessageById(id);
+        if (mess == null) return ResponseEntity.notFound().build();
+        if (!requesterEmail.equals(mess.getSenderEmail())) {
+          return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Only sender can delete for everyone");
         }
-
-        msg.setSenderDeleted(true);
-        msg.setReceiverDeleted(true);
-        saveMessage(msg);
-        return ResponseEntity.ok(msg);
+        mess.setSenderDeleted(true);
+        mess.setReceiverDeleted(true);
+        saveMessage(mess);
+        return ResponseEntity.ok(mess);
       } else {
         Message updated = deleteMessageForUser(id, requesterEmail);
         if (updated == null) return ResponseEntity.notFound().build();
@@ -196,5 +195,4 @@ public class MessageService implements IMessageService {
     deleteMessageHard(id);
     return ResponseEntity.noContent().build();
   }
-
 }

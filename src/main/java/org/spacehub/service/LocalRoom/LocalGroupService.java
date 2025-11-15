@@ -112,22 +112,31 @@ public class LocalGroupService implements ILocalGroupService {
         "groupId and userEmail are required", null));
     }
 
-    LocalGroup group = localGroupRepository.findById(req.getGroupId())
-      .orElseThrow(() -> new ResourceNotFoundException("Local group not found"));
+    try {
+      LocalGroup group = localGroupRepository.findById(req.getGroupId())
+        .orElseThrow(() -> new ResourceNotFoundException("Local group not found"));
 
-    User user = userRepository.findByEmail(req.getUserEmail())
-      .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+      User user = userRepository.findByEmail(req.getUserEmail())
+        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-    boolean alreadyMember = group.getMembers().stream().anyMatch(u -> u.getId().equals(user.getId()));
-    if (alreadyMember) {
-      return ResponseEntity.status(403).body(new ApiResponse<>(403, "User already a member",
+      boolean alreadyMember = group.getMembers().stream().anyMatch(u -> u.getId().equals(user.getId()));
+      if (alreadyMember) {
+        return ResponseEntity.status(403).body(new ApiResponse<>(403, "User already a member",
+          null));
+      }
+
+      group.getMembers().add(user);
+      localGroupRepository.save(group);
+
+      return ResponseEntity.ok(new ApiResponse<>(200, "Joined local group successfully",
         null));
+
+    } catch (ResourceNotFoundException e) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
+    } catch (Exception e) {
+      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: "
+        + e.getMessage(), null));
     }
-
-    group.getMembers().add(user);
-    localGroupRepository.save(group);
-
-    return ResponseEntity.ok(new ApiResponse<>(200, "Joined local group successfully", null));
   }
 
   public ResponseEntity<ApiResponse<String>> deleteLocalGroup(DeleteLocalGroupRequest req) {
@@ -465,6 +474,23 @@ public class LocalGroupService implements ILocalGroupService {
         resp.setImageUrl(s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1)));
       } catch (Exception ignored) {}
     }
+  }
+
+  public ResponseEntity<ApiResponse<Map<String, Boolean>>> checkGroupNameExists(String name) {
+
+    if (name == null || name.isBlank()) {
+      return ResponseEntity.badRequest().body(
+        new ApiResponse<>(400, "Group name is required", null)
+      );
+    }
+
+    boolean exists = localGroupRepository.existsByNameIgnoreCase(name.trim());
+
+    Map<String, Boolean> response = Map.of("exists", exists);
+
+    return ResponseEntity.ok(
+      new ApiResponse<>(200, "Group name check completed", response)
+    );
   }
 
 }

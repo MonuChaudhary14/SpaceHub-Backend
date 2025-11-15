@@ -30,16 +30,19 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
   void deleteAllByRecipient(User recipient);
 
   @Modifying
+  @Transactional
   @Query("DELETE FROM Notification n WHERE n.community.id = :communityId")
   void deleteByCommunityId(@Param("communityId") UUID communityId);
 
   Optional<Notification> findByPublicId(UUID publicId);
 
   @Modifying
+  @Transactional
   @Query("DELETE FROM Notification n WHERE n.publicId = :publicId")
   void deleteByPublicId(@Param("publicId") UUID publicId);
 
   @Modifying
+  @Transactional
   @Query("DELETE FROM Notification n WHERE n.expiresAt < CURRENT_TIMESTAMP")
   void deleteExpired();
 
@@ -53,10 +56,7 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
   List<Notification> findAllByRecipientWithDetails(@Param("email") String email);
 
   @Modifying
-  @Transactional
-  @Query("DELETE FROM Notification n WHERE n.referenceId = :referenceId AND n.actionable = true")
-  void deleteActionableByReference(@Param("referenceId") UUID referenceId);
-
-
+  @Query("DELETE FROM Notification n WHERE n.referenceId = :ref AND n.actionable = true")
+  void deleteActionableByReference(@Param("ref") UUID referenceId);
 
 }

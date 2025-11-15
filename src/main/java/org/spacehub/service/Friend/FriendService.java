@@ -67,6 +67,9 @@ public class FriendService implements IFriendService {
 
     friendsRepository.save(request);
 
+    UUID notifRef = UUID.randomUUID();
+    request.setNotificationReference(notifRef);
+    friendsRepository.save(request);
     notificationService.sendFriendRequestNotification(user, friend);
 
     return "Friend request sent successfully.";
@@ -91,6 +94,11 @@ public class FriendService implements IFriendService {
 
     Friends request = friendsRepository.findByUserAndFriend(requester, user).orElseThrow(() ->
       new RuntimeException("Friend request not found"));
+
+    UUID ref = request.getNotificationReference();
+    if (ref != null) {
+      notificationService.deleteActionableByReference(ref);
+    }
 
     if (!"pending".equals(request.getStatus())) {
       return "This request is no longer pending.";
@@ -203,7 +211,7 @@ public class FriendService implements IFriendService {
     return "User blocked successfully.";
   }
 
-
+  @Transactional
   public List<UserOutput> getIncomingPendingRequests(String userEmail) {
 
     if (userEmail == null || userEmail.isBlank())
@@ -224,6 +232,7 @@ public class FriendService implements IFriendService {
             .collect(Collectors.toList());
   }
 
+  @Transactional
   public List<UserOutput> getOutgoingPendingRequests(String userEmail) {
 
     if (userEmail == null || userEmail.isBlank())
@@ -349,17 +358,23 @@ public class FriendService implements IFriendService {
   }
 
   public boolean areFriends(String email1, String email2) {
-    if (email1 == null || email1.isBlank() || email2 == null || email2.isBlank())
+    if (email1 == null || email1.isBlank() ||
+            email2 == null || email2.isBlank() ||
+            email1.equalsIgnoreCase(email2)) {
       return true;
+    }
 
     User user1 = userRepository.findByEmail(email1).orElse(null);
     User user2 = userRepository.findByEmail(email2).orElse(null);
 
-    if (user1 == null || user2 == null)
-      return true;
+    if (user1 == null || user2 == null) {
+      return false;
+    }
 
-    return friendsRepository.findByUserAndFriendAndStatus(user1, user2, "accepted").isEmpty() &&
-      friendsRepository.findByUserAndFriendAndStatus(user2, user1, "accepted").isEmpty();
+    boolean oneWay = friendsRepository.findByUserAndFriendAndStatus(user1, user2, "accepted").isPresent();
+    boolean otherWay = friendsRepository.findByUserAndFriendAndStatus(user2, user1, "accepted").isPresent();
+
+    return oneWay || otherWay;
   }
 
 }

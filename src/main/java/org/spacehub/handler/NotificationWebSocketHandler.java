@@ -3,6 +3,11 @@ package org.spacehub.handler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import lombok.RequiredArgsConstructor;
+import org.spacehub.DTO.Notification.NotificationResponseDTO;
+import org.spacehub.entities.Notification.Notification;
+import org.spacehub.mapper.NotificationMapper;
+import org.spacehub.repository.Notification.NotificationRepository;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
@@ -11,11 +16,16 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
+@RequiredArgsConstructor
 public class NotificationWebSocketHandler extends TextWebSocketHandler{
+
+  private final NotificationRepository notificationRepository;
+  private final NotificationMapper notificationMapper;
 
   private final Map<String, WebSocketSession> userSessions = new ConcurrentHashMap<>();
 
@@ -26,22 +36,48 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler{
   @Override
   public void afterConnectionEstablished(@NonNull WebSocketSession session) throws Exception {
     String email = getEmailFromSession(session);
+
     if (email != null) {
       email = email.toLowerCase();
       userSessions.put(email, session);
-      System.out.println("Connected: " + email);
-      System.out.println("Active WebSocket sessions: " + userSessions.keySet());
+
+      System.out.println("WebSocket connected: " + email);
+      sendPreviousNotifications(email);
+
+      System.out.println("Active sessions: " + userSessions.keySet());
     }
     else {
-      System.out.println("Connection rejected (no valid email param)");
+      System.out.println("WebSocket rejected: email missing");
       session.close(CloseStatus.BAD_DATA);
     }
   }
 
-  @Override
-  public void handleTextMessage(@NonNull WebSocketSession session, TextMessage message) {
-    System.out.println("Message from client: " + message.getPayload());
+  private void sendPreviousNotifications(String email) {
+    try {
+      List<Notification> history = notificationRepository.findAllByRecipientWithDetails(email);
+
+      List<NotificationResponseDTO> dtoList = history.stream()
+        .map(notificationMapper::mapToDTO)
+        .toList();
+
+      WebSocketSession session = userSessions.get(email);
+      if (session != null && session.isOpen()) {
+        for (NotificationResponseDTO dto : dtoList) {
+          String json = objectMapper.writeValueAsString(dto);
+          session.sendMessage(new TextMessage(json));
+        }
+      }
+
+      System.out.println("Sent previous notifications to " + email);
+
+    }
+    catch (Exception ignored) {}
   }
+
+//  @Override
+//  public void handleTextMessage(@NonNull WebSocketSession session, TextMessage message) {
+//    System.out.println("Message from client: " + message.getPayload());
+//  }
 
   @Override
   public void afterConnectionClosed(@NonNull WebSocketSession session, @NonNull CloseStatus status) {
@@ -49,7 +85,7 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler{
     if (email != null) {
       email = email.toLowerCase();
       userSessions.remove(email);
-      System.out.println("Disconnected: " + email);
+      System.out.println("WebSocket disconnected: " + email);
     }
   }
 
@@ -60,38 +96,26 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler{
     for (String param : query.split("&")) {
       if (param.startsWith("email=")) {
         try {
-          String encoded = param.split("=", 2)[1];
-          return URLDecoder.decode(encoded, StandardCharsets.UTF_8);
-        } catch (Exception e) {
-          return null;
+          return URLDecoder.decode(param.split("=", 2)[1], StandardCharsets.UTF_8);
         }
+        catch (Exception ignored) {}
       }
     }
     return null;
   }
 
   public void sendNotification(String email, Object notificationData) {
-    if (email == null) return;
-
     email = email.toLowerCase();
-
     WebSocketSession session = userSessions.get(email);
-
-    System.out.println("Attempting to send notification to: " + email);
-    System.out.println("Current active sessions: " + userSessions.keySet());
 
     if (session != null && session.isOpen()) {
       try {
         String json = objectMapper.writeValueAsString(notificationData);
         session.sendMessage(new TextMessage(json));
-        System.out.println("Sent notification to " + email);
       }
       catch (IOException e) {
-        System.err.println("Failed to send notification to " + email + ": " + e.getMessage());
+        System.err.println("Failed to send real-time notification: " + e.getMessage());
       }
-    }
-    else {
-      System.out.println("No active WebSocket session for: " + email);
     }
   }
 

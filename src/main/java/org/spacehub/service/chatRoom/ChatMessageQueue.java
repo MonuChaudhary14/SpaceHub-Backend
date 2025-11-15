@@ -11,17 +11,19 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
 public class ChatMessageQueue implements IChatMessageQueue {
 
-  private final List<ChatMessage> queue = new ArrayList<>();
+  private final Map<String, List<ChatMessage>> pendingByRoom = new ConcurrentHashMap<>();
+
   private final ChatMessageService chatMessageService;
   private ChatWebSocketHandler chatWebSocketHandler;
+
+  private static final int FLUSH_BATCH_SIZE = 10;
 
   @Autowired
   @Lazy
@@ -30,35 +32,46 @@ public class ChatMessageQueue implements IChatMessageQueue {
   }
 
   public synchronized void enqueue(ChatMessage message) {
-    queue.add(message);
-    if (queue.size() >= 10) {
-      flushQueue();
+    pendingByRoom.computeIfAbsent(message.getRoomCode(), k -> Collections.synchronizedList(new ArrayList<>()))
+            .add(message);
+
+    List<ChatMessage> list = pendingByRoom.get(message.getRoomCode());
+    if (list != null && list.size() >= FLUSH_BATCH_SIZE) {
+      flushRoom(message.getRoomCode());
     }
   }
 
   @Scheduled(fixedRate = 10000)
   public synchronized void flushQueue() {
-    if (queue.isEmpty()) {
-      return;
+    Set<String> rooms = new HashSet<>(pendingByRoom.keySet());
+    for (String roomCode : rooms) {
+      flushRoom(roomCode);
     }
+  }
 
-    List<ChatMessage> batch = new ArrayList<>(queue);
-    queue.clear();
+  private synchronized void flushRoom(String roomCode) {
+    List<ChatMessage> pending = pendingByRoom.getOrDefault(roomCode, Collections.emptyList());
+    if (pending.isEmpty()) return;
 
-    List<ChatMessage> saved = chatMessageService.saveAll(batch);
+    List<ChatMessage> batch = new ArrayList<>(pending);
+    pending.clear();
+    pendingByRoom.remove(roomCode);
 
-    if (chatWebSocketHandler != null) {
-      for (ChatMessage message : saved) {
-        try {
-          chatWebSocketHandler.broadcastMessageToRoom(message);
-        } catch (Exception ignored) {}
-      }
+    try {
+      chatMessageService.saveAll(batch);
+    }
+    catch (Exception e) {
+      pendingByRoom.computeIfAbsent(roomCode, k -> Collections.synchronizedList(new ArrayList<>())).addAll(batch);
     }
   }
 
   public synchronized boolean deleteMessageByUuid(String messageUuid) {
-    queue.removeIf(m -> Objects.equals(m.getMessageUuid(), messageUuid));
-    return chatMessageService.deleteMessageByUuid(messageUuid);
+    boolean removedFromMemory = pendingByRoom.values().stream()
+            .anyMatch(list -> list.removeIf(m -> Objects.equals(m.getMessageUuid(), messageUuid)));
+
+    boolean removedFromDb = chatMessageService.deleteMessageByUuid(messageUuid);
+
+    return removedFromMemory || removedFromDb;
   }
 
   public List<ChatMessage> getMessagesForRoom(ChatRoom room) {
@@ -66,6 +79,22 @@ public class ChatMessageQueue implements IChatMessageQueue {
   }
 
   public List<ChatMessage> getMessagesForNewChatRoom(NewChatRoom newChatRoom) {
-    return chatMessageService.getMessagesForNewChatRoom(newChatRoom);
+    List<ChatMessage> dbMessages = chatMessageService.getMessagesForNewChatRoom(newChatRoom);
+
+    String roomCode = newChatRoom.getRoomCode().toString();
+    List<ChatMessage> pending = pendingByRoom.getOrDefault(roomCode, Collections.emptyList());
+
+    List<ChatMessage> combined = new ArrayList<>();
+    combined.addAll(dbMessages);
+    combined.addAll(new ArrayList<>(pending));
+
+    combined.sort(Comparator.comparingLong(ChatMessage::getTimestamp));
+    return combined;
   }
+
+  public boolean isPending(String messageUuid) {
+    return pendingByRoom.values().stream().anyMatch(list -> list.stream()
+            .anyMatch(m -> Objects.equals(m.getMessageUuid(), messageUuid)));
+  }
+
 }

@@ -46,8 +46,16 @@ import org.springframework.data.domain.Pageable;
 import java.time.Duration;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
-import java.util.*;
-
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -2286,4 +2294,19 @@ public class CommunityService implements ICommunityService {
         }
       });
   }
+
+  @Override
+  public ResponseEntity<?> checkCommunityNameExists(String name) {
+    if (name == null || name.isBlank()) {
+      return ResponseEntity.badRequest()
+        .body(new ApiResponse<>(400, "name is required", null));
+    }
+
+    boolean exists = communityRepository.existsByNameIgnoreCase(name.trim());
+
+    return ResponseEntity.ok(
+      new ApiResponse<>(200, "Check completed", Map.of("exists", exists))
+    );
+  }
+
 }

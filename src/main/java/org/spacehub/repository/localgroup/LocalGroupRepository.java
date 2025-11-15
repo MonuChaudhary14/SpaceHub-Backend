@@ -23,4 +23,6 @@ public interface LocalGroupRepository extends JpaRepository<LocalGroup, UUID> {
   List<LocalGroup> findAllWhereUserIsMember(@Param("user") User user);
 
   Optional<LocalGroup> findByNameIgnoreCaseAndCreatedBy(String name, User createdBy);
+
+  boolean existsByNameIgnoreCase(String name);
 }

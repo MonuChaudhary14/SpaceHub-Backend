@@ -262,11 +262,11 @@ public class UserAccountService implements IUserAccountService {
         normalizedIdentifier = phoneNumberValidator.normalize(identifier);
         user = userService.getUserByPhoneNumber(normalizedIdentifier);
       } else {
-        return new ApiResponse<>(200, "If this account is registered, an OTP has been sent.",
+        return new ApiResponse<>(200, "OTP has been sent",
           null);
       }
     } catch (Exception e) {
-      return new ApiResponse<>(200, "If this account is registered, an OTP has been sent.",
+      return new ApiResponse<>(200, "OTP has been sent",
         null);
     }
 

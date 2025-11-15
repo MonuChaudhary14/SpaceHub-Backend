@@ -2,7 +2,6 @@ package org.spacehub.entities.DirectMessaging;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -13,7 +12,9 @@ import java.util.UUID;
 @Table(
         name = "direct_messages",
         indexes = {
-          @Index(name = "idx_receiver_read_status", columnList = "receiverEmail, readStatus")
+                @Index(name = "idx_receiver_read_status", columnList = "receiverEmail, readStatus"),
+                @Index(name = "idx_sender_receiver_ts", columnList = "senderEmail, receiverEmail, timestamp"),
+                @Index(name = "idx_message_uuid", columnList = "messageUuid")
         }
 )
 public class Message {
@@ -40,11 +41,10 @@ public class Message {
   @Column(length = 500)
   private String fileName;
 
-  @Column()
   private String contentType;
 
   @Column(nullable = false)
-  private LocalDateTime timestamp;
+  private Long timestamp;
 
   @Column(nullable = false, length = 50)
   private String type = "MESSAGE";
@@ -59,15 +59,11 @@ public class Message {
   @Builder.Default
   private Boolean receiverDeleted = false;
 
-  private LocalDateTime deletedAt;
+  private Long deletedAt;
 
   @PrePersist
   public void prePersist() {
-    if (this.messageUuid == null) {
-      this.messageUuid = UUID.randomUUID().toString();
-    }
-    if (this.timestamp == null) {
-      this.timestamp = LocalDateTime.now();
-    }
+    if (this.messageUuid == null) this.messageUuid = UUID.randomUUID().toString();
+    if (this.timestamp == null) this.timestamp = java.time.Instant.now().toEpochMilli();
   }
 }

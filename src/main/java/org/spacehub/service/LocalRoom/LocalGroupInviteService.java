@@ -43,6 +43,11 @@ public class LocalGroupInviteService implements ILocalGroupInviteService {
       return new ApiResponse<>(404, "Local group not found", null);
     }
 
+    User inviter = userRepository.findByEmail(request.getInviterEmail()).orElse(null);
+    if (inviter == null) {
+      return new ApiResponse<>(404, "Inviter user not found", null);
+    }
+
     LocalGroupInvite invite = LocalGroupInvite.builder()
             .localGroup(optionalGroup.get())
             .inviterEmail(request.getInviterEmail())
@@ -179,9 +184,11 @@ public class LocalGroupInviteService implements ILocalGroupInviteService {
 
   @Override
   public ApiResponse<List<LocalGroupInviteResponseDTO>> getGroupInvites(UUID groupId) {
-    List<LocalGroupInviteResponseDTO> invites = inviteRepository.findAll().stream()
-            .filter(invite -> invite.getLocalGroup().getId().equals(groupId))
-            .map(invite -> LocalGroupInviteResponseDTO.builder()
+    if (!groupRepository.existsById(groupId)) {
+      return new ApiResponse<>(404, "Local group not found", null);
+    }
+    List<LocalGroupInviteResponseDTO> invites = inviteRepository.findByLocalGroupId(groupId).stream()
+      .map(invite -> LocalGroupInviteResponseDTO.builder()
                     .inviteCode(invite.getInviteCode())
                     .inviteLink("https://codewithketan.me.localgroup/invite/" + groupId + "/" + invite.getInviteCode())
                     .groupId(groupId)

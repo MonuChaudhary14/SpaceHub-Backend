@@ -87,5 +87,8 @@ public interface ICommunityService {
   ResponseEntity<ApiResponse<?>> getPendingRequests(UUID communityId, String requesterEmail);
 
   ResponseEntity<ApiResponse<?>> getAllPendingRequestsForAdmin(String requesterEmail);
+
+  ResponseEntity<?> checkCommunityNameExists(String name);
+
 }
 

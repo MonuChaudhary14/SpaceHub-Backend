@@ -2,7 +2,6 @@ package org.spacehub.service.Interface;
 
 import org.spacehub.entities.DirectMessaging.Message;
 import org.springframework.http.ResponseEntity;
-
 import java.util.List;
 
 public interface IMessageService {
@@ -44,6 +43,6 @@ public interface IMessageService {
   boolean deleteMessageByUuid(String messageUuid);
 
   ResponseEntity<?> handleDeleteRequest(Long id, String requesterEmail, boolean forEveryone);
+
   ResponseEntity<?> handleHardDeleteRequest(Long id);
 }
-

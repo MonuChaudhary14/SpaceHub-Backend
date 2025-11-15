@@ -14,11 +14,12 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true) // <-- SET THE DEFAULT TO READ-ONLY
+@Transactional(readOnly = true)
 public class ChatMessageService implements IChatMessageService {
 
   private final ChatMessageRepository chatMessageRepository;
 
+  @Transactional
   public List<ChatMessage> saveAll(List<ChatMessage> messages) {
     return chatMessageRepository.saveAll(messages);
   }
@@ -41,11 +42,9 @@ public class ChatMessageService implements IChatMessageService {
 
   @Transactional
   public boolean deleteMessageByUuid(String messageUuid) {
-    Optional<ChatMessage> message = chatMessageRepository.findByMessageUuid(messageUuid);
-    if (message.isPresent()) {
-      chatMessageRepository.deleteByMessageUuid(messageUuid);
-      return true;
-    }
-    return false;
+    return chatMessageRepository.findByMessageUuid(messageUuid)
+            .map(m -> {
+              chatMessageRepository.deleteByMessageUuid(messageUuid);
+              return true;}).orElse(false);
   }
 }

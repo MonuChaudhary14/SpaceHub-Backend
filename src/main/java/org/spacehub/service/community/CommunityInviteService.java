@@ -45,6 +45,9 @@ public class CommunityInviteService implements ICommunityInviteService {
   }
 
   public ApiResponse<CommunityInviteResponseDTO> createInvite(UUID communityId, CommunityInviteRequestDTO request) {
+    if (request == null || request.getInviterEmail() == null || request.getInviterEmail().isBlank()) {
+      return new ApiResponse<>(400, "inviterEmail is required", null);
+    }
 
     Community community = communityRepository.findById(communityId).orElse(null);
     if (community == null) {
@@ -56,14 +59,16 @@ public class CommunityInviteService implements ICommunityInviteService {
       return new ApiResponse<>(404, "Inviter not found", null);
     }
 
-    CommunityUser membership =
-            communityUserRepository.findByCommunityAndUser(community, inviter).orElse(null);
+    CommunityUser membership = communityUserRepository
+            .findByCommunityIdAndUserId(communityId, inviter.getId())
+            .orElse(null);
 
     if (membership == null) {
       return new ApiResponse<>(403, "You are not a member of this community", null);
     }
 
-    boolean hasPermission = membership.getRole() == Role.ADMIN || membership.getRole() == Role.WORKSPACE_OWNER;
+    Role role = membership.getRole();
+    boolean hasPermission = (role == Role.ADMIN || role == Role.WORKSPACE_OWNER);
 
     if (!hasPermission) {
       return new ApiResponse<>(403, "Only admins or owners can create invites", null);
@@ -88,7 +93,8 @@ public class CommunityInviteService implements ICommunityInviteService {
 
     inviteRepository.save(invite);
 
-    String inviteLink = String.format("https://codewithketan.me/invite/%s/%s", communityId, invite.getInviteCode());
+    String inviteLink = "https://codewithketan.me/invite/"
+            + communityId + "/" + invite.getInviteCode();
 
     CommunityInviteResponseDTO response = CommunityInviteResponseDTO.builder()
             .inviteCode(invite.getInviteCode())
@@ -123,6 +129,11 @@ public class CommunityInviteService implements ICommunityInviteService {
     CommunityInvite invite = validateInvite(inviteCode, communityId);
     if (invite == null) {
       return new ApiResponse<>(400, "Invalid or expired invite", null);
+    }
+
+    UUID notifRef = invite.getNotificationReference();
+    if (notifRef != null) {
+      notificationService.deleteActionableByReference(notifRef);
     }
 
     boolean isMember = communityUserRepository.findByCommunityAndUser(community, user).isPresent();
@@ -223,6 +234,10 @@ public class CommunityInviteService implements ICommunityInviteService {
     }
 
     CommunityInvite invite = optionalInvite.get();
+    UUID ref = invite.getNotificationReference();
+    if (ref != null) {
+      notificationService.deleteActionableByReference(ref);
+    }
     inviteRepository.delete(invite);
 
     NotificationRequestDTO notification = NotificationRequestDTO.builder()
