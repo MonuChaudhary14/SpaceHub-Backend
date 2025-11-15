@@ -90,4 +90,16 @@ public class NotificationController {
     return ResponseEntity.ok(new ApiResponse<>(200, "Unread count fetched successfully", count));
   }
 
+  @DeleteMapping("/reference/{referenceId}")
+  public ResponseEntity<?> deleteByReference(@PathVariable UUID referenceId) {
+    try {
+      notificationService.deleteActionableByReference(referenceId);
+      return ResponseEntity.ok(new ApiResponse<>(200, "Notification deleted", null));
+    }
+    catch (Exception e) {
+      return ResponseEntity.internalServerError()
+              .body(new ApiResponse<>(500, "Failed to delete: " + e.getMessage(), null));
+    }
+  }
+
 }
