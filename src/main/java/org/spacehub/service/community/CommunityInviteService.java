@@ -45,6 +45,9 @@ public class CommunityInviteService implements ICommunityInviteService {
   }
 
   public ApiResponse<CommunityInviteResponseDTO> createInvite(UUID communityId, CommunityInviteRequestDTO request) {
+    if (request == null || request.getInviterEmail() == null || request.getInviterEmail().isBlank()) {
+      return new ApiResponse<>(400, "inviterEmail is required", null);
+    }
 
     Community community = communityRepository.findById(communityId).orElse(null);
     if (community == null) {
@@ -56,14 +59,16 @@ public class CommunityInviteService implements ICommunityInviteService {
       return new ApiResponse<>(404, "Inviter not found", null);
     }
 
-    CommunityUser membership =
-            communityUserRepository.findByCommunityAndUser(community, inviter).orElse(null);
+    CommunityUser membership = communityUserRepository
+            .findByCommunityIdAndUserId(communityId, inviter.getId())
+            .orElse(null);
 
     if (membership == null) {
       return new ApiResponse<>(403, "You are not a member of this community", null);
     }
 
-    boolean hasPermission = membership.getRole() == Role.ADMIN || membership.getRole() == Role.WORKSPACE_OWNER;
+    Role role = membership.getRole();
+    boolean hasPermission = role != null && (role == Role.ADMIN || role == Role.WORKSPACE_OWNER);
 
     if (!hasPermission) {
       return new ApiResponse<>(403, "Only admins or owners can create invites", null);
@@ -86,22 +91,24 @@ public class CommunityInviteService implements ICommunityInviteService {
             .status(InviteStatus.ACTIVE)
             .build();
 
-    inviteRepository.save(invite);
-
     UUID notifRef = UUID.randomUUID();
     invite.setNotificationReference(notifRef);
     inviteRepository.save(invite);
 
     NotificationRequestDTO notif = NotificationRequestDTO.builder()
-      .senderEmail(invite.getInviterEmail())
-      .type(NotificationType.COMMUNITY_INVITE)
-      .scope("community")
-      .actionable(true)
-      .referenceId(notifRef)
-      .communityId(communityId)
-      .build();
+            .senderEmail(invite.getInviterEmail())
+            .type(NotificationType.COMMUNITY_INVITE)
+            .scope("community")
+            .actionable(true)
+            .referenceId(notifRef)
+            .communityId(communityId)
+            .build();
 
-    notificationService.createNotification(notif);
+    try {
+      notificationService.createNotification(notif);
+    }
+    catch (Exception e) {
+    }
 
     String inviteLink = String.format("https://codewithketan.me/invite/%s/%s", communityId, invite.getInviteCode());
 
