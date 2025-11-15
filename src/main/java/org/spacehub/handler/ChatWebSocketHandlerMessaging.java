@@ -66,73 +66,143 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
     Map<String, String> params = parseQueryParams(session);
     String senderEmailRaw = params.get("senderEmail");
     String receiverEmailRaw = params.get("receiverEmail");
-    if (senderEmailRaw == null || senderEmailRaw.isBlank()) {
-      try {
-        sendSystemMessage(session, "Missing senderEmail in connection URL");
-        session.close(CloseStatus.BAD_DATA);
-      } catch (IOException ignored) {}
+
+    if (isBlank(senderEmailRaw)) {
+      sendAndClose(session, "Missing senderEmail in connection URL", CloseStatus.BAD_DATA);
       return;
     }
+
     String senderEmail = normalizeEmail(senderEmailRaw);
-    String receiverEmail = receiverEmailRaw == null ? null : normalizeEmail(receiverEmailRaw);
+    String receiverEmail = normalizeOrNull(receiverEmailRaw);
+
+    if (!validateSender(session, senderEmail)) {
+      return;
+    }
+
+    registerSession(session, params, senderEmail, receiverEmail);
+
+    sendSafe(session, "Connected as " + senderEmailRaw);
+
+    runSafely(() -> {
+      try {
+        processUnreadMessages(session, senderEmail);
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    }, "Unable to load unread messages");
+
+    if (!isBlank(receiverEmail)) {
+      handleReceiverFlow(session, senderEmail, receiverEmail);
+    }
+
+    logger.info("WS connected: {} (rooms: {})", senderEmail, activeUsers.keySet());
+  }
+
+  private String normalizeOrNull(String email) {
+    return Optional.ofNullable(email)
+      .filter(s -> !s.isBlank())
+      .map(this::normalizeEmail)
+      .orElse(null);
+  }
+
+  private boolean validateSender(WebSocketSession session, String senderEmail) {
     try {
       if (userRepository.findByEmail(senderEmail).isEmpty()) {
-        sendSystemMessage(session, "Sender does not exist.");
-        try { session.close(CloseStatus.BAD_DATA); } catch (IOException ignored) {}
-        return;
+        sendAndClose(session, "Sender does not exist.", CloseStatus.BAD_DATA);
+        return false;
       }
+      return true;
     } catch (Exception e) {
       logger.error("Error validating sender", e);
-      try {
-        sendSystemMessage(session, "Error validating sender — try again later.");
-        session.close(CloseStatus.SERVER_ERROR);
-      } catch (IOException ignored) {}
-      return;
+      sendAndClose(session, "Error validating sender — try again later.", CloseStatus.SERVER_ERROR);
+      return false;
     }
+  }
+
+  private void registerSession(WebSocketSession session,
+                               Map<String, String> params,
+                               String senderEmail,
+                               String receiverEmail) {
     sessionMetadata.put(session, params);
     activeUsers.computeIfAbsent(senderEmail, k -> ConcurrentHashMap.newKeySet()).add(session);
     userSessions.put(session, senderEmail);
-    if (receiverEmail != null && !receiverEmail.isBlank()) {
+
+    if (!isBlank(receiverEmail)) {
       String chatKey = messageQueueService.buildChatKey(senderEmail, receiverEmail);
       rooms.computeIfAbsent(chatKey, k -> ConcurrentHashMap.newKeySet()).add(session);
       sessionRoom.put(session, chatKey);
     }
+  }
+
+  private void handleReceiverFlow(WebSocketSession session, String senderEmail, String receiverEmail) {
     try {
-      sendSystemMessage(session, "Connected as " + senderEmailRaw);
-    } catch (IOException ignored) {}
-    try {
-      processUnreadMessages(session, senderEmail);
-    } catch (Exception e) {
-      logger.warn("Unable to load unread messages", e);
-      try { sendSystemMessage(session, "Unable to load unread messages right now."); } catch (IOException ignored) {}
-    }
-    if (receiverEmail != null && !receiverEmail.isBlank()) {
-      try {
-        if (userRepository.findByEmail(receiverEmail).isEmpty()) {
-          sendSystemMessage(session, "Receiver not found.");
-        } else if (!friendService.areFriends(senderEmail, receiverEmail)) {
-          sendSystemMessage(session, "You can only chat with friends.");
-        } else {
-          try { processHistoryForReceiver(session, senderEmail, receiverEmail); } catch (Exception e) {
-            logger.warn("Unable to load chat history", e);
-            sendSystemMessage(session, "Unable to load chat history right now.");
-          }
-        }
-      } catch (Exception e) {
-        logger.error("Error validating receiver", e);
-        try { sendSystemMessage(session, "Unable to validate receiver at the moment."); } catch (IOException ignored) {}
+      if (userRepository.findByEmail(receiverEmail).isEmpty()) {
+        sendSafe(session, "Receiver not found.");
+        return;
       }
+
+      if (!friendService.areFriends(senderEmail, receiverEmail)) {
+        sendSafe(session, "You can only chat with friends.");
+        return;
+      }
+
+      runSafely(() -> {
+        try {
+          processHistoryForReceiver(session, senderEmail, receiverEmail);
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+      },
+        "Unable to load chat history");
+
+    } catch (Exception e) {
+      logger.error("Error validating receiver", e);
+      sendSafe(session, "Unable to validate receiver at the moment.");
     }
-    logger.info("WS connected: {} (rooms: {})", senderEmail, activeUsers.keySet());
+  }
+
+  private void sendSafe(WebSocketSession session, String message) {
+    try {
+      sendSystemMessage(session, message);
+    } catch (IOException ignored) {}
+  }
+
+  private void sendAndClose(WebSocketSession session, String message, CloseStatus closeStatus) {
+    try {
+      sendSystemMessage(session, message);
+    } catch (IOException ignored) {}
+    closeSafe(session, closeStatus);
+  }
+
+  private void closeSafe(WebSocketSession session, CloseStatus status) {
+    try {
+      session.close(status);
+    } catch (IOException ignored) {}
+  }
+
+  private void runSafely(Runnable action, String logPrefix) {
+    try {
+      action.run();
+    } catch (Exception e) {
+      logger.warn(logPrefix, e);
+    }
+  }
+
+  private boolean isBlank(String s) {
+    return s == null || s.isBlank();
   }
 
   private void processUnreadMessages(WebSocketSession session, String senderEmail) throws Exception {
     List<Message> unread = messageService.getUnreadMessages(senderEmail);
-    if (unread == null || unread.isEmpty()) return;
+    if (unread == null || unread.isEmpty()) {
+      return;
+    }
     List<Map<String, Object>> formatted = new ArrayList<>();
     for (Message message : unread) {
       try {
-        if (shouldHideForRequester(message, senderEmail)) continue;
+        if (shouldHideForRequester(message, senderEmail)) {
+          continue;
+        }
         Map<String, Object> payload = buildPayload(message);
         boolean pending = messageQueueService.isPending(message.getMessageUuid());
         payload.put("optimistic", pending);
@@ -141,42 +211,59 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
       } catch (Exception ignored) {}
     }
     formatted.sort(Comparator.comparingLong(m -> ((Number) m.get("timestamp")).longValue()));
-    Map<String, Object> unreadPayload = Map.of("type", "unread", "count", formatted.size(), "messages", formatted);
+    Map<String, Object> unreadPayload = Map.of("type", "unread", "count", formatted.size(),
+      "messages", formatted);
     session.sendMessage(new TextMessage(objectMapper.writeValueAsString(unreadPayload)));
   }
 
-  private void processHistoryForReceiver(WebSocketSession session, String senderEmail, String receiverEmail) throws Exception {
+  private void processHistoryForReceiver(WebSocketSession session, String senderEmail, String receiverEmail)
+    throws Exception {
     List<Message> dbMessages = messageService.getChat(senderEmail, receiverEmail);
-    if (dbMessages == null) dbMessages = Collections.emptyList();
+    if (dbMessages == null) {
+      dbMessages = Collections.emptyList();
+    }
     List<Message> pending = messageQueueService.getPendingForChat(senderEmail, receiverEmail);
-    if (pending == null) pending = Collections.emptyList();
+    if (pending == null) {
+      pending = Collections.emptyList();
+    }
     List<Message> filteredDb = new ArrayList<>();
     for (Message m : dbMessages) {
-      if (!shouldHideForRequester(m, senderEmail) && m.getDeletedAt() == null) filteredDb.add(m);
+      if (!shouldHideForRequester(m, senderEmail) && m.getDeletedAt() == null) {
+        filteredDb.add(m);
+      }
     }
     List<Message> filteredPending = new ArrayList<>();
     for (Message m : pending) {
-      if (!shouldHideForRequester(m, senderEmail)) filteredPending.add(m);
+      if (!shouldHideForRequester(m, senderEmail)) {
+        filteredPending.add(m);
+      }
     }
     List<Map<String, Object>> formatted = mergeAndFormatMessages(filteredDb, filteredPending);
-    Map<String, Object> payload = Map.of("type", "history", "chatWith", receiverEmail, "messages", formatted);
+    Map<String, Object> payload = Map.of("type", "history", "chatWith", receiverEmail, "messages",
+      formatted);
     session.sendMessage(new TextMessage(objectMapper.writeValueAsString(payload)));
   }
 
   private List<Map<String, Object>> mergeAndFormatMessages(List<Message> dbMessages, List<Message> pendingMessages) {
     Map<String, MessageEntry> byUuid = new LinkedHashMap<>();
     for (Message m : dbMessages) {
-      if (m != null && m.getMessageUuid() != null) byUuid.put(m.getMessageUuid(), new MessageEntry(m, false));
+      if (m != null && m.getMessageUuid() != null) {
+        byUuid.put(m.getMessageUuid(), new MessageEntry(m, false));
+      }
     }
     for (Message m : pendingMessages) {
-      if (m != null && m.getMessageUuid() != null) byUuid.put(m.getMessageUuid(), new MessageEntry(m, true));
+      if (m != null && m.getMessageUuid() != null) {
+        byUuid.put(m.getMessageUuid(), new MessageEntry(m, true));
+      }
     }
     List<MessageEntry> entries = new ArrayList<>(byUuid.values());
     entries.sort((a, b) -> {
-      long ta = a.msg.getTimestamp() == null ? 0L : a.msg.getTimestamp();
-      long tb = b.msg.getTimestamp() == null ? 0L : b.msg.getTimestamp();
+      long ta = Objects.requireNonNullElse(a.msg.getTimestamp(), 0L);
+      long tb = Objects.requireNonNullElse(b.msg.getTimestamp(), 0L);
       int cmp = Long.compare(ta, tb);
-      if (cmp != 0) return cmp;
+      if (cmp != 0) {
+        return cmp;
+      }
       return a.msg.getMessageUuid().compareTo(b.msg.getMessageUuid());
     });
     List<Map<String, Object>> formatted = new ArrayList<>();
@@ -191,16 +278,18 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
     return formatted;
   }
 
-  private static class MessageEntry {
-    final Message msg;
-    final boolean optimistic;
-    MessageEntry(Message m, boolean o) { this.msg = m; this.optimistic = o; }
-  }
+  private record MessageEntry(Message msg, boolean optimistic) {}
 
   private boolean shouldHideForRequester(Message m, String requesterEmail) {
-    if (m == null || requesterEmail == null) return false;
-    if (requesterEmail.equalsIgnoreCase(m.getSenderEmail()) && Boolean.TRUE.equals(m.getSenderDeleted())) return true;
-    if (requesterEmail.equalsIgnoreCase(m.getReceiverEmail()) && Boolean.TRUE.equals(m.getReceiverDeleted())) return true;
+    if (m == null || requesterEmail == null) {
+      return false;
+    }
+    if (requesterEmail.equalsIgnoreCase(m.getSenderEmail()) && Boolean.TRUE.equals(m.getSenderDeleted())) {
+      return true;
+    }
+    if (requesterEmail.equalsIgnoreCase(m.getReceiverEmail()) && Boolean.TRUE.equals(m.getReceiverDeleted())) {
+      return true;
+    }
     return m.getDeletedAt() != null;
   }
 
@@ -214,7 +303,8 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
   }
 
   @Override
-  protected void handleTextMessage(@NonNull WebSocketSession session, @NonNull TextMessage textMessage) throws Exception {
+  protected void handleTextMessage(@NonNull WebSocketSession session, @NonNull TextMessage textMessage)
+    throws Exception {
     Map<String, String> meta = sessionMetadata.get(session);
     if (meta == null) {
       sendSystemMessage(session, "Session metadata missing. Reconnect required.");
@@ -284,7 +374,9 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
     String contentType = (String) payload.get("contentType");
     String previewUrl = null;
     if (fileKey != null) {
-      try { previewUrl = s3Service.generatePresignedDownloadUrl(fileKey, Duration.ofMinutes(15)); } catch (Exception ignored) {}
+      try {
+        previewUrl = s3Service.generatePresignedDownloadUrl(fileKey, Duration.ofMinutes(15));
+      } catch (Exception ignored) {}
     }
     String messageUuid = UUID.randomUUID().toString();
     long ts = Instant.now().toEpochMilli();
@@ -301,7 +393,9 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
             .build();
     messageQueueService.enqueue(mess);
     Map<String, Object> payloadSend = buildPayload(mess);
-    if (previewUrl != null) payloadSend.put("previewUrl", previewUrl);
+    if (previewUrl != null) {
+      payloadSend.put("previewUrl", previewUrl);
+    }
     payloadSend.put("optimistic", true);
     sendToUsers(Set.of(senderEmail), payloadSend);
   }
@@ -331,7 +425,8 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
       return;
     }
     String receiverEmail = deriveOtherFromChatKey(chatKey, senderEmail);
-    Map<String, Object> resp = Map.of("type", "DELETE", "messageUuid", messageUuid, "deletedBy", senderEmail, "timestamp", Instant.now().toEpochMilli());
+    Map<String, Object> resp = Map.of("type", "DELETE", "messageUuid", messageUuid, "deletedBy",
+      senderEmail, "timestamp", Instant.now().toEpochMilli());
     if (receiverEmail != null) {
       sendToUsers(Set.of(senderEmail, receiverEmail), resp);
     } else {
@@ -348,19 +443,24 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
     }
     List<Map<String, Object>> summary = new ArrayList<>();
     for (String partner : partners) {
-      summary.add(Map.of("chatPartner", partner, "unreadCount", messageService.countUnreadMessagesInChat(senderEmail, partner)));
+      summary.add(Map.of("chatPartner", partner, "unreadCount",
+        messageService.countUnreadMessagesInChat(senderEmail, partner)));
     }
     Map<String, Object> summaryPayload = Map.of("type", "chatSummary", "rooms", summary);
     session.sendMessage(new TextMessage(objectMapper.writeValueAsString(summaryPayload)));
   }
 
   private void sendToUsers(Set<String> emails, Map<String, Object> payload) throws IOException {
-    if (emails == null || emails.isEmpty()) return;
+    if (emails == null || emails.isEmpty()) {
+      return;
+    }
     String json = objectMapper.writeValueAsString(payload);
     Set<WebSocketSession> targets = new LinkedHashSet<>();
     for (String email : emails) {
       Set<WebSocketSession> sessions = activeUsers.get(email.toLowerCase(Locale.ROOT));
-      if (sessions != null) targets.addAll(sessions);
+      if (sessions != null) {
+        targets.addAll(sessions);
+      }
     }
     for (WebSocketSession session : targets) {
       if (session != null && session.isOpen()) {
@@ -378,7 +478,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
     payload.put("receiverEmail", message.getReceiverEmail());
     payload.put("content", message.getContent());
     payload.put("message", message.getContent());
-    long epochMillis = message.getTimestamp() != null ? message.getTimestamp() : Instant.now().toEpochMilli();
+    long epochMillis = Objects.requireNonNullElse(message.getTimestamp(), Instant.now().toEpochMilli());
     payload.put("timestamp", epochMillis);
     payload.put("readStatus", message.getReadStatus());
     payload.put("senderDeleted", message.getSenderDeleted());
@@ -394,61 +494,75 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
   }
 
   private String getUsername(String email) {
-    if (email == null) return null;
-    return usernameCache.computeIfAbsent(email, e -> userRepository.findByEmail(e).map(User::getUsername).orElse(null));
+    if (email == null) {
+      return null;
+    }
+    return usernameCache.computeIfAbsent(email,
+      e -> userRepository.findByEmail(e).map(User::getUsername).orElse(null));
   }
 
   private String deriveOtherFromChatKey(String chatKey, String selfEmail) {
-    if (chatKey == null || selfEmail == null) return null;
+    if (chatKey == null || selfEmail == null) {
+      return null;
+    }
     String[] parts = chatKey.split("::", 2);
-    if (parts.length != 2) return null;
+    if (parts.length != 2) {
+      return null;
+    }
     String a = parts[0];
     String b = parts[1];
     String lowerSelf = selfEmail.toLowerCase(Locale.ROOT);
-    if (lowerSelf.equals(a)) return b;
-    if (lowerSelf.equals(b)) return a;
+    if (lowerSelf.equals(a)) {
+      return b;
+    }
+    if (lowerSelf.equals(b)) {
+      return a;
+    }
     return null;
   }
 
   @Override
   public void afterConnectionClosed(@NonNull WebSocketSession session, @NonNull CloseStatus status) {
-    sessionMetadata.remove(session);
-    String email = userSessions.remove(session);
-    String room = sessionRoom.remove(session);
-    if (email != null) {
-      Set<WebSocketSession> userSet = activeUsers.get(email.toLowerCase(Locale.ROOT));
-      if (userSet != null) {
-        userSet.remove(session);
-        if (userSet.isEmpty()) activeUsers.remove(email.toLowerCase(Locale.ROOT));
-      }
-    }
-    if (room != null) {
-      Set<WebSocketSession> set = rooms.getOrDefault(room, ConcurrentHashMap.newKeySet());
-      set.remove(session);
-      if (set.isEmpty()) rooms.remove(room);
-    }
-    logger.info("WS closed: {} status: {}", email, status);
+    cleanupSession(session);
+    logger.info("WS closed: {} status: {}", userSessions.get(session), status);
   }
 
   @Override
-  public void handleTransportError(@NonNull WebSocketSession session, @NonNull Throwable exception) throws Exception {
+  public void handleTransportError(@NonNull WebSocketSession session, @NonNull Throwable exception) {
+    cleanupSession(session);
+
+    if (session.isOpen()) {
+      try {
+        session.close(CloseStatus.SERVER_ERROR);
+      } catch (IOException ignored) {}
+    }
+
+    logger.error("Transport error for session", exception);
+  }
+
+  private void cleanupSession(@NonNull WebSocketSession session) {
     sessionMetadata.remove(session);
+
     String email = userSessions.remove(session);
     String room = sessionRoom.remove(session);
+
     if (email != null) {
-      Set<WebSocketSession> userSet = activeUsers.get(email.toLowerCase(Locale.ROOT));
-      if (userSet != null) {
-        userSet.remove(session);
-        if (userSet.isEmpty()) activeUsers.remove(email.toLowerCase(Locale.ROOT));
-      }
+      final String emailKey = email.toLowerCase(Locale.ROOT);
+      activeUsers.computeIfPresent(emailKey, (k, sessions) -> {
+        sessions.remove(session);
+        return sessions.isEmpty() ? null : sessions;
+      });
     }
+
     if (room != null) {
-      Set<WebSocketSession> set = rooms.getOrDefault(room, ConcurrentHashMap.newKeySet());
-      set.remove(session);
-      if (set.isEmpty()) rooms.remove(room);
+      rooms.computeIfPresent(room, (k, sessions) -> {
+        sessions.remove(session);
+        if (sessions.isEmpty()) {
+          return null;
+        }
+        return sessions;
+      });
     }
-    if (session.isOpen()) session.close(CloseStatus.SERVER_ERROR);
-    logger.error("Transport error for session", exception);
   }
 
   private Map<String, String> parseQueryParams(WebSocketSession session) {
@@ -467,8 +581,11 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
   }
 
   private void sendSystemMessage(WebSocketSession session, String content) throws IOException {
-    if (session == null || !session.isOpen()) return;
-    Map<String, Object> sys = Map.of("type", "system", "system", content, "timestamp", Instant.now().toEpochMilli());
+    if (session == null || !session.isOpen()) {
+      return;
+    }
+    Map<String, Object> sys = Map.of("type", "system", "system", content, "timestamp",
+      Instant.now().toEpochMilli());
     session.sendMessage(new TextMessage(objectMapper.writeValueAsString(sys)));
   }
 
@@ -477,25 +594,23 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
       Map<String, Object> payload = buildPayload(message);
       payload.put("optimistic", false);
       addPreviewIfFileQuiet(payload, message.getType(), message.getFileKey());
-      Map<String, Object> confirm = Map.of("type", "CONFIRM", "messageUuid", message.getMessageUuid(), "messageId", message.getId(), "timestamp", message.getTimestamp(), "message", payload);
-      try { sendToUsers(Set.of(message.getSenderEmail(), message.getReceiverEmail()), confirm); } catch (IOException ignored) {}
-      try { sendToUsers(Set.of(message.getSenderEmail(), message.getReceiverEmail()), payload); } catch (IOException ignored) {}
+      Map<String, Object> confirm = Map.of("type", "CONFIRM", "messageUuid", message.getMessageUuid(),
+        "messageId", message.getId(), "timestamp", message.getTimestamp(), "message", payload);
+      try {
+        sendToUsers(Set.of(message.getSenderEmail(), message.getReceiverEmail()), confirm);
+      } catch (IOException ignored) {}
+      try {
+        sendToUsers(Set.of(message.getSenderEmail(), message.getReceiverEmail()), payload);
+      } catch (IOException ignored) {}
     } catch (Exception e) {
       logger.error("Error in confirmAndBroadcast", e);
     }
   }
 
-  public void broadcastMessageToUsers(Message message) {
-    try {
-      Map<String, Object> payload = buildPayload(message);
-      payload.put("optimistic", false);
-      addPreviewIfFileQuiet(payload, message.getType(), message.getFileKey());
-      sendToUsers(Set.of(message.getSenderEmail(), message.getReceiverEmail()), payload);
-    } catch (Exception ignored) {}
-  }
-
   private String normalizeEmail(String email) {
-    if (email == null) return null;
+    if (email == null) {
+      return null;
+    }
     return email.trim().toLowerCase(Locale.ROOT);
   }
 
