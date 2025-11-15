@@ -28,24 +28,36 @@ public class MessageQueueService {
   }
 
   public synchronized void enqueue(Message message) {
-    if (message.getTimestamp() == null) message.setTimestamp(java.time.Instant.now().toEpochMilli());
-    if (message.getSenderEmail() != null) message.setSenderEmail(message.getSenderEmail().trim().toLowerCase());
-    if (message.getReceiverEmail() != null) message.setReceiverEmail(message.getReceiverEmail().trim().toLowerCase());
+    if (message.getTimestamp() == null) {
+      message.setTimestamp(java.time.Instant.now().toEpochMilli());
+    }
+    if (message.getSenderEmail() != null) {
+      message.setSenderEmail(message.getSenderEmail().trim().toLowerCase());
+    }
+    if (message.getReceiverEmail() != null) {
+      message.setReceiverEmail(message.getReceiverEmail().trim().toLowerCase());
+    }
     String chatKey = buildChatKey(message.getSenderEmail(), message.getReceiverEmail());
     pendingByChat.computeIfAbsent(chatKey, k -> Collections.synchronizedList(new ArrayList<>())).add(message);
     List<Message> list = pendingByChat.get(chatKey);
-    if (list != null && list.size() >= FLUSH_BATCH_SIZE) flushRoom(chatKey);
+    if (list != null && list.size() >= FLUSH_BATCH_SIZE) {
+      flushRoom(chatKey);
+    }
   }
 
   @Scheduled(fixedRate = 5000)
   public synchronized void flushQueue() {
     Set<String> chats = new HashSet<>(pendingByChat.keySet());
-    for (String chatKey : chats) flushRoom(chatKey);
+    for (String chatKey : chats) {
+      flushRoom(chatKey);
+    }
   }
 
   private synchronized void flushRoom(String chatKey) {
     List<Message> pending = pendingByChat.getOrDefault(chatKey, Collections.emptyList());
-    if (pending.isEmpty()) return;
+    if (pending.isEmpty()) {
+      return;
+    }
     List<Message> batch = new ArrayList<>(pending);
     pending.clear();
     pendingByChat.remove(chatKey);
@@ -53,17 +65,21 @@ public class MessageQueueService {
       List<Message> persisted = messageService.saveMessageBatch(batch);
       if (messagingHandler != null && persisted != null) {
         for (Message persistedMessage : persisted) {
-          try { messagingHandler.confirmAndBroadcast(persistedMessage); } catch (Exception ignored) {}
+          try {
+            messagingHandler.confirmAndBroadcast(persistedMessage);
+          } catch (Exception ignored) {}
         }
       }
     } catch (Exception e) {
-      e.printStackTrace();
-      pendingByChat.computeIfAbsent(chatKey, k -> Collections.synchronizedList(new ArrayList<>())).addAll(batch);
+      pendingByChat.computeIfAbsent(chatKey, k ->
+        Collections.synchronizedList(new ArrayList<>())).addAll(batch);
     }
   }
 
   public synchronized boolean deleteMessageByUuid(String messageUuid) {
-    boolean removedFromMemory = pendingByChat.values().stream().anyMatch(list -> list.removeIf(m -> Objects.equals(m.getMessageUuid(), messageUuid)));
+    boolean removedFromMemory =
+      pendingByChat.values().stream().anyMatch(list ->
+        list.removeIf(m -> Objects.equals(m.getMessageUuid(), messageUuid)));
     boolean removedFromDb = messageService.deleteMessageByUuid(messageUuid);
     return removedFromMemory || removedFromDb;
   }
@@ -75,13 +91,20 @@ public class MessageQueueService {
   }
 
   public boolean isPending(String messageUuid) {
-    return pendingByChat.values().stream().flatMap(Collection::stream).anyMatch(m -> Objects.equals(m.getMessageUuid(), messageUuid));
+    return pendingByChat.values().stream().flatMap(Collection::stream).anyMatch(m ->
+      Objects.equals(m.getMessageUuid(), messageUuid));
   }
 
   public String buildChatKey(String a, String b) {
-    String aa = a == null ? "" : a.trim().toLowerCase();
-    String bb = b == null ? "" : b.trim().toLowerCase();
-    if (aa.compareTo(bb) <= 0) return aa + "::" + bb;
+    String aa = Optional.ofNullable(a)
+      .map(s -> s.trim().toLowerCase())
+      .orElse("");
+    String bb = Optional.ofNullable(b)
+      .map(s -> s.trim().toLowerCase())
+      .orElse("");
+    if (aa.compareTo(bb) <= 0) {
+      return aa + "::" + bb;
+    }
     return bb + "::" + aa;
   }
 

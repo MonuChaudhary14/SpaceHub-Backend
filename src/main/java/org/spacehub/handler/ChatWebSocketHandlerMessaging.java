@@ -141,7 +141,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
         return;
       }
 
-      if (!friendService.areFriends(senderEmail, receiverEmail)) {
+      if (friendService.areFriends(senderEmail, receiverEmail)) {
         sendSafe(session, "You can only chat with friends.");
         return;
       }
@@ -338,7 +338,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
       sendSystemMessage(senderSession, "No chat partner specified.");
       return;
     }
-    if (!friendService.areFriends(senderEmail, receiverEmail)) {
+    if (friendService.areFriends(senderEmail, receiverEmail)) {
       sendSystemMessage(senderSession, "Cannot message non-friends.");
       return;
     }
@@ -365,7 +365,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
       sendSystemMessage(senderSession, "No chat partner specified.");
       return;
     }
-    if (!friendService.areFriends(senderEmail, receiverEmail)) {
+    if (friendService.areFriends(senderEmail, receiverEmail)) {
       sendSystemMessage(senderSession, "Cannot message non-friends.");
       return;
     }

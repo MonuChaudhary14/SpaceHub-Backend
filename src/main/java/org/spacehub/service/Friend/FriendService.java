@@ -361,20 +361,20 @@ public class FriendService implements IFriendService {
     if (email1 == null || email1.isBlank() ||
             email2 == null || email2.isBlank() ||
             email1.equalsIgnoreCase(email2)) {
-      return true;
+      return false;
     }
 
     User user1 = userRepository.findByEmail(email1).orElse(null);
     User user2 = userRepository.findByEmail(email2).orElse(null);
 
     if (user1 == null || user2 == null) {
-      return false;
+      return true;
     }
 
     boolean oneWay = friendsRepository.findByUserAndFriendAndStatus(user1, user2, "accepted").isPresent();
     boolean otherWay = friendsRepository.findByUserAndFriendAndStatus(user2, user1, "accepted").isPresent();
 
-    return oneWay || otherWay;
+    return !oneWay && !otherWay;
   }
 
 }
