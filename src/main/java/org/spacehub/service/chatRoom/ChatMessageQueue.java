@@ -4,10 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.spacehub.entities.ChatRoom.ChatMessage;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.ChatRoom.NewChatRoom;
-import org.spacehub.handler.ChatWebSocketHandler;
 import org.spacehub.service.chatRoom.chatroomInterfaces.IChatMessageQueue;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -21,15 +18,8 @@ public class ChatMessageQueue implements IChatMessageQueue {
   private final Map<String, List<ChatMessage>> pendingByRoom = new ConcurrentHashMap<>();
 
   private final ChatMessageService chatMessageService;
-  private ChatWebSocketHandler chatWebSocketHandler;
 
   private static final int FLUSH_BATCH_SIZE = 10;
-
-  @Autowired
-  @Lazy
-  public void setChatWebSocketHandler(ChatWebSocketHandler handler) {
-    this.chatWebSocketHandler = handler;
-  }
 
   public synchronized void enqueue(ChatMessage message) {
     pendingByRoom.computeIfAbsent(message.getRoomCode(), k -> Collections.synchronizedList(new ArrayList<>()))
@@ -61,13 +51,15 @@ public class ChatMessageQueue implements IChatMessageQueue {
       chatMessageService.saveAll(batch);
     }
     catch (Exception e) {
-      pendingByRoom.computeIfAbsent(roomCode, k -> Collections.synchronizedList(new ArrayList<>())).addAll(batch);
+      pendingByRoom.computeIfAbsent(roomCode, k ->
+        Collections.synchronizedList(new ArrayList<>())).addAll(batch);
     }
   }
 
   public synchronized boolean deleteMessageByUuid(String messageUuid) {
     boolean removedFromMemory = pendingByRoom.values().stream()
-            .anyMatch(list -> list.removeIf(m -> Objects.equals(m.getMessageUuid(), messageUuid)));
+            .anyMatch(list -> list.removeIf(m ->
+              Objects.equals(m.getMessageUuid(), messageUuid)));
 
     boolean removedFromDb = chatMessageService.deleteMessageByUuid(messageUuid);
 

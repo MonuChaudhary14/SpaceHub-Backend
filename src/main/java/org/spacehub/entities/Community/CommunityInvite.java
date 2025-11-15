@@ -31,13 +31,20 @@ public class CommunityInvite {
   @Column(unique = true, nullable = false)
   private String inviteCode;
 
+  @Builder.Default
   private int maxUses = 10;
+
+  @Builder.Default
   private int uses = 0;
-  private LocalDateTime expiresAt;
+
+  @Builder.Default
+  private LocalDateTime expiresAt = null;
 
   @Enumerated(EnumType.STRING)
+  @Builder.Default
   private InviteStatus status = InviteStatus.ACTIVE;
 
+  @Builder.Default
   private LocalDateTime createdAt = LocalDateTime.now();
 
   private UUID notificationReference;

@@ -45,6 +45,7 @@ public class ChatMessageService implements IChatMessageService {
     return chatMessageRepository.findByMessageUuid(messageUuid)
             .map(m -> {
               chatMessageRepository.deleteByMessageUuid(messageUuid);
-              return true;}).orElse(false);
+              return true;
+            }).orElse(false);
   }
 }

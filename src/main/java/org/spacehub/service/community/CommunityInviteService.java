@@ -45,70 +45,141 @@ public class CommunityInviteService implements ICommunityInviteService {
   }
 
   public ApiResponse<CommunityInviteResponseDTO> createInvite(UUID communityId, CommunityInviteRequestDTO request) {
+    ValidationContext ctx = new ValidationContext();
+    ApiResponse<CommunityInviteResponseDTO> validationError = validateCreateInviteRequest(communityId, request, ctx);
+    if (validationError != null) {
+      return validationError;
+    }
+
+    CommunityInvite invite = buildInvite(communityId, request.getInviterEmail(), request.getMaxUses(),
+      request.getExpiresInHours());
+    inviteRepository.save(invite);
+
+    CommunityInviteResponseDTO response = toDto(invite, communityId);
+    return new ApiResponse<>(200, "Invite created successfully", response);
+  }
+
+  private static class ValidationContext {
+    Community community;
+    User inviter;
+    CommunityUser membership;
+  }
+
+  private ApiResponse<CommunityInviteResponseDTO> validateCreateInviteRequest(UUID communityId,
+                                                                              CommunityInviteRequestDTO request,
+                                                                              ValidationContext ctx) {
+
+    ApiResponse<CommunityInviteResponseDTO> err;
+
+    err = validateRequestShape(request);
+    if (err != null) {
+      return err;
+    }
+
+    err = loadCommunity(communityId, ctx);
+    if (err != null) {
+      return err;
+    }
+
+    err = loadInviter(request.getInviterEmail(), ctx);
+    if (err != null) {
+      return err;
+    }
+
+    err = loadMembership(communityId, ctx);
+    if (err != null) {
+      return err;
+    }
+
+    err = authorizeInviter(ctx);
+    if (err != null) {
+      return err;
+    }
+
+    err = validateLimits(request);
+    return err;
+
+  }
+
+  private ApiResponse<CommunityInviteResponseDTO> validateRequestShape(CommunityInviteRequestDTO request) {
     if (request == null || request.getInviterEmail() == null || request.getInviterEmail().isBlank()) {
       return new ApiResponse<>(400, "inviterEmail is required", null);
     }
+    return null;
+  }
 
+  private ApiResponse<CommunityInviteResponseDTO> loadCommunity(UUID communityId, ValidationContext ctx) {
     Community community = communityRepository.findById(communityId).orElse(null);
     if (community == null) {
       return new ApiResponse<>(404, "Community not found", null);
     }
+    ctx.community = community;
+    return null;
+  }
 
-    User inviter = userRepository.findByEmail(request.getInviterEmail()).orElse(null);
+  private ApiResponse<CommunityInviteResponseDTO> loadInviter(String inviterEmail, ValidationContext ctx) {
+    User inviter = userRepository.findByEmail(inviterEmail).orElse(null);
     if (inviter == null) {
       return new ApiResponse<>(404, "Inviter not found", null);
     }
+    ctx.inviter = inviter;
+    return null;
+  }
 
+  private ApiResponse<CommunityInviteResponseDTO> loadMembership(UUID communityId, ValidationContext ctx) {
     CommunityUser membership = communityUserRepository
-            .findByCommunityIdAndUserId(communityId, inviter.getId())
-            .orElse(null);
-
+      .findByCommunityIdAndUserId(communityId, ctx.inviter.getId())
+      .orElse(null);
     if (membership == null) {
       return new ApiResponse<>(403, "You are not a member of this community", null);
     }
+    ctx.membership = membership;
+    return null;
+  }
 
-    Role role = membership.getRole();
-    boolean hasPermission = (role == Role.ADMIN || role == Role.WORKSPACE_OWNER);
-
-    if (!hasPermission) {
+  private ApiResponse<CommunityInviteResponseDTO> authorizeInviter(ValidationContext ctx) {
+    Role role = ctx.membership.getRole();
+    if (!(role == Role.ADMIN || role == Role.WORKSPACE_OWNER)) {
       return new ApiResponse<>(403, "Only admins or owners can create invites", null);
     }
+    return null;
+  }
 
+  private ApiResponse<CommunityInviteResponseDTO> validateLimits(CommunityInviteRequestDTO request) {
     if (request.getMaxUses() <= 0) {
       return new ApiResponse<>(400, "maxUses must be >= 1", null);
     }
-
     if (request.getExpiresInHours() <= 0) {
       return new ApiResponse<>(400, "expiresInHours must be >= 1", null);
     }
-
-    CommunityInvite invite = CommunityInvite.builder()
-            .communityId(communityId)
-            .inviterEmail(request.getInviterEmail())
-            .maxUses(request.getMaxUses())
-            .inviteCode(generateInviteCode())
-            .expiresAt(LocalDateTime.now().plusHours(request.getExpiresInHours()))
-            .status(InviteStatus.ACTIVE)
-            .build();
-
-    inviteRepository.save(invite);
-
-    String inviteLink = "https://codewithketan.me/invite/"
-            + communityId + "/" + invite.getInviteCode();
-
-    CommunityInviteResponseDTO response = CommunityInviteResponseDTO.builder()
-            .inviteCode(invite.getInviteCode())
-            .inviteLink(inviteLink)
-            .communityId(communityId)
-            .inviterEmail(invite.getInviterEmail())
-            .maxUses(invite.getMaxUses())
-            .uses(invite.getUses())
-            .expiresAt(invite.getExpiresAt())
-            .status(invite.getStatus().name())
-            .build();
-
-    return new ApiResponse<>(200, "Invite created successfully", response);
+    return null;
   }
+
+  private CommunityInvite buildInvite(UUID communityId, String inviterEmail, int maxUses, int expiresInHours) {
+    return CommunityInvite.builder()
+      .communityId(communityId)
+      .inviterEmail(inviterEmail)
+      .maxUses(maxUses)
+      .inviteCode(generateInviteCode())
+      .expiresAt(LocalDateTime.now().plusHours(expiresInHours))
+      .status(InviteStatus.ACTIVE)
+      .build();
+  }
+
+  private CommunityInviteResponseDTO toDto(CommunityInvite invite, UUID communityId) {
+    String inviteLink = "https://codewithketan.me/invite/" + communityId + "/" + invite.getInviteCode();
+    return CommunityInviteResponseDTO.builder()
+      .inviteCode(invite.getInviteCode())
+      .inviteLink(inviteLink)
+      .communityId(communityId)
+      .inviterEmail(invite.getInviterEmail())
+      .maxUses(invite.getMaxUses())
+      .uses(invite.getUses())
+      .expiresAt(invite.getExpiresAt())
+      .status(invite.getStatus().name())
+      .build();
+  }
+
 
   @Override
   public ApiResponse<?> acceptInvite(CommunityInviteAcceptDTO request) {
@@ -173,16 +244,24 @@ public class CommunityInviteService implements ICommunityInviteService {
   }
 
   private String extractInviteCode(String rawCode) {
-    return rawCode.contains("/") ? rawCode.substring(rawCode.lastIndexOf("/") + 1) : rawCode;
+    int i = rawCode.lastIndexOf('/');
+    if (i == -1) {
+      return rawCode;
+    }
+    return rawCode.substring(i + 1);
   }
 
   private CommunityInvite validateInvite(String inviteCode, UUID communityId) {
     Optional<CommunityInvite> inviteOpt = inviteRepository.findByInviteCode(inviteCode);
-    if (inviteOpt.isEmpty()) return null;
+    if (inviteOpt.isEmpty()) {
+      return null;
+    }
 
     CommunityInvite invite = inviteOpt.get();
 
-    if (!invite.getCommunityId().equals(communityId)) return null;
+    if (!invite.getCommunityId().equals(communityId)) {
+      return null;
+    }
 
     if (invite.getExpiresAt().isBefore(LocalDateTime.now())) {
       invite.setStatus(InviteStatus.EXPIRED);
