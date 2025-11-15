@@ -68,7 +68,7 @@ public class CommunityInviteService implements ICommunityInviteService {
     }
 
     Role role = membership.getRole();
-    boolean hasPermission = role != null && (role == Role.ADMIN || role == Role.WORKSPACE_OWNER);
+    boolean hasPermission = (role == Role.ADMIN || role == Role.WORKSPACE_OWNER);
 
     if (!hasPermission) {
       return new ApiResponse<>(403, "Only admins or owners can create invites", null);
@@ -91,26 +91,10 @@ public class CommunityInviteService implements ICommunityInviteService {
             .status(InviteStatus.ACTIVE)
             .build();
 
-    UUID notifRef = UUID.randomUUID();
-    invite.setNotificationReference(notifRef);
     inviteRepository.save(invite);
 
-    NotificationRequestDTO notif = NotificationRequestDTO.builder()
-            .senderEmail(invite.getInviterEmail())
-            .type(NotificationType.COMMUNITY_INVITE)
-            .scope("community")
-            .actionable(true)
-            .referenceId(notifRef)
-            .communityId(communityId)
-            .build();
-
-    try {
-      notificationService.createNotification(notif);
-    }
-    catch (Exception e) {
-    }
-
-    String inviteLink = String.format("https://codewithketan.me/invite/%s/%s", communityId, invite.getInviteCode());
+    String inviteLink = "https://codewithketan.me/invite/"
+            + communityId + "/" + invite.getInviteCode();
 
     CommunityInviteResponseDTO response = CommunityInviteResponseDTO.builder()
             .inviteCode(invite.getInviteCode())
