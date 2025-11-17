@@ -65,33 +65,25 @@ public class SecurityConfiguration {
             .cors(withDefaults())
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
-                            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                            .requestMatchers(
-//                                    "/ws-messages/**",
-//                                    "/api/v1/voice-room/**",
-//                                    "/api/v1/**",
-//                                    "/api/**",
-//                                    "/ws/**",
-//                                    "/swagger-ui/**",
-//                                    "/v3/api-docs/**",
-//                                    "/v3/api-docs.yaml",
-//                                    "/chat",
-//                                    "/chat/**",
-//                                    "/files/**",
-//                                    "/notification/**",
-//                                    "/wss/**"
-                      "/api/v1/login",
-                      "/api/v1/registration",
-                      "/api/v1/validateregisterotp",
-                      "/api/v1/forgotpassword",
-                      "/api/v1/validateforgototp",
-                      "/api/v1/resetpassword",
-                      "/api/v1/resendotp",
-                      "/api/v1/resendforgototp",
-                      "/swagger-ui/**",
-                      "/v3/api-docs/**"
-                            ).permitAll()
-                            .anyRequest().authenticated()
+                    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                    .requestMatchers(
+                            "/api/v1/login",
+                            "/api/v1/registration",
+                            "/api/v1/validateregisterotp",
+                            "/api/v1/forgotpassword",
+                            "/api/v1/validateforgototp",
+                            "/api/v1/resetpassword",
+                            "/api/v1/resendotp",
+                            "/api/v1/resendforgototp",
+                            "/swagger-ui/**",
+                            "/v3/api-docs/**",
+                            "/chat",
+                            "/chat/**",
+                            "/ws/**",
+                            "/ws/direct-chat",
+                            "/notifications"
+                    ).permitAll()
+                    .anyRequest().authenticated()
             )
             .httpBasic(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
