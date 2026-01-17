@@ -17,4 +17,5 @@ public class EmailOrPhoneValidator implements ConstraintValidator<EmailOrPhone, 
 
     return hasEmail || hasPhone;
   }
+
 }
