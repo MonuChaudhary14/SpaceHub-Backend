@@ -3,7 +3,7 @@ info:
   title: OpenAPI definition
   version: v0
 servers:
-  - url: https://codewithketan.me
+  - url: https://spacehub.monu14.me
     description: Generated server url
 paths:
   /api/v1/validateotp:

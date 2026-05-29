@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.web.socket.*;
@@ -12,41 +13,60 @@ import org.springframework.web.socket.WebSocketHttpHeaders;
 
 import java.net.URI;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 @Service
 public class JanusWebSocketService implements WebSocketHandler{
 
-  private static final String JANUS_WS_URL = "ws://localhost:8188";
-  private static final int RECONNECT_DELAY_SECONDS = 5;
+  @Value("${janus.ws-url:ws://localhost:8188/janus}")
+  private String janusWsUrl;
+
+  @Value("${janus.ws-enabled:true}")
+  private boolean wsEnabled;
+
+  private static final int INITIAL_RECONNECT_DELAY_SECONDS = 5;
+  private static final int MAX_RECONNECT_DELAY_SECONDS = 60;
+  private static final int MAX_RECONNECT_ATTEMPTS = 10;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
   private final StandardWebSocketClient webSocketClient = new StandardWebSocketClient();
   private final WebSocketHttpHeaders headers = new WebSocketHttpHeaders();
 
+  public JanusWebSocketService() {
+    headers.setSecWebSocketProtocol(java.util.List.of("janus-protocol"));
+  }
+
   private volatile WebSocketSession session;
   private volatile boolean manuallyClosed = false;
+  private final AtomicInteger reconnectAttempts = new AtomicInteger(0);
 
   @PostConstruct
   public void connect() {
+    if (!wsEnabled) {
+      log.info("Janus WebSocket is disabled (janus.ws-enabled=false). Skipping connection.");
+      return;
+    }
     manuallyClosed = false;
-    try {
-      log.info("Connecting to Janus WebSocket at {}", JANUS_WS_URL);
+    reconnectAttempts.set(0);
+    doConnect();
+  }
 
-      CompletableFuture<WebSocketSession> connectionFuture = new CompletableFuture<>();
+  private void doConnect() {
+    try {
+      log.info("Connecting to Janus WebSocket at {}", janusWsUrl);
 
       webSocketClient
-              .execute(this, headers, URI.create(JANUS_WS_URL))
+              .execute(this, headers, URI.create(janusWsUrl))
               .whenComplete((session, ex) -> {
                 if (ex != null) {
                   log.error("WebSocket connection failed: {}", ex.getMessage());
-                  connectionFuture.completeExceptionally(ex);
                   scheduleReconnect();
                 }
                 else {
                   this.session = session;
-                  connectionFuture.complete(session);
+                  reconnectAttempts.set(0);
                   log.info("Connected to Janus WebSocket (Session ID: {})", session.getId());
                 }
               });
@@ -87,10 +107,17 @@ public class JanusWebSocketService implements WebSocketHandler{
   }
 
   private void scheduleReconnect() {
-    if (!manuallyClosed) {
-      log.info("Attempting reconnect in {} seconds...", RECONNECT_DELAY_SECONDS);
-      scheduler.schedule(this::connect, RECONNECT_DELAY_SECONDS, TimeUnit.SECONDS);
+    if (manuallyClosed) {
+      return;
     }
+    int attempt = reconnectAttempts.incrementAndGet();
+    if (attempt > MAX_RECONNECT_ATTEMPTS) {
+      log.warn("Max reconnect attempts ({}) reached for Janus WebSocket. Giving up. Call connect() to retry.", MAX_RECONNECT_ATTEMPTS);
+      return;
+    }
+    int delay = Math.min(INITIAL_RECONNECT_DELAY_SECONDS * (1 << (attempt - 1)), MAX_RECONNECT_DELAY_SECONDS);
+    log.info("Attempting reconnect {}/{} in {} seconds...", attempt, MAX_RECONNECT_ATTEMPTS, delay);
+    scheduler.schedule(this::doConnect, delay, TimeUnit.SECONDS);
   }
 
   @Override
@@ -132,3 +159,4 @@ public class JanusWebSocketService implements WebSocketHandler{
   }
 
 }
+
