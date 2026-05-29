@@ -22,9 +22,9 @@ public interface IChatRoomService {
 
   ApiResponse<List<ChatRoom>> getAllRoomsData();
 
-  ApiResponse<String> deleteRoomResponse(String roomCode, String userId);
+  ApiResponse<String> deleteRoomResponse(String roomCode);
 
-  ApiResponse<String> joinRoomResponse(String roomCode, String userId);
+  ApiResponse<String> joinRoomResponse(String roomCode);
 
   ApiResponse<String> removeMember(RoomMemberAction requestDTO);
 

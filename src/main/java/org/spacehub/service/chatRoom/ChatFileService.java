@@ -9,6 +9,7 @@ import org.spacehub.service.File.S3Service;
 import org.spacehub.service.chatRoom.chatroomInterfaces.IChatFileService;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.spacehub.utils.SecurityUtils;
 
 import java.io.IOException;
 import java.net.URI;
@@ -25,8 +26,9 @@ public class ChatFileService implements IChatFileService {
   private final NewChatRoomService newChatRoomService;
   private final ChatMessageQueue chatMessageQueue;
 
-  public ChatMessage uploadChatFile(MultipartFile file, String senderEmail, String roomCode) {
+  public ChatMessage uploadChatFile(MultipartFile file, String roomCode) {
 
+    String senderEmail = SecurityUtils.getCurrentUserEmail();
     validateInputs(file, senderEmail, roomCode);
 
     UUID roomUuid = parseRoomCode(roomCode);

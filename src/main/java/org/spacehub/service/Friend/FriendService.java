@@ -14,6 +14,7 @@ import org.spacehub.service.File.S3Service;
 import org.springframework.stereotype.Service;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.spacehub.DTO.Friend.FriendUpdateDTO;
+import org.spacehub.utils.SecurityUtils;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
@@ -32,7 +33,8 @@ public class FriendService implements IFriendService {
   private final S3Service s3Service;
   private final SimpMessagingTemplate messagingTemplate;
 
-  public String sendFriendRequest(String userEmail, String friendEmail) {
+  public String sendFriendRequest(String friendEmail) {
+    String userEmail = SecurityUtils.getCurrentUserEmail();
 
     if (userEmail == null || userEmail.isBlank())
       throw new RuntimeException("UserEmail is required");
@@ -75,7 +77,8 @@ public class FriendService implements IFriendService {
     return "Friend request sent successfully.";
   }
 
-  public String respondFriendRequest(String userEmail, String requesterEmail, boolean accept) {
+  public String respondFriendRequest(String requesterEmail, boolean accept) {
+    String userEmail = SecurityUtils.getCurrentUserEmail();
 
     if (userEmail == null || userEmail.isBlank())
       throw new RuntimeException("UserEmail is required");
@@ -145,7 +148,8 @@ public class FriendService implements IFriendService {
   }
 
   @Transactional
-  public List<UserOutput> getFriends(String userEmail) {
+  public List<UserOutput> getFriends() {
+    String userEmail = SecurityUtils.getCurrentUserEmail();
 
     if (userEmail == null || userEmail.isBlank())
       throw new RuntimeException("UserEmail is required");
@@ -182,7 +186,8 @@ public class FriendService implements IFriendService {
     return friendsList;
   }
 
-  public String blockFriend(String userEmail, String friendEmail) {
+  public String blockFriend(String friendEmail) {
+    String userEmail = SecurityUtils.getCurrentUserEmail();
 
     if (userEmail == null || userEmail.isBlank())
       throw new RuntimeException("UserEmail is required");
@@ -212,7 +217,8 @@ public class FriendService implements IFriendService {
   }
 
   @Transactional
-  public List<UserOutput> getIncomingPendingRequests(String userEmail) {
+  public List<UserOutput> getIncomingPendingRequests() {
+    String userEmail = SecurityUtils.getCurrentUserEmail();
 
     if (userEmail == null || userEmail.isBlank())
       throw new RuntimeException("UserEmail is required");
@@ -233,7 +239,8 @@ public class FriendService implements IFriendService {
   }
 
   @Transactional
-  public List<UserOutput> getOutgoingPendingRequests(String userEmail) {
+  public List<UserOutput> getOutgoingPendingRequests() {
+    String userEmail = SecurityUtils.getCurrentUserEmail();
 
     if (userEmail == null || userEmail.isBlank())
       throw new RuntimeException("UserEmail is required");
@@ -253,7 +260,8 @@ public class FriendService implements IFriendService {
             .collect(Collectors.toList());
   }
 
-  public String unblockUser(String userEmail, String blockedUserEmail) {
+  public String unblockUser(String blockedUserEmail) {
+    String userEmail = SecurityUtils.getCurrentUserEmail();
 
     if (userEmail == null || userEmail.isBlank())
       throw new RuntimeException("UserEmail is required");
@@ -279,7 +287,8 @@ public class FriendService implements IFriendService {
     }
   }
 
-  public String removeFriend(String userEmail, String friendEmail) {
+  public String removeFriend(String friendEmail) {
+    String userEmail = SecurityUtils.getCurrentUserEmail();
 
     if (userEmail == null || userEmail.isBlank())
       throw new RuntimeException("UserEmail is required");

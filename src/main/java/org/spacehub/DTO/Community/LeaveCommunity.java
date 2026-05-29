@@ -6,6 +6,4 @@ import lombok.Data;
 public class LeaveCommunity {
 
   private String communityName;
-  private String userEmail;
-
 }

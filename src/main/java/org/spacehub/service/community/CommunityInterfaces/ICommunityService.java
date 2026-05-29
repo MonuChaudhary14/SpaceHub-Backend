@@ -19,7 +19,6 @@ public interface ICommunityService {
   ResponseEntity<ApiResponse<Map<String, Object>>> createCommunity(
     String name,
     String description,
-    String createdByEmail,
     MultipartFile imageFile
   );
 
@@ -35,7 +34,7 @@ public interface ICommunityService {
 
   ResponseEntity<?> rejectRequest(RejectRequest rejectRequest);
 
-  ResponseEntity<ApiResponse<Map<String, Object>>> getCommunityWithRooms(UUID communityId, String email);
+  ResponseEntity<ApiResponse<Map<String, Object>>> getCommunityWithRooms(UUID communityId);
 
   ResponseEntity<ApiResponse<String>> removeMemberFromCommunity(CommunityMemberRequest request);
 
@@ -50,25 +49,23 @@ public interface ICommunityService {
   ResponseEntity<ApiResponse<Map<String, List<Map<String, Object>>>>> listAllCommunities();
 
   ResponseEntity<ApiResponse<Map<String, Object>>> getCommunityDetailsWithAdminFlag(
-          UUID communityId,
-          String requesterEmail
+          UUID communityId
   );
 
   ResponseEntity<?> createRoomInCommunity(CreateRoomRequest request);
 
   ResponseEntity<ApiResponse<List<Map<String, Object>>>> getRoomsByCommunity(UUID communityId);
 
-  ResponseEntity<?> deleteRoom(UUID communityId, UUID roomId, String requesterEmail);
+  ResponseEntity<?> deleteRoom(UUID communityId, UUID roomId);
 
-  ResponseEntity<?> searchCommunities(String q, String requesterEmail, int page, int size);
+  ResponseEntity<?> searchCommunities(String q, int page, int size);
 
-  ResponseEntity<?> enterOrRequestCommunity(UUID communityId, String requesterEmail);
+  ResponseEntity<?> enterOrRequestCommunity(UUID communityId);
 
-  ResponseEntity<?> uploadCommunityAvatar(UUID communityId, String requesterEmail, MultipartFile imageFile);
+  ResponseEntity<?> uploadCommunityAvatar(UUID communityId, MultipartFile imageFile);
 
   ResponseEntity<?> uploadCommunityBanner(
           UUID communityId,
-          String requesterEmail,
           MultipartFile bannerFile,
           MultipartFile communityAvatarFile,
           MultipartFile userAvatarFile,
@@ -78,15 +75,15 @@ public interface ICommunityService {
 
   ResponseEntity<?> renameRoomInCommunity(UUID communityId, UUID roomId, RenameRoomRequest req);
 
-  ResponseEntity<?> getRolesForRequester(UUID communityId, String requesterEmail);
+  ResponseEntity<?> getRolesForRequester(UUID communityId);
 
-  ResponseEntity<ApiResponse<Map<String, Object>>> discoverCommunities(String currentUserEmail, int page, int size);
+  ResponseEntity<ApiResponse<Map<String, Object>>> discoverCommunities(int page, int size);
 
-  ResponseEntity<ApiResponse<Map<String, List<Map<String, Object>>>>> listMyCommunities(String requesterEmail);
+  ResponseEntity<ApiResponse<Map<String, List<Map<String, Object>>>>> listMyCommunities();
 
-  ResponseEntity<ApiResponse<?>> getPendingRequests(UUID communityId, String requesterEmail);
+  ResponseEntity<ApiResponse<?>> getPendingRequests(UUID communityId);
 
-  ResponseEntity<ApiResponse<?>> getAllPendingRequestsForAdmin(String requesterEmail);
+  ResponseEntity<ApiResponse<?>> getAllPendingRequestsForAdmin();
 
   ResponseEntity<?> checkCommunityNameExists(String name);
 

@@ -30,14 +30,13 @@ public class VoiceRoomController {
   @PostMapping("/create")
   public ResponseEntity<?> createVoiceRoom(
     @RequestParam UUID chatRoomId,
-    @RequestParam String roomName,
-    @RequestParam String createdBy) {
+    @RequestParam String roomName) {
 
     try {
       ChatRoom chatRoom = chatRoomRepository.findById(chatRoomId)
         .orElseThrow(() -> new RuntimeException("ChatRoom not found with ID: " + chatRoomId));
 
-      VoiceRoom voiceRoom = voiceRoomService.createVoiceRoom(chatRoom, roomName, createdBy);
+      VoiceRoom voiceRoom = voiceRoomService.createVoiceRoom(chatRoom, roomName);
 
       VoiceRoomDTO voiceRoomDTO = new VoiceRoomDTO(voiceRoom);
 
@@ -98,13 +97,12 @@ public class VoiceRoomController {
   @DeleteMapping("/delete")
   public ResponseEntity<?> deleteVoiceRoom(
     @RequestParam UUID chatRoomId,
-    @RequestParam String roomName,
-    @RequestParam String requester) {
+    @RequestParam String roomName) {
     try {
       ChatRoom chatRoom = chatRoomRepository.findById(chatRoomId)
         .orElseThrow(() -> new RuntimeException("ChatRoom not found with ID: " + chatRoomId));
 
-      voiceRoomService.deleteVoiceRoom(chatRoom, roomName, requester);
+      voiceRoomService.deleteVoiceRoom(chatRoom, roomName);
 
       return ResponseEntity.ok(Map.of("message", "Voice room deleted successfully"));
     }

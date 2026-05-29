@@ -43,6 +43,7 @@
     <properties>
         <java.version>17</java.version>
         <logback.version>1.5.19</logback.version>
+        <rewrite.maven.plugin>5.46.0</rewrite.maven.plugin>
     </properties>
     <dependencies>
         <dependency>

@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import org.spacehub.utils.SecurityUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -38,8 +39,14 @@ public class MessageService implements IMessageService {
   }
 
   @Override
-  public List<Message> getAllMessagesForUser(String email) {
+  public List<Message> getAllMessagesForUser() {
+    String email = SecurityUtils.getCurrentUserEmail();
     return repo.findBySenderEmailOrReceiverEmailOrderByTimestampDesc(email, email);
+  }
+
+  @Override
+  public List<String> getAllChatPartners() {
+    return repo.findDistinctChatPartners(SecurityUtils.getCurrentUserEmail());
   }
 
   @Override
@@ -165,8 +172,9 @@ public class MessageService implements IMessageService {
 
   @Override
   @Transactional
-  public ResponseEntity<?> handleDeleteRequest(Long id, String requesterEmail, boolean forEveryone) {
+  public ResponseEntity<?> handleDeleteRequest(Long id, boolean forEveryone) {
     try {
+      String requesterEmail = SecurityUtils.getCurrentUserEmail();
       if (forEveryone) {
         Message mess = getMessageById(id);
         if (mess == null) return ResponseEntity.notFound().build();

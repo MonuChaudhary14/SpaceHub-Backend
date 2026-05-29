@@ -6,6 +6,4 @@ import lombok.Data;
 public class CancelJoinRequest {
 
   private String communityName;
-  private String userEmail;
-
 }

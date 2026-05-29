@@ -7,5 +7,4 @@ import java.util.UUID;
 @Data
 public class DeleteLocalGroupRequest {
   private UUID groupId;
-  private String requesterEmail;
 }

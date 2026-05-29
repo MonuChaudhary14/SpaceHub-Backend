@@ -9,6 +9,7 @@ import org.spacehub.repository.voiceRoom.VoiceRoomRepository;
 import org.spacehub.service.Interface.IVoiceRoomService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.spacehub.utils.SecurityUtils;
 import java.util.List;
 import java.util.Random;
 
@@ -22,7 +23,8 @@ public class VoiceRoomService implements IVoiceRoomService {
   private final VoiceRoomRepository voiceRoomRepository;
 
   @Transactional
-  public VoiceRoom createVoiceRoom(ChatRoom chatRoom, String name, String createdBy) {
+  public VoiceRoom createVoiceRoom(ChatRoom chatRoom, String name) {
+    String createdBy = SecurityUtils.getCurrentUserEmail();
     voiceRoomRepository.findByNameAndChatRoom(name, chatRoom).ifPresent(r -> {
       throw new IllegalStateException("Voice room '" + name + "' already exists in this group");
     });
@@ -56,7 +58,8 @@ public class VoiceRoomService implements IVoiceRoomService {
   }
 
   @Transactional
-  public void deleteVoiceRoom(ChatRoom chatRoom, String roomName, String requester) {
+  public void deleteVoiceRoom(ChatRoom chatRoom, String roomName) {
+    String requester = SecurityUtils.getCurrentUserEmail();
     VoiceRoom room = voiceRoomRepository.findByNameAndChatRoom(roomName, chatRoom)
             .orElseThrow(() -> new RuntimeException("Voice room not found: " + roomName));
 

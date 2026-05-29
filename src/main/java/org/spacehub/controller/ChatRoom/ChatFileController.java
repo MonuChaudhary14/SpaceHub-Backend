@@ -18,10 +18,9 @@ public class ChatFileController {
   @PostMapping("/upload")
   public ResponseEntity<?> uploadChatFile(
     @RequestParam("file") MultipartFile file,
-    @RequestParam("email") String senderEmail,
     @RequestParam("roomCode") String roomCode) {
     try {
-      ChatMessage message = chatFileService.uploadChatFile(file, senderEmail, roomCode);
+      ChatMessage message = chatFileService.uploadChatFile(file, roomCode);
       return ResponseEntity.ok(message);
     } catch (ResourceNotFoundException e) {
       return ResponseEntity.status(404).body(e.getMessage());

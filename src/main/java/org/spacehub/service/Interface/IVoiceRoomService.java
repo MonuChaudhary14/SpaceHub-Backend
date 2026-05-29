@@ -7,10 +7,10 @@ import java.util.List;
 
 public interface IVoiceRoomService {
 
-  VoiceRoom createVoiceRoom(ChatRoom chatRoom, String name, String createdBy);
+  VoiceRoom createVoiceRoom(ChatRoom chatRoom, String name);
 
   List<VoiceRoom> getVoiceRoomsForChatRoom(ChatRoom chatRoom);
 
-  void deleteVoiceRoom(ChatRoom chatRoom, String roomName, String requester);
+  void deleteVoiceRoom(ChatRoom chatRoom, String roomName);
 
 }

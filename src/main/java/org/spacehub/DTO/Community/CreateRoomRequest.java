@@ -8,5 +8,4 @@ import java.util.UUID;
 public class CreateRoomRequest {
   private UUID communityId;
   private String roomName;
-  private String requesterEmail;
 }

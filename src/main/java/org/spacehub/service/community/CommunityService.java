@@ -45,6 +45,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import java.time.Duration;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.spacehub.utils.SecurityUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -82,7 +83,8 @@ public class CommunityService implements ICommunityService {
   }
 
   public ResponseEntity<ApiResponse<Map<String, Object>>> createCommunity(
-    String name, String description, String createdByEmail, MultipartFile imageFile) {
+    String name, String description, MultipartFile imageFile) {
+    String createdByEmail = SecurityUtils.getCurrentUserEmail();
 
     try {
       validateCommunityInputs(name, description, createdByEmail, imageFile);
@@ -115,9 +117,8 @@ public class CommunityService implements ICommunityService {
   }
 
   private void validateCommunityInputs(String name, String description, String email, MultipartFile imageFile) {
-    if (name == null || name.isBlank() || description == null || description.isBlank() ||
-      email == null || email.isBlank()) {
-      throw new IllegalArgumentException("All fields (name, description, createdByEmail) are required");
+    if (name == null || name.isBlank() || description == null || description.isBlank()) {
+      throw new IllegalArgumentException("All fields (name, description) are required");
     }
 
     if (communityRepository.existsByNameIgnoreCase(name.trim())) {
@@ -187,7 +188,7 @@ public class CommunityService implements ICommunityService {
 
       Community community = communityRepository.findByNameWithUsers(deleteCommunity.getName())
         .orElseThrow(() -> new IllegalArgumentException("Community not found"));
-      User user = findUserByEmail(deleteCommunity.getUserEmail());
+      User user = findUserByEmail(SecurityUtils.getCurrentUserEmail());
 
       if (!isCreatorOfCommunity(community, user)) {
         return ResponseEntity.status(403).body(new ApiResponse<>(403,
@@ -214,8 +215,6 @@ public class CommunityService implements ICommunityService {
     if (dto == null) return "Request body cannot be null";
     if (dto.getName() == null || dto.getName().trim().isEmpty())
       return "Community name cannot be empty";
-    if (dto.getUserEmail() == null || dto.getUserEmail().trim().isEmpty())
-      return "User email cannot be empty";
     return null;
   }
 
@@ -252,7 +251,7 @@ public class CommunityService implements ICommunityService {
       }
 
       Community community = findCommunityByName(joinCommunity.getCommunityName());
-      User user = findUserByEmail(joinCommunity.getUserEmail());
+      User user = findUserByEmail(SecurityUtils.getCurrentUserEmail());
 
       ResponseEntity<ApiResponse<?>> membershipCheck = checkExistingMember(community, user);
       if (membershipCheck != null) {
@@ -276,9 +275,6 @@ public class CommunityService implements ICommunityService {
     if (req == null) return "Request body cannot be null";
     if (req.getCommunityName() == null || req.getCommunityName().trim().isEmpty())
       return "Community name is required";
-    if (req.getUserEmail() == null || req.getUserEmail().trim().isEmpty())
-      return "User email is required";
-
     return null;
   }
 
@@ -337,7 +333,7 @@ public class CommunityService implements ICommunityService {
   public ResponseEntity<ApiResponse<?>> cancelRequestCommunity(@RequestBody CancelJoinRequest cancelJoinRequest) {
     try {
       Community community = findCommunityByName(cancelJoinRequest.getCommunityName());
-      User user = findUserByEmail(cancelJoinRequest.getUserEmail());
+      User user = findUserByEmail(SecurityUtils.getCurrentUserEmail());
 
       if (!community.getPendingRequests().contains(user)) {
         return ResponseEntity.status(403).body(
@@ -394,7 +390,7 @@ public class CommunityService implements ICommunityService {
     }
 
     try {
-      String creatorEmail = acceptRequest.getCreatorEmail().trim().toLowerCase();
+      String creatorEmail = SecurityUtils.getCurrentUserEmail();
       String userEmail = acceptRequest.getUserEmail().trim().toLowerCase();
       String communityName = acceptRequest.getCommunityName().trim();
 
@@ -444,7 +440,7 @@ public class CommunityService implements ICommunityService {
 
   private boolean isInvalidRequest(AcceptRequest request) {
     return request == null ||
-      isEmpty(request.getUserEmail(), request.getCommunityName(), request.getCreatorEmail());
+      isEmpty(request.getUserEmail(), request.getCommunityName());
   }
 
   private boolean hasPermissionToAccept(Community community, User creator) {
@@ -501,7 +497,7 @@ public class CommunityService implements ICommunityService {
 
     try {
       Community community = findCommunityByName(leaveCommunity.getCommunityName());
-      User user = findUserByEmail(leaveCommunity.getUserEmail());
+      User user = findUserByEmail(SecurityUtils.getCurrentUserEmail());
 
       if (isCreatorOfCommunity(community, user)) {
         return ResponseEntity.status(403)
@@ -540,7 +536,7 @@ public class CommunityService implements ICommunityService {
   }
 
   private boolean isInvalidLeaveRequest(LeaveCommunity leaveCommunity) {
-    return isEmpty(leaveCommunity.getCommunityName(), leaveCommunity.getUserEmail());
+    return isEmpty(leaveCommunity.getCommunityName());
   }
 
   private boolean isCreatorOfCommunity(Community community, User user) {
@@ -564,7 +560,7 @@ public class CommunityService implements ICommunityService {
     }
 
     try {
-      String creatorEmail = sanitizeEmail(rejectRequest.getCreatorEmail());
+      String creatorEmail = SecurityUtils.getCurrentUserEmail();
       String userEmail = sanitizeEmail(rejectRequest.getUserEmail());
       String communityName = rejectRequest.getCommunityName().trim();
 
@@ -637,7 +633,7 @@ public class CommunityService implements ICommunityService {
   }
 
   private ResponseEntity<ApiResponse<Object>> validateRejectRequest(RejectRequest req) {
-    if (isBlank(req.getCommunityName()) || isBlank(req.getUserEmail()) || isBlank(req.getCreatorEmail())) {
+    if (isBlank(req.getCommunityName()) || isBlank(req.getUserEmail())) {
       return badRequest("Check the fields");
     }
     return null;
@@ -660,8 +656,7 @@ public class CommunityService implements ICommunityService {
       .orElseThrow(() -> new ResourceNotFoundException("User not found"));
   }
 
-  public ResponseEntity<ApiResponse<Map<String, Object>>> getCommunityWithRooms(UUID communityId,
-                                                                                String userEmail) {
+  public ResponseEntity<ApiResponse<Map<String, Object>>> getCommunityWithRooms(UUID communityId) {
     try {
       Optional<Community> optionalCommunity = communityRepository.findById(communityId);
       if (optionalCommunity.isEmpty()) {
@@ -670,7 +665,7 @@ public class CommunityService implements ICommunityService {
       }
 
       Community community = optionalCommunity.get();
-      User user = findUserByEmail(userEmail);
+      User user = findUserByEmail(SecurityUtils.getCurrentUserEmail());
 
       if (isUserMemberOfCommunity(user, community)) {
         return ResponseEntity.status(403).body(new ApiResponse<>(403,
@@ -717,7 +712,7 @@ public class CommunityService implements ICommunityService {
   public ResponseEntity<ApiResponse<String>> removeMemberFromCommunity(CommunityMemberRequest request) {
     try {
       Community community = loadCommunity(request.getCommunityId());
-      User requester = loadUser(request.getRequesterEmail());
+      User requester = loadUser(SecurityUtils.getCurrentUserEmail());
       User target = loadUser(request.getUserEmail());
 
       ResponseEntity<ApiResponse<String>> creatorCheck = checkCannotRemoveCreator(community, target);
@@ -840,7 +835,7 @@ public class CommunityService implements ICommunityService {
       validateChangeRoleRequest(request);
 
       Community community = findCommunity(request.getCommunityId());
-      User requester = findUser(request.getRequesterEmail(), "Requester not found");
+      User requester = findUser(SecurityUtils.getCurrentUserEmail(), "Requester not found");
       User target = findUser(request.getTargetUserEmail(), "Target user not found");
 
       ResponseEntity<ApiResponse<String>> membershipValidation =
@@ -908,7 +903,6 @@ public class CommunityService implements ICommunityService {
   private void validateChangeRoleRequest(CommunityChangeRoleRequest request) {
     if (request.getCommunityId() == null ||
       request.getTargetUserEmail() == null ||
-      request.getRequesterEmail() == null ||
       request.getNewRole() == null) {
       throw new IllegalArgumentException("Check the fields");
     }
@@ -991,7 +985,7 @@ public class CommunityService implements ICommunityService {
       Community community = communityRepository.findById(request.getCommunityId())
         .orElseThrow(() -> new ResourceNotFoundException("Community not found"));
 
-      User requester = userRepository.findByEmail(request.getRequesterEmail())
+      User requester = userRepository.findByEmail(SecurityUtils.getCurrentUserEmail())
         .orElseThrow(() -> new ResourceNotFoundException("Requester not found"));
 
       User target = userRepository.findByEmail(request.getTargetUserEmail())
@@ -1050,7 +1044,7 @@ public class CommunityService implements ICommunityService {
         null));
     }
 
-    User requester = findUser(dto.getRequesterEmail());
+    User requester = findUser(SecurityUtils.getCurrentUserEmail());
     if (requester == null) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Requester not found",
         null));
@@ -1074,7 +1068,7 @@ public class CommunityService implements ICommunityService {
   }
 
   private ResponseEntity<ApiResponse<Community>> validateUpdateCommunityRequest(UpdateCommunityDTO dto) {
-    if (dto == null || dto.getCommunityId() == null || dto.getRequesterEmail() == null) {
+    if (dto == null || dto.getCommunityId() == null) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400,
         "Invalid request: Missing required fields", null));
     }
@@ -1131,12 +1125,9 @@ public class CommunityService implements ICommunityService {
   }
 
   public ResponseEntity<ApiResponse<Map<String, List<Map<String, Object>>>>>
-    listMyCommunities(String requesterEmail) {
+    listMyCommunities() {
     try {
-      if (isInvalidEmail(requesterEmail)) {
-        return ResponseEntity.badRequest().body(new ApiResponse<>(400,
-          "Requester email is required"));
-      }
+      String requesterEmail = SecurityUtils.getCurrentUserEmail();
 
       String normalizedEmail = requesterEmail.trim().toLowerCase();
       Optional<User> userOpt = userRepository.findByEmail(normalizedEmail);
@@ -1275,8 +1266,9 @@ public class CommunityService implements ICommunityService {
 
   @Override
   public ResponseEntity<ApiResponse<Map<String, Object>>> getCommunityDetailsWithAdminFlag(
-    UUID communityId, String requesterEmail) {
+    UUID communityId) {
     try {
+      String requesterEmail = SecurityUtils.getCurrentUserEmail();
       if (communityId == null || requesterEmail == null || requesterEmail.isBlank()) {
         return ResponseEntity.badRequest()
                 .body(new ApiResponse<>(400, "Community ID and requester email are required",
@@ -1353,7 +1345,7 @@ public class CommunityService implements ICommunityService {
       }
 
       Community community = findCommunityById(request.getCommunityId());
-      User requester = findUserByEmail(request.getRequesterEmail());
+      User requester = findUserByEmail(SecurityUtils.getCurrentUserEmail());
 
       CommunityUser communityUser = findCommunityUser(community, requester);
       if (communityUser == null) {
@@ -1384,9 +1376,8 @@ public class CommunityService implements ICommunityService {
 
   private ResponseEntity<?> validateCreateRoomRequest(CreateRoomRequest request) {
     if (request == null ||
-      request.getRequesterEmail() == null || request.getRequesterEmail().isBlank() ||
       request.getCommunityId() == null) {
-      return badRequest("Community ID and requester email are required");
+      return badRequest("Community ID is required");
     }
     return null;
   }
@@ -1457,8 +1448,9 @@ public class CommunityService implements ICommunityService {
   }
 
   @Override
-  public ResponseEntity<?> deleteRoom(UUID communityId, UUID roomId, String requesterEmail) {
+  public ResponseEntity<?> deleteRoom(UUID communityId, UUID roomId) {
     try {
+      String requesterEmail = SecurityUtils.getCurrentUserEmail();
       String validationError = validateDeleteRoomInput(communityId, roomId, requesterEmail);
       if (validationError != null) {
         return badRequest(validationError);
@@ -1524,7 +1516,7 @@ public class CommunityService implements ICommunityService {
     }
   }
 
-  public ResponseEntity<?> searchCommunities(String q, String requesterEmail, int page, int size) {
+  public ResponseEntity<?> searchCommunities(String q, int page, int size) {
     if (q == null || q.isBlank()) {
       return listAllCommunities();
     }
@@ -1538,6 +1530,7 @@ public class CommunityService implements ICommunityService {
     Page<Community> communityPage = communityRepository.searchByNamePattern(pattern, pageable);
 
     User requester = null;
+    String requesterEmail = SecurityUtils.getCurrentUserEmail();
     if (requesterEmail != null && !requesterEmail.isBlank()) {
       requester = userRepository.findByEmail(requesterEmail).orElse(null);
     }
@@ -1634,7 +1627,8 @@ public class CommunityService implements ICommunityService {
   }
 
   @Override
-  public ResponseEntity<?> enterOrRequestCommunity(UUID communityId, String requesterEmail) {
+  public ResponseEntity<?> enterOrRequestCommunity(UUID communityId) {
+    String requesterEmail = SecurityUtils.getCurrentUserEmail();
     if (requesterEmail == null || requesterEmail.isBlank()) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, "requesterEmail is required",
         null));
@@ -1656,7 +1650,7 @@ public class CommunityService implements ICommunityService {
               .anyMatch(cu -> cu.getUser().getId().equals(user.getId()));
 
       if (isMember) {
-        return getCommunityWithRooms(communityId, requesterEmail);
+        return getCommunityWithRooms(communityId);
       }
 
       boolean isPending = community.getPendingRequests().stream()
@@ -1706,8 +1700,9 @@ public class CommunityService implements ICommunityService {
   }
 
   @Override
-  public ResponseEntity<?> uploadCommunityAvatar(UUID communityId, String requesterEmail,
+  public ResponseEntity<?> uploadCommunityAvatar(UUID communityId,
                                                  MultipartFile imageFile) {
+    String requesterEmail = SecurityUtils.getCurrentUserEmail();
     if (requesterEmail == null || requesterEmail.isBlank()) {
       return badRequest("requesterEmail is required");
     }
@@ -1748,13 +1743,13 @@ public class CommunityService implements ICommunityService {
   @Override
   public ResponseEntity<?> uploadCommunityBanner(
     UUID communityId,
-    String requesterEmail,
     MultipartFile bannerFile,
     MultipartFile communityAvatarFile,
     MultipartFile userAvatarFile,
     String newName,
     String newDescription
   ) {
+    String requesterEmail = SecurityUtils.getCurrentUserEmail();
     if (requesterEmail == null || requesterEmail.isBlank()) {
       return badRequest("requesterEmail is required");
     }
@@ -1912,7 +1907,7 @@ public class CommunityService implements ICommunityService {
 
     try {
       Community community = getCommunityOrThrow(communityId);
-      User requester = getUserOrThrow(req.getRequesterEmail());
+      User requester = getUserOrThrow(SecurityUtils.getCurrentUserEmail());
 
       CommunityUser communityUser = communityUserRepository
         .findByCommunityIdAndUserId(community.getId(), requester.getId())
@@ -1969,10 +1964,10 @@ public class CommunityService implements ICommunityService {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400,
         "Community ID and Room ID are required", null));
     }
-    if (req == null || req.getRequesterEmail() == null || req.getRequesterEmail().isBlank()
+    if (req == null
       || req.getNewRoomName() == null || req.getNewRoomName().isBlank()) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400,
-        "Requester email and new room name are required", null));
+        "New room name is required", null));
     }
     return null;
   }
@@ -1988,7 +1983,8 @@ public class CommunityService implements ICommunityService {
   }
 
   @Override
-  public ResponseEntity<?> getRolesForRequester(UUID communityId, String requesterEmail) {
+  public ResponseEntity<?> getRolesForRequester(UUID communityId) {
+    String requesterEmail = SecurityUtils.getCurrentUserEmail();
     if (communityId == null || requesterEmail == null || requesterEmail.isBlank()) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400,
         "communityId and requesterEmail are required", null));
@@ -2042,9 +2038,10 @@ public class CommunityService implements ICommunityService {
 
   @Override
   public ResponseEntity<ApiResponse<Map<String, Object>>> discoverCommunities(
-    String currentUserEmail, int page, int size) {
+    int page, int size) {
 
     try {
+      String currentUserEmail = SecurityUtils.getCurrentUserEmail();
       Pageable pageable = PageRequest.of(Math.max(0, page), Math.max(1, size));
       Page<Community> communityPage = communityRepository.findAll(pageable);
 
@@ -2131,8 +2128,9 @@ public class CommunityService implements ICommunityService {
   }
 
   @Override
-  public ResponseEntity<ApiResponse<?>> getPendingRequests(UUID communityId, String requesterEmail) {
+  public ResponseEntity<ApiResponse<?>> getPendingRequests(UUID communityId) {
     try {
+      String requesterEmail = SecurityUtils.getCurrentUserEmail();
       if (communityId == null || requesterEmail == null || requesterEmail.isBlank()) {
         return ResponseEntity.badRequest().body(
                 new ApiResponse<>(400, "communityId and requesterEmail are required", null)
@@ -2191,8 +2189,9 @@ public class CommunityService implements ICommunityService {
     }
   }
 
-  public ResponseEntity<ApiResponse<?>> getAllPendingRequestsForAdmin(String requesterEmail) {
+  public ResponseEntity<ApiResponse<?>> getAllPendingRequestsForAdmin() {
     try {
+      String requesterEmail = SecurityUtils.getCurrentUserEmail();
       User adminUser = userRepository.findByEmail(requesterEmail)
         .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + requesterEmail));
 

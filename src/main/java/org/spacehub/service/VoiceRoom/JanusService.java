@@ -27,6 +27,8 @@ public class JanusService {
   private final ExecutorService pollExecutor = Executors.newCachedThreadPool();
   private final ConcurrentMap<String, Future<?>> pollingTasks = new ConcurrentHashMap<>();
 
+  private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+
   public void startEventPolling(String sessionId, Consumer<JsonNode> onEvent) {
     if (pollingTasks.containsKey(sessionId)) {
       logger.warn("Polling for session {} already active.", sessionId);
@@ -35,7 +37,17 @@ public class JanusService {
 
     String sessionUrl = String.format("%s/%s", janusUrl, sessionId);
 
-    Future<?> future = pollExecutor.submit(() -> {
+    // Start keepalive
+    Future<?> keepaliveFuture = scheduler.scheduleAtFixedRate(() -> {
+      try {
+        Map<String, String> request = Map.of("janus", "keepalive", "transaction", UUID.randomUUID().toString());
+        restTemplate.postForEntity(sessionUrl, request, JsonNode.class);
+      } catch (Exception e) {
+        logger.error("Failed keepalive for session {}: {}", sessionId, e.getMessage());
+      }
+    }, 25, 25, TimeUnit.SECONDS);
+
+    Future<?> pollFuture = pollExecutor.submit(() -> {
       logger.info("Started Janus poll for session={}", sessionId);
       while (!Thread.currentThread().isInterrupted()) {
         try {
@@ -56,17 +68,14 @@ public class JanusService {
             break;
           }
           logger.error("Error polling Janus for session {}: {}", sessionId, e.getMessage());
-          try {
-            Thread.sleep(500);
-          } catch (InterruptedException ie) {
-            Thread.currentThread().interrupt();
-          }
+          try { Thread.sleep(1000); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
         }
       }
+      keepaliveFuture.cancel(true);
       logger.info("Stopping Janus poll for session={}", sessionId);
     });
 
-    pollingTasks.put(sessionId, future);
+    pollingTasks.put(sessionId, pollFuture);
   }
 
   public void stopEventPolling(String sessionId) {

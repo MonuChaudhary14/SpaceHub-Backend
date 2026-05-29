@@ -20,9 +20,9 @@ public class ProfileController {
   private final IProfileService profileService;
 
   @GetMapping("/getProfile")
-  public ResponseEntity<?> getProfile(@RequestParam("email") String email) {
+  public ResponseEntity<?> getProfile() {
     try {
-      UserProfileResponse resp = profileService.getProfileByEmail(email);
+      UserProfileResponse resp = profileService.getProfile();
       return ResponseEntity.ok(Map.of(
               "status", 200,
               "message", "Profile fetched successfully",
@@ -38,9 +38,9 @@ public class ProfileController {
   }
 
   @PutMapping("/updateProfile")
-  public ResponseEntity<?> updateProfile(@RequestParam("email") String email, @RequestBody UserProfileDTO dto) {
+  public ResponseEntity<?> updateProfile(@RequestBody UserProfileDTO dto) {
     try {
-      UserProfileResponse updated = profileService.updateProfileByEmail(email, dto);
+      UserProfileResponse updated = profileService.updateProfile(dto);
       return ResponseEntity.ok(Map.of(
               "status", 200,
               "message", "Profile updated successfully",
@@ -56,10 +56,9 @@ public class ProfileController {
   }
 
   @PostMapping("/avatar")
-  public ResponseEntity<?> uploadAvatar(@RequestParam("email") String email,
-                                        @RequestParam("file") MultipartFile file) {
+  public ResponseEntity<?> uploadAvatar(@RequestParam("file") MultipartFile file) {
     try {
-      UserProfileResponse updated = profileService.uploadAvatarByEmail(email, file);
+      UserProfileResponse updated = profileService.uploadAvatar(file);
       return ResponseEntity.ok(Map.of(
               "status", 200,
               "message", "Avatar uploaded successfully",
@@ -76,10 +75,9 @@ public class ProfileController {
   }
 
   @PostMapping("/cover")
-  public ResponseEntity<?> uploadCover(@RequestParam("email") String email,
-                                       @RequestParam("file") MultipartFile file) {
+  public ResponseEntity<?> uploadCover(@RequestParam("file") MultipartFile file) {
     try {
-      UserProfileResponse updated = profileService.uploadCoverPhotoByEmail(email, file);
+      UserProfileResponse updated = profileService.uploadCoverPhoto(file);
       return ResponseEntity.ok(Map.of(
               "status", 200,
               "message", "Cover photo uploaded successfully",

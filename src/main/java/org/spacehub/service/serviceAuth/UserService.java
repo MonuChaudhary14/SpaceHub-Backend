@@ -21,6 +21,7 @@ import org.spacehub.entities.Friends.Friends;
 import java.util.Optional;
 
 import java.time.Duration;
+import org.spacehub.utils.SecurityUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -59,7 +60,8 @@ public class UserService implements UserDetailsService, IUserService {
   }
 
   public ResponseEntity<ApiResponse<Page<UserSearchDTO>>> searchUsers(
-    String query, String currentUserEmail, Pageable pageable) {
+    String query, Pageable pageable) {
+    String currentUserEmail = SecurityUtils.getCurrentUserEmail();
 
     if (query == null || query.isBlank()) {
       return ResponseEntity.badRequest()

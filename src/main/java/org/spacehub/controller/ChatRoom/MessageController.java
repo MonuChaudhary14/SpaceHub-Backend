@@ -20,22 +20,21 @@ public class MessageController {
   }
 
   @GetMapping("/user")
-  public List<Message> getAllMessagesForUser(@RequestParam String email) {
-    return messageService.getAllMessagesForUser(email);
+  public List<Message> getAllMessagesForUser() {
+    return messageService.getAllMessagesForUser();
   }
 
   @GetMapping("/partners")
-  public List<String> getAllChatPartners(@RequestParam String email) {
-    return messageService.getAllChatPartners(email);
+  public List<String> getAllChatPartners() {
+    return messageService.getAllChatPartners();
   }
 
   @DeleteMapping("/{id}")
   public ResponseEntity<?> deleteMessage(
           @PathVariable Long id,
-          @RequestParam String requesterEmail,
           @RequestParam(value = "forEveryone", required = false, defaultValue = "false") boolean forEveryone
   ) {
-    return messageService.handleDeleteRequest(id, requesterEmail, forEveryone);
+    return messageService.handleDeleteRequest(id, forEveryone);
   }
 
   @DeleteMapping("/{id}/hard")

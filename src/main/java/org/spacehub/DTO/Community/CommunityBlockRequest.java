@@ -19,8 +19,6 @@ public class CommunityBlockRequest {
   private UUID communityId;
   @NotBlank(message = "targetUserEmail is required")
   private String targetUserEmail;
-  @NotBlank(message = "requesterEmail is required")
-  private String requesterEmail;
   private boolean block;
 
 }

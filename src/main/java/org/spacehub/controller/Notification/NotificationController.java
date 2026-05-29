@@ -32,7 +32,6 @@ public class NotificationController {
 
     List<NotificationResponseDTO> notifications =
             notificationService.getUserNotifications(
-                    request.getEmail(),
                     request.getScope(),
                     request.getPage(),
                     request.getSize());
@@ -55,7 +54,6 @@ public class NotificationController {
 
     List<NotificationResponseDTO> notifications =
             notificationService.fetchAndMarkRead(
-                    request.getEmail(),
                     request.getPage(),
                     request.getSize());
 
@@ -73,10 +71,9 @@ public class NotificationController {
 
   @DeleteMapping("/delete/{publicId}")
   public ResponseEntity<ApiResponse<String>> deleteByPublicId(
-          @PathVariable UUID publicId,
-          @RequestParam String email) {
+          @PathVariable UUID publicId) {
 
-    notificationService.deleteByPublicId(publicId, email);
+    notificationService.deleteByPublicId(publicId);
 
     return ResponseEntity.ok(new ApiResponse<>(200, "Notification deleted successfully", "success")
     );
@@ -85,7 +82,7 @@ public class NotificationController {
   @PostMapping("/unread-count")
   public ResponseEntity<ApiResponse<Long>> getUnreadCount(@RequestBody NotificationUserRequest request) {
 
-    long count = notificationService.countUnreadNotifications(request.getEmail());
+    long count = notificationService.countUnreadNotifications();
 
     return ResponseEntity.ok(new ApiResponse<>(200, "Unread count fetched successfully", count));
   }

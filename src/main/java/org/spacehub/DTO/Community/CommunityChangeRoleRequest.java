@@ -9,7 +9,6 @@ public class CommunityChangeRoleRequest {
 
   private UUID communityId;
   private String targetUserEmail;
-  private String requesterEmail;
   private String newRole;
 
 }

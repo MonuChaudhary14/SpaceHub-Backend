@@ -18,6 +18,7 @@ import org.spacehub.repository.community.CommunityUserRepository;
 import org.spacehub.repository.localgroup.LocalGroupRepository;
 import org.spacehub.service.Interface.IProfileService;
 import org.spacehub.service.File.S3Service;
+import org.spacehub.utils.SecurityUtils;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,15 +45,18 @@ public class ProfileService implements IProfileService {
   private final ScheduledMessageRepository scheduledMessageRepository;
 
   @Override
-  public UserProfileResponse getProfileByEmail(String email) {
-    if (email == null || email.isBlank()) throw new IllegalArgumentException("Email is required");
+  public UserProfileResponse getProfile() {
+    String email = SecurityUtils.getCurrentUserEmail();
+    if (email == null || email.isBlank()) throw new IllegalArgumentException("User not authenticated");
     User user = userRepository.findByEmail(email.trim().toLowerCase())
             .orElseThrow(() -> new IllegalArgumentException("User not found"));
     return buildResponse(user);
   }
 
   @Override
-  public UserProfileResponse updateProfileByEmail(String email, UserProfileDTO dto) {
+  public UserProfileResponse updateProfile(UserProfileDTO dto) {
+    String email = SecurityUtils.getCurrentUserEmail();
+    if (email == null || email.isBlank()) throw new IllegalArgumentException("User not authenticated");
     validateInput(email, dto);
 
     User user = userRepository.findByEmail(email.trim().toLowerCase())
@@ -91,8 +95,9 @@ public class ProfileService implements IProfileService {
 
 
   @Override
-  public UserProfileResponse uploadAvatarByEmail(String email, MultipartFile file) {
-    if (email == null || email.isBlank()) throw new IllegalArgumentException("Email is required");
+  public UserProfileResponse uploadAvatar(MultipartFile file) {
+    String email = SecurityUtils.getCurrentUserEmail();
+    if (email == null || email.isBlank()) throw new IllegalArgumentException("User not authenticated");
     validateImage(file);
 
     User user = userRepository.findByEmail(email.trim().toLowerCase())
@@ -112,8 +117,9 @@ public class ProfileService implements IProfileService {
   }
 
   @Override
-  public UserProfileResponse uploadCoverPhotoByEmail(String email, MultipartFile file) {
-    if (email == null || email.isBlank()) throw new IllegalArgumentException("Email is required");
+  public UserProfileResponse uploadCoverPhoto(MultipartFile file) {
+    String email = SecurityUtils.getCurrentUserEmail();
+    if (email == null || email.isBlank()) throw new IllegalArgumentException("User not authenticated");
     validateImage(file);
 
     User user = userRepository.findByEmail(email.trim().toLowerCase())
@@ -135,7 +141,7 @@ public class ProfileService implements IProfileService {
   @Override
   @Transactional
   public void deleteAccount(DeleteAccount request) {
-    String email = request.getEmail();
+    String email = SecurityUtils.getCurrentUserEmail();
     String currentPassword = request.getCurrentPassword();
 
     if (email == null || email.isBlank()) {

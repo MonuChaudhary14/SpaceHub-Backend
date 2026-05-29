@@ -7,5 +7,4 @@ import java.util.UUID;
 @Data
 public class CommunityMemberListRequest {
   private UUID communityId;
-  private String requesterEmail;
 }

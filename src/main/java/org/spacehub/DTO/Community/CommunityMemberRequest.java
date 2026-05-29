@@ -13,6 +13,4 @@ public class CommunityMemberRequest {
   private UUID communityId;
   @NotBlank(message = "userEmail is required")
   private String userEmail;
-  @NotBlank(message = "requesterEmail is required")
-  private String requesterEmail;
 }

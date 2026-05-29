@@ -16,6 +16,7 @@ import org.spacehub.service.Interface.ILocalGroupService;
 import org.spacehub.service.File.S3Service;
 import org.spacehub.utils.S3UrlHelper;
 import org.spacehub.utils.ImageValidator;
+import org.spacehub.utils.SecurityUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,7 +48,9 @@ public class LocalGroupService implements ILocalGroupService {
   }
 
   public ResponseEntity<ApiResponse<LocalGroupResponse>> createLocalGroup(
-    String name, String description, String creatorEmail, MultipartFile imageFile) {
+    String name, String description, MultipartFile imageFile) {
+
+    String creatorEmail = SecurityUtils.getCurrentUserEmail();
 
     if (name == null || name.isBlank() || creatorEmail == null || creatorEmail.isBlank()) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, "name and creatorEmail are required", null));
@@ -107,7 +110,8 @@ public class LocalGroupService implements ILocalGroupService {
   }
 
   public ResponseEntity<ApiResponse<String>> joinLocalGroup(JoinLocalGroupRequest req) {
-    if (req.getGroupId() == null || req.getUserEmail() == null || req.getUserEmail().isBlank()) {
+    String userEmail = SecurityUtils.getCurrentUserEmail();
+    if (req.getGroupId() == null || userEmail == null || userEmail.isBlank()) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400,
         "groupId and userEmail are required", null));
     }
@@ -116,7 +120,7 @@ public class LocalGroupService implements ILocalGroupService {
       LocalGroup group = localGroupRepository.findById(req.getGroupId())
         .orElseThrow(() -> new ResourceNotFoundException("Local group not found"));
 
-      User user = userRepository.findByEmail(req.getUserEmail())
+      User user = userRepository.findByEmail(userEmail)
         .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
       boolean alreadyMember = group.getMembers().stream().anyMatch(u -> u.getId().equals(user.getId()));
@@ -140,7 +144,8 @@ public class LocalGroupService implements ILocalGroupService {
   }
 
   public ResponseEntity<ApiResponse<String>> deleteLocalGroup(DeleteLocalGroupRequest req) {
-    if (req.getGroupId() == null || req.getRequesterEmail() == null || req.getRequesterEmail().isBlank()) {
+    String requesterEmail = SecurityUtils.getCurrentUserEmail();
+    if (req.getGroupId() == null || requesterEmail == null || requesterEmail.isBlank()) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400,
         "groupId and requesterEmail are required", null));
     }
@@ -148,7 +153,7 @@ public class LocalGroupService implements ILocalGroupService {
     LocalGroup group = localGroupRepository.findById(req.getGroupId())
       .orElseThrow(() -> new ResourceNotFoundException("Local group not found"));
 
-    User requester = userRepository.findByEmail(req.getRequesterEmail())
+    User requester = userRepository.findByEmail(requesterEmail)
       .orElseThrow(() -> new ResourceNotFoundException("Requester not found"));
 
     if (!Objects.equals(group.getCreatedBy().getId(), requester.getId())) {
@@ -162,7 +167,8 @@ public class LocalGroupService implements ILocalGroupService {
       null));
   }
 
-  public ResponseEntity<ApiResponse<List<LocalGroupResponse>>> listAllLocalGroups(String requesterEmail) {
+  public ResponseEntity<ApiResponse<List<LocalGroupResponse>>> listAllLocalGroups() {
+    String requesterEmail = SecurityUtils.getCurrentUserEmail();
     List<LocalGroup> all = localGroupRepository.findAllWithCreatorAndMembers();
 
     if (requesterEmail == null || requesterEmail.isBlank()) {
@@ -234,7 +240,9 @@ public class LocalGroupService implements ILocalGroupService {
   }
 
   public ResponseEntity<ApiResponse<Map<String, Object>>> searchLocalGroups(
-    String q, String requesterEmail, int page, int size) {
+    String q, int page, int size) {
+
+    String requesterEmail = SecurityUtils.getCurrentUserEmail();
 
     if (q == null || q.isBlank()) {
       return ResponseEntity.ok(new ApiResponse<>(200, "Empty query", Map.of(
@@ -283,7 +291,8 @@ public class LocalGroupService implements ILocalGroupService {
     return ResponseEntity.ok(new ApiResponse<>(200, "Local group search results", body));
   }
 
-  public ResponseEntity<?> enterOrJoinLocalGroup(UUID groupId, String requesterEmail) {
+  public ResponseEntity<?> enterOrJoinLocalGroup(UUID groupId) {
+    String requesterEmail = SecurityUtils.getCurrentUserEmail();
     if (requesterEmail == null || requesterEmail.isBlank()) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, "requesterEmail is required",
         null));
@@ -359,7 +368,9 @@ public class LocalGroupService implements ILocalGroupService {
 
   @Override
   public ResponseEntity<ApiResponse<LocalGroupResponse>> updateLocalGroupSettings(
-    UUID groupId, String requesterEmail, MultipartFile imageFile, String newName) {
+    UUID groupId, MultipartFile imageFile, String newName) {
+
+    String requesterEmail = SecurityUtils.getCurrentUserEmail();
 
     if (isInvalidRequest(groupId, requesterEmail)) {
       return badRequest("groupId and requesterEmail are required");

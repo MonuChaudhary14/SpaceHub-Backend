@@ -9,6 +9,5 @@ import lombok.*;
 public class RoomRequestDTO {
 
   private String roomCode;
-  private String email;
 
 }

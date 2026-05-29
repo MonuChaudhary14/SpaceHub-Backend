@@ -6,6 +6,4 @@ import lombok.Data;
 public class DeleteCommunityDTO {
 
   private String name;
-  private String userEmail;
-
 }

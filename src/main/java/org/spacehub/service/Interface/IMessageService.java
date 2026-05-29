@@ -12,7 +12,9 @@ public interface IMessageService {
 
   List<Message> getChat(String user1, String user2);
 
-  List<Message> getAllMessagesForUser(String email);
+  List<Message> getAllMessagesForUser();
+
+  List<String> getAllChatPartners();
 
   List<String> getAllChatPartners(String email);
 
@@ -42,7 +44,7 @@ public interface IMessageService {
 
   boolean deleteMessageByUuid(String messageUuid);
 
-  ResponseEntity<?> handleDeleteRequest(Long id, String requesterEmail, boolean forEveryone);
+  ResponseEntity<?> handleDeleteRequest(Long id, boolean forEveryone);
 
   ResponseEntity<?> handleHardDeleteRequest(Long id);
 }

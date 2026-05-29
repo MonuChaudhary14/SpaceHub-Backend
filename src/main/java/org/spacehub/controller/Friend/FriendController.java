@@ -23,7 +23,7 @@ public class FriendController {
   @PostMapping("/request")
   public ResponseEntity<ApiResponse<String>> sendFriendRequest(@RequestBody FriendRequest request) {
     try {
-      String response = friendService.sendFriendRequest(request.getUserEmail(), request.getFriendEmail());
+      String response = friendService.sendFriendRequest(request.getFriendEmail());
       return ResponseEntity.ok(new ApiResponse<>(200, response));
     }
     catch (Exception e) {
@@ -34,7 +34,7 @@ public class FriendController {
   @PostMapping("/respond")
   public ResponseEntity<ApiResponse<String>> respondFriendRequest(@RequestBody RespondFriendRequest request) {
     try {
-      String response = friendService.respondFriendRequest(request.getUserEmail(), request.getRequesterEmail(), request.isAccept());
+      String response = friendService.respondFriendRequest(request.getRequesterEmail(), request.isAccept());
       return ResponseEntity.ok(new ApiResponse<>(200, response));
     }
     catch (Exception e) {
@@ -45,7 +45,7 @@ public class FriendController {
   @PostMapping("/list")
   public ResponseEntity<ApiResponse<List<UserOutput>>> getFriends(@RequestBody UserEmail request) {
     try {
-      List<UserOutput> friends = friendService.getFriends(request.getUserEmail());
+      List<UserOutput> friends = friendService.getFriends();
       return ResponseEntity.ok(new ApiResponse<>(200, "Friends list retrieved successfully", friends));
     }
     catch (Exception e) {
@@ -56,7 +56,7 @@ public class FriendController {
   @PostMapping("/block")
   public ResponseEntity<ApiResponse<String>> blockFriend(@RequestBody BlockUnblock request) {
     try {
-      String response = friendService.blockFriend(request.getUserEmail(), request.getFriendEmail());
+      String response = friendService.blockFriend(request.getFriendEmail());
       return ResponseEntity.ok(new ApiResponse<>(200, response));
     }
     catch (Exception e) {
@@ -67,7 +67,7 @@ public class FriendController {
   @PostMapping("/unblock")
   public ResponseEntity<ApiResponse<String>> unblockUser(@RequestBody BlockUnblock request) {
     try {
-      String response = friendService.unblockUser(request.getUserEmail(), request.getFriendEmail());
+      String response = friendService.unblockUser(request.getFriendEmail());
       return ResponseEntity.ok(new ApiResponse<>(200, response));
     }
     catch (Exception e) {
@@ -79,7 +79,7 @@ public class FriendController {
   @PostMapping("/pending/incoming")
   public ResponseEntity<ApiResponse<List<UserOutput>>> getIncomingRequests(@RequestBody UserEmail request) {
     try {
-      List<UserOutput> incoming = friendService.getIncomingPendingRequests(request.getUserEmail());
+      List<UserOutput> incoming = friendService.getIncomingPendingRequests();
       return ResponseEntity.ok(new ApiResponse<>(200, "Incoming requests fetched successfully", incoming));
     }
     catch (Exception e) {
@@ -90,7 +90,7 @@ public class FriendController {
   @PostMapping("/pending/outgoing")
   public ResponseEntity<ApiResponse<List<UserOutput>>> getOutgoingRequests(@RequestBody UserEmail request) {
     try {
-      List<UserOutput> outgoing = friendService.getOutgoingPendingRequests(request.getUserEmail());
+      List<UserOutput> outgoing = friendService.getOutgoingPendingRequests();
       return ResponseEntity.ok(new ApiResponse<>(200, "Outgoing requests fetched successfully", outgoing));
     }
     catch (Exception e) {
@@ -101,7 +101,7 @@ public class FriendController {
   @PostMapping("/remove")
   public ResponseEntity<ApiResponse<String>> removeFriend(@RequestBody BlockUnblock request) {
     try {
-      String response = friendService.removeFriend(request.getUserEmail(), request.getFriendEmail());
+      String response = friendService.removeFriend(request.getFriendEmail());
       return ResponseEntity.ok(new ApiResponse<>(200, response));
     } catch (Exception e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Error: " + e.getMessage()));

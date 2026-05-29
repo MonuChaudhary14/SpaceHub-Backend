@@ -7,7 +7,7 @@ import java.io.IOException;
 
 public interface IChatFileService {
 
-  ChatMessage uploadChatFile(MultipartFile file, String senderEmail, String roomCode) throws IOException;
+  ChatMessage uploadChatFile(MultipartFile file, String roomCode) throws IOException;
 
   String getDownloadLink(String fileKeyOrUrl);
 

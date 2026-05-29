@@ -14,6 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.spacehub.utils.SecurityUtils;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.HashMap;
@@ -34,8 +35,9 @@ public class DashBoardService implements IDashBoardService {
   private final PasswordEncoder passwordEncoder;
   private final EmailValidator emailValidator;
 
-  public ApiResponse<String> saveUsernameByEmail(String email, String username) {
+  public ApiResponse<String> saveUsername(String username) {
 
+    String email = SecurityUtils.getCurrentUserEmail();
     ApiResponse<String> validationError = validateUsernameInputs(email, username);
     if (validationError != null) return validationError;
 
@@ -88,10 +90,11 @@ public class DashBoardService implements IDashBoardService {
     return existingUserOpt.isPresent() && !existingUserOpt.get().getId().equals(currentUser.getId());
   }
 
-  public ApiResponse<String> uploadProfileImage(String email, MultipartFile image) {
+  public ApiResponse<String> uploadProfileImage(MultipartFile image) {
 
+    String email = SecurityUtils.getCurrentUserEmail();
     if (isInvalidEmail(email)) {
-      return new ApiResponse<>(400, "Email is required", null);
+      return new ApiResponse<>(400, "User not authenticated", null);
     }
 
     if (isInvalidImage(image)) {
@@ -160,9 +163,10 @@ public class DashBoardService implements IDashBoardService {
     }
   }
 
-  public ApiResponse<Map<String, Object>> getUserProfileSummary(String email) {
+  public ApiResponse<Map<String, Object>> getUserProfileSummary() {
+    String email = SecurityUtils.getCurrentUserEmail();
     if (email == null || email.isBlank()) {
-      return new ApiResponse<>(400, "Email is required", null);
+      return new ApiResponse<>(400, "User not authenticated", null);
     }
 
     try {
@@ -199,15 +203,15 @@ public class DashBoardService implements IDashBoardService {
   }
 
   public ApiResponse<Map<String, Object>> saveProfileChanges(
-    String email,
     String newEmail,
     String oldPassword,
     String newPassword,
     String newUsername,
     MultipartFile image
   ) {
+    String email = SecurityUtils.getCurrentUserEmail();
     if (email == null || email.isBlank()) {
-      return ApiResponse.error(400, "Email (identifier) is required");
+      return ApiResponse.error(400, "User not authenticated");
     }
 
     try {

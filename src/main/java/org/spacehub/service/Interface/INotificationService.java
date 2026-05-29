@@ -11,17 +11,17 @@ public interface INotificationService {
 
   void createNotification(NotificationRequestDTO request);
 
-  List<NotificationResponseDTO> getUserNotifications(String email, String scope, int page, int size);
+  List<NotificationResponseDTO> getUserNotifications(String scope, int page, int size);
 
-  List<NotificationResponseDTO> fetchAndMarkRead(String email, int page, int size);
+  List<NotificationResponseDTO> fetchAndMarkRead(int page, int size);
 
   void markAsRead(UUID id);
 
   void deleteNotification(UUID id);
 
-  void deleteByPublicId(UUID publicId, String userEmail);
+  void deleteByPublicId(UUID publicId);
 
-  long countUnreadNotifications(String email);
+  long countUnreadNotifications();
 
   void sendFriendRequestNotification(User sender, User recipient);
 

@@ -17,7 +17,6 @@ public interface ILocalGroupService {
   ResponseEntity<ApiResponse<LocalGroupResponse>> createLocalGroup(
     String name,
     String description,
-    String creatorEmail,
     MultipartFile imageFile
   );
 
@@ -25,20 +24,19 @@ public interface ILocalGroupService {
 
   ResponseEntity<ApiResponse<String>> deleteLocalGroup(DeleteLocalGroupRequest req);
 
-  ResponseEntity<ApiResponse<List<LocalGroupResponse>>> listAllLocalGroups(String requesterEmail);
+  ResponseEntity<ApiResponse<List<LocalGroupResponse>>> listAllLocalGroups();
 
   ResponseEntity<ApiResponse<LocalGroupResponse>> getLocalGroup(UUID id);
 
-  ResponseEntity<ApiResponse<Map<String, Object>>> searchLocalGroups(String q, String requesterEmail, int page,
+  ResponseEntity<ApiResponse<Map<String, Object>>> searchLocalGroups(String q, int page,
                                                                      int size);
 
-  ResponseEntity<?> enterOrJoinLocalGroup(UUID groupId, String requesterEmail);
+  ResponseEntity<?> enterOrJoinLocalGroup(UUID groupId);
 
   ResponseEntity<ApiResponse<List<LocalGroupMemberDTO>>> getLocalGroupMembers(UUID groupId);
 
   ResponseEntity<ApiResponse<LocalGroupResponse>> updateLocalGroupSettings(
     UUID groupId,
-    String requesterEmail,
     MultipartFile imageFile,
     String newName
   );

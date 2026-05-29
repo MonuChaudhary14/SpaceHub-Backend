@@ -27,29 +27,26 @@ public class DashboardController {
 
   @PostMapping("/set-username")
   public ResponseEntity<ApiResponse<String>> setUsername(@Valid @RequestBody UsernameRequest request) {
-    ApiResponse<String> resp = dashboardService.saveUsernameByEmail(
-            request.getEmail(),
+    ApiResponse<String> resp = dashboardService.saveUsername(
             request.getUsername()
     );
     return ResponseEntity.status(resp.getStatus()).body(resp);
   }
 
   @PostMapping(value = "/upload-profile-image")
-  public ResponseEntity<ApiResponse<String>> uploadProfileImage(@RequestParam("email") String email,
-                                                                @RequestParam("image") MultipartFile image) {
-    ApiResponse<String> response = dashboardService.uploadProfileImage(email, image);
+  public ResponseEntity<ApiResponse<String>> uploadProfileImage(@RequestParam("image") MultipartFile image) {
+    ApiResponse<String> response = dashboardService.uploadProfileImage(image);
     return ResponseEntity.status(response.getStatus()).body(response);
   }
 
   @GetMapping("/profile-summary")
-  public ResponseEntity<ApiResponse<?>> getUserProfileSummary(@RequestParam("email") String email) {
-    ApiResponse<?> response = dashboardService.getUserProfileSummary(email);
+  public ResponseEntity<ApiResponse<?>> getUserProfileSummary() {
+    ApiResponse<?> response = dashboardService.getUserProfileSummary();
     return ResponseEntity.status(response.getStatus()).body(response);
   }
 
   @PostMapping(value = "/save-changes")
   public ResponseEntity<ApiResponse<Map<String, Object>>> saveChanges(
-    @RequestParam("email") String email,
     @RequestParam(value = "newEmail", required = false) String newEmail,
     @RequestParam(value = "oldPassword", required = false) String oldPassword,
     @RequestParam(value = "newPassword", required = false) String newPassword,
@@ -57,7 +54,7 @@ public class DashboardController {
     @RequestParam(value = "image", required = false) MultipartFile image
   ) {
     ApiResponse<Map<String, Object>> resp = dashboardService.saveProfileChanges(
-      email, newEmail, oldPassword, newPassword, newUsername, image
+      newEmail, oldPassword, newPassword, newUsername, image
     );
     return ResponseEntity.status(resp.getStatus()).body(resp);
   }

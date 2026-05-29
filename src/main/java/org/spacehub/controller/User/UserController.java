@@ -94,10 +94,9 @@ public class UserController {
   @GetMapping("/search")
   public ResponseEntity<ApiResponse<Page<UserSearchDTO>>> searchUsers(
           @RequestParam("query") String query,
-          @RequestParam("email") String currentUserEmail,
           Pageable pageable
   ) {
-    return userService.searchUsers(query, currentUserEmail, pageable);
+    return userService.searchUsers(query, pageable);
   }
 
 }

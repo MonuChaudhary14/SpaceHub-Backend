@@ -13,6 +13,7 @@ import org.spacehub.repository.Notification.NotificationRepository;
 import org.spacehub.repository.User.UserRepository;
 import org.spacehub.repository.community.CommunityRepository;
 import org.spacehub.service.Interface.INotificationService;
+import org.spacehub.utils.SecurityUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -124,8 +125,8 @@ public class NotificationService implements INotificationService {
 
   @Override
   @Transactional(readOnly = true)
-  public List<NotificationResponseDTO> getUserNotifications(String email, String scope, int page, int size) {
-
+  public List<NotificationResponseDTO> getUserNotifications(String scope, int page, int size) {
+    String email = SecurityUtils.getCurrentUserEmail();
     List<Notification> list = notificationRepository.findAllByRecipientWithDetails(email);
 
     if (scope != null && !scope.isBlank()) {
@@ -146,8 +147,8 @@ public class NotificationService implements INotificationService {
   }
 
   @Override
-  public List<NotificationResponseDTO> fetchAndMarkRead(String email, int page, int size) {
-
+  public List<NotificationResponseDTO> fetchAndMarkRead(int page, int size) {
+    String email = SecurityUtils.getCurrentUserEmail();
     List<Notification> all = notificationRepository.findAllByRecipientWithDetails(email);
 
     boolean changed = false;
@@ -193,14 +194,15 @@ public class NotificationService implements INotificationService {
 
   @Override
   @Transactional(readOnly = true)
-  public long countUnreadNotifications(String email) {
+  public long countUnreadNotifications() {
+    String email = SecurityUtils.getCurrentUserEmail();
     return notificationRepository.findByRecipientEmailOrderByCreatedAtDesc(email).stream()
       .filter(n -> !n.isRead()).count();
   }
 
   @Override
-  public void deleteByPublicId(UUID publicId, String userEmail) {
-
+  public void deleteByPublicId(UUID publicId) {
+    String userEmail = SecurityUtils.getCurrentUserEmail();
     Notification notification = notificationRepository.findByPublicId(publicId)
             .orElseThrow(() -> new RuntimeException("Notification not found"));
 
