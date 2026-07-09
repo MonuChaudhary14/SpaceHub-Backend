@@ -1,0 +1,13 @@
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!target/*.jar
+*/*/target/
+*/*/*/target/
+.git
+.gitignore
+.idea/
+*.iml
+*.log
+node_modules/
+dist/
+.env
