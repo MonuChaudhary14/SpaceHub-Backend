@@ -18,6 +18,8 @@ import org.spacehub.service.serviceAuth.authInterfaces.IUserAccountService;
 import org.spacehub.service.serviceAuth.authInterfaces.IUserService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,6 +36,17 @@ public class UserController {
   @PostMapping("/login")
   public ResponseEntity<ApiResponse<TokenResponse>> login(@RequestBody LoginRequest request) {
     ApiResponse<TokenResponse> resp = accountService.login(request);
+    if (resp.getStatus() == 200 && resp.getData() != null) {
+      ResponseCookie cookie = ResponseCookie.from("accessToken", resp.getData().getAccessToken())
+        .httpOnly(true)
+        .secure(true)
+        .path("/")
+        .maxAge(24 * 60 * 60)
+        .build();
+      return ResponseEntity.status(resp.getStatus())
+        .header(HttpHeaders.SET_COOKIE, cookie.toString())
+        .body(resp);
+    }
     return ResponseEntity.status(resp.getStatus()).body(resp);
   }
 
@@ -70,6 +83,17 @@ public class UserController {
   @PostMapping("/logout")
   public ResponseEntity<ApiResponse<String>> logout(@RequestBody(required = false) RefreshRequest request) {
     ApiResponse<String> resp = accountService.logout(request);
+    if (resp.getStatus() == 200) {
+      ResponseCookie cookie = ResponseCookie.from("accessToken", "")
+        .httpOnly(true)
+        .secure(false)
+        .path("/")
+        .maxAge(0)
+        .build();
+      return ResponseEntity.status(resp.getStatus())
+        .header(HttpHeaders.SET_COOKIE, cookie.toString())
+        .body(resp);
+    }
     return ResponseEntity.status(resp.getStatus()).body(resp);
   }
 

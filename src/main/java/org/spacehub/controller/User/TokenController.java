@@ -7,6 +7,8 @@ import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.User.RefreshTokenRepository;
 import org.spacehub.service.serviceAuth.UserNameService;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -45,7 +47,16 @@ public class TokenController {
     User user = refreshToken.getUser();
     String accessToken = userNameService.generateToken(user);
     TokenResponse tokens = new TokenResponse(accessToken, refreshToken.getToken());
-    return ResponseEntity.ok(new ApiResponse<>(200, "Token refreshed", tokens));
+
+    ResponseCookie cookie = ResponseCookie.from("accessToken", accessToken)
+      .httpOnly(true)
+      .secure(true)
+      .path("/")
+      .maxAge(24 * 60 * 60)
+      .build();
+
+    return ResponseEntity.ok()
+      .header(HttpHeaders.SET_COOKIE, cookie.toString())
+      .body(new ApiResponse<>(200, "Token refreshed", tokens));
   }
 }
-

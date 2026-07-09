@@ -3,6 +3,7 @@ package org.spacehub.configuration;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.spacehub.entities.User.User;
@@ -51,6 +52,17 @@ public class Filters extends OncePerRequestFilter {
 
     if (header != null && header.startsWith("Bearer ")) {
       token = header.substring(7);
+    } 
+    else if (request.getCookies() != null) {
+      for (Cookie cookie : request.getCookies()) {
+        if ("accessToken".equals(cookie.getName())) {
+          token = cookie.getValue();
+          break;
+        }
+      }
+    }
+
+    if (token != null) {
       userEmail = usernameService.extractUsername(token);
     }
 
