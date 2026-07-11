@@ -71,19 +71,11 @@ public class SecurityConfiguration {
         .authorizeHttpRequests(auth -> auth
             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
             .requestMatchers(
-                "/ws-messages/**",
-                "/api/v1/voice-room/join",
-                "/ws/**",
                 "/swagger-ui.html",
                 "/swagger-ui/**",
                 "/v3/api-docs",
                 "/v3/api-docs/**",
-                "/v3/api-docs.yaml",
-                "/chat",
-                "/chat/**",
-                "/files/**",
-                "/notification/**",
-                "/wss/**"
+                "/v3/api-docs.yaml"
             ).permitAll()
             .requestMatchers(
                 "/api/v1/login",
@@ -95,14 +87,7 @@ public class SecurityConfiguration {
                 "/api/v1/resendotp",
                 "/api/v1/resendforgototp",
                 "/api/v1/logout",
-                "/api/v1/auth/refresh",
-                "/api/v1/signal",
-                "/api/v1/community/all",
-                "/api/v1/community/search",
-                "/api/v1/community/discover",
-                "/api/v1/community/exists",
-                "/api/v1/community/{id}",
-                "/api/v1/community/{id}/rooms/all"
+                "/api/v1/auth/refresh"
             ).permitAll()
             .anyRequest().authenticated())
         .exceptionHandling(exception -> exception.authenticationEntryPoint(authenticationEntryPoint))
