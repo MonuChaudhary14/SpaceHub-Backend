@@ -28,20 +28,20 @@ public class TokenController {
   public ResponseEntity<ApiResponse<TokenResponse>> refresh(@RequestBody RefreshRequest req) {
     if (req == null || req.getRefreshToken() == null) {
       return ResponseEntity.status(400).body(new ApiResponse<>(400, "Refresh token required",
-        null));
+          null));
     }
 
     var opt = refreshTokenRepository.findByToken(req.getRefreshToken());
     if (opt.isEmpty()) {
       return ResponseEntity.status(401).body(new ApiResponse<>(401, "Invalid refresh token",
-        null));
+          null));
     }
 
     var refreshToken = opt.get();
     if (refreshToken.getExpiresAt().isBefore(Instant.now())) {
       refreshTokenRepository.delete(refreshToken);
       return ResponseEntity.status(401).body(new ApiResponse<>(401, "Refresh token expired",
-        null));
+          null));
     }
 
     User user = refreshToken.getUser();
@@ -49,14 +49,15 @@ public class TokenController {
     TokenResponse tokens = new TokenResponse(accessToken, refreshToken.getToken());
 
     ResponseCookie cookie = ResponseCookie.from("accessToken", accessToken)
-      .httpOnly(true)
-      .secure(true)
-      .path("/")
-      .maxAge(24 * 60 * 60)
-      .build();
+        .httpOnly(true)
+        .secure(false)
+        .sameSite("Lax")
+        .path("/")
+        .maxAge(24 * 60 * 60)
+        .build();
 
     return ResponseEntity.ok()
-      .header(HttpHeaders.SET_COOKIE, cookie.toString())
-      .body(new ApiResponse<>(200, "Token refreshed", tokens));
+        .header(HttpHeaders.SET_COOKIE, cookie.toString())
+        .body(new ApiResponse<>(200, "Token refreshed", tokens));
   }
 }

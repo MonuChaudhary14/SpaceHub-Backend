@@ -38,14 +38,15 @@ public class UserController {
     ApiResponse<TokenResponse> resp = accountService.login(request);
     if (resp.getStatus() == 200 && resp.getData() != null) {
       ResponseCookie cookie = ResponseCookie.from("accessToken", resp.getData().getAccessToken())
-        .httpOnly(true)
-        .secure(true)
-        .path("/")
-        .maxAge(24 * 60 * 60)
-        .build();
+          .httpOnly(true)
+          .secure(false)
+          .sameSite("Lax")
+          .path("/")
+          .maxAge(24 * 60 * 60)
+          .build();
       return ResponseEntity.status(resp.getStatus())
-        .header(HttpHeaders.SET_COOKIE, cookie.toString())
-        .body(resp);
+          .header(HttpHeaders.SET_COOKIE, cookie.toString())
+          .body(resp);
     }
     return ResponseEntity.status(resp.getStatus()).body(resp);
   }
@@ -85,14 +86,15 @@ public class UserController {
     ApiResponse<String> resp = accountService.logout(request);
     if (resp.getStatus() == 200) {
       ResponseCookie cookie = ResponseCookie.from("accessToken", "")
-        .httpOnly(true)
-        .secure(false)
-        .path("/")
-        .maxAge(0)
-        .build();
+          .httpOnly(true)
+          .secure(false)
+          .sameSite("Lax")
+          .path("/")
+          .maxAge(0)
+          .build();
       return ResponseEntity.status(resp.getStatus())
-        .header(HttpHeaders.SET_COOKIE, cookie.toString())
-        .body(resp);
+          .header(HttpHeaders.SET_COOKIE, cookie.toString())
+          .body(resp);
     }
     return ResponseEntity.status(resp.getStatus()).body(resp);
   }
@@ -117,9 +119,8 @@ public class UserController {
 
   @GetMapping("/search")
   public ResponseEntity<ApiResponse<Page<UserSearchDTO>>> searchUsers(
-          @RequestParam("query") String query,
-          Pageable pageable
-  ) {
+      @RequestParam("query") String query,
+      Pageable pageable) {
     return userService.searchUsers(query, pageable);
   }
 
