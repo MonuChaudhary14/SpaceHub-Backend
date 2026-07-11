@@ -70,7 +70,7 @@ public class DashBoardService implements IDashBoardService {
 
   private ApiResponse<String> validateUsernameInputs(String email, String username) {
     if (email == null || email.isBlank()) {
-      return new ApiResponse<>(400, "Email is null or blank", null);
+      return new ApiResponse<>(401, "User not authenticated", null);
     }
 
     if (username == null || username.isBlank()) {
@@ -94,7 +94,7 @@ public class DashBoardService implements IDashBoardService {
 
     String email = SecurityUtils.getCurrentUserEmail();
     if (isInvalidEmail(email)) {
-      return new ApiResponse<>(400, "User not authenticated", null);
+      return new ApiResponse<>(401, "User not authenticated", null);
     }
 
     if (isInvalidImage(image)) {
@@ -166,7 +166,7 @@ public class DashBoardService implements IDashBoardService {
   public ApiResponse<Map<String, Object>> getUserProfileSummary() {
     String email = SecurityUtils.getCurrentUserEmail();
     if (email == null || email.isBlank()) {
-      return new ApiResponse<>(400, "User not authenticated", null);
+      return new ApiResponse<>(401, "User not authenticated", null);
     }
 
     try {
@@ -211,7 +211,7 @@ public class DashBoardService implements IDashBoardService {
   ) {
     String email = SecurityUtils.getCurrentUserEmail();
     if (email == null || email.isBlank()) {
-      return ApiResponse.error(400, "User not authenticated");
+      return ApiResponse.error(401, "User not authenticated");
     }
 
     try {
