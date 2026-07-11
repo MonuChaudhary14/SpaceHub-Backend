@@ -6,7 +6,6 @@ import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.User.UserRepository;
 import org.spacehub.security.EmailValidator;
-import org.spacehub.security.PhoneNumberValidator;
 import org.spacehub.service.File.S3Service;
 import org.spacehub.service.serviceAuth.authInterfaces.IUserService;
 import org.springframework.data.domain.Page;
@@ -29,7 +28,6 @@ public class UserService implements UserDetailsService, IUserService {
 
   private final UserRepository userRepository;
   private final EmailValidator emailValidator;
-  private final PhoneNumberValidator phoneNumberValidator;
   private final S3Service s3Service;
   private final FriendsRepository friendsRepository;
 
@@ -38,12 +36,9 @@ public class UserService implements UserDetailsService, IUserService {
     if (emailValidator.isEmail(identifier)) {
       return userRepository.findByEmail(emailValidator.normalize(identifier))
         .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + identifier));
-    } else if (phoneNumberValidator.isPhoneNumber(identifier)) {
-      return userRepository.findByPhoneNumber(phoneNumberValidator.normalize(identifier))
-        .orElseThrow(() -> new UsernameNotFoundException("User not found with phone: " + identifier));
     }
 
-    throw new UsernameNotFoundException("Invalid identifier. Must be email or phone: " + identifier);
+    throw new UsernameNotFoundException("Invalid identifier. Must be email: " + identifier);
   }
 
   public User getUserByEmail(String email) {
@@ -117,15 +112,6 @@ public class UserService implements UserDetailsService, IUserService {
     }
 
     return "NONE";
-  }
-
-  public User getUserByPhoneNumber(String phoneNumber) throws UsernameNotFoundException {
-    return userRepository.findByPhoneNumber(phoneNumber)
-      .orElseThrow(() -> new UsernameNotFoundException("User not found with phone number: " + phoneNumber));
-  }
-
-  public boolean existsByPhoneNumber(String phoneNumber) {
-    return userRepository.existsByPhoneNumber(phoneNumber);
   }
 
 }

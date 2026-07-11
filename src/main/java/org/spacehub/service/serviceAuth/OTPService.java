@@ -6,7 +6,6 @@ import org.spacehub.entities.OTP.OtpType;
 import org.spacehub.entities.Auth.RegistrationRequest;
 import org.spacehub.entities.User.User;
 import org.spacehub.security.EmailValidator;
-import org.spacehub.security.PhoneNumberValidator;
 import org.spacehub.service.serviceAuth.authInterfaces.IEmailService;
 import org.spacehub.service.serviceAuth.authInterfaces.IOTPService;
 import org.springframework.stereotype.Service;
@@ -18,9 +17,7 @@ public class OTPService implements IOTPService {
 
   private final RedisService redisService;
   private final IEmailService emailService;
-  private final SmsService smsService;
   private final EmailValidator emailValidator;
-  private final PhoneNumberValidator phoneNumberValidator;
   private final VerificationService verificationService;
   private static final SecureRandom random = new SecureRandom();
   private final ObjectMapper objectMapper = new ObjectMapper();
@@ -57,10 +54,8 @@ public class OTPService implements IOTPService {
     if (emailValidator.isEmail(identifier)) {
       String message = "Your OTP is: " + otp + ". It will expire in 5 minutes.";
       emailService.sendEmail(identifier, message);
-    } else if (phoneNumberValidator.isPhoneNumber(identifier)) {
-      smsService.sendSms(identifier, otp);
     } else {
-      throw new RuntimeException("Invalid identifier type for sending OTP.");
+      throw new RuntimeException("Invalid email for sending OTP.");
     }
   }
 
@@ -151,10 +146,8 @@ public class OTPService implements IOTPService {
     String identifier;
     if (user.getEmail() != null && !user.getEmail().isBlank()) {
       identifier = user.getEmail();
-    } else if (user.getPhoneNumber() != null && !user.getPhoneNumber().isBlank()) {
-      identifier = user.getPhoneNumber();
     } else {
-      throw new RuntimeException("User has no email or phone number to send OTP to.");
+      throw new RuntimeException("User has no email to send OTP to.");
     }
 
     sendOTP(identifier, type);

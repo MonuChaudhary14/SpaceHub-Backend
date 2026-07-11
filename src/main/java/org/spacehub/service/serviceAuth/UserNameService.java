@@ -89,10 +89,7 @@ public class UserNameService implements IUserNameService {
       if (user.getEmail() != null && !user.getEmail().isBlank()) {
         return user.getEmail();
       }
-      if (user.getPhoneNumber() != null && !user.getPhoneNumber().isBlank()) {
-        return user.getPhoneNumber();
-      }
-      throw new IllegalStateException("User email or phone number is required for JWT subject");
+      throw new IllegalStateException("User email is required for JWT subject");
     }
     return userDetails.getUsername();
   }

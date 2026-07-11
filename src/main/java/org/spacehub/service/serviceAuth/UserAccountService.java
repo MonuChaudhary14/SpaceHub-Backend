@@ -13,7 +13,6 @@ import org.spacehub.entities.Auth.RegistrationRequest;
 import org.spacehub.entities.OTP.OtpType;
 import org.spacehub.entities.User.UserRole;
 import org.spacehub.security.EmailValidator;
-import org.spacehub.security.PhoneNumberValidator;
 import org.spacehub.service.serviceAuth.authInterfaces.IUserAccountService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -25,7 +24,6 @@ public class UserAccountService implements IUserAccountService {
 
   private final VerificationService verificationService;
   private final EmailValidator emailValidator;
-  private final PhoneNumberValidator phoneNumberValidator;
   private final OTPService otpService;
   private final UserService userService;
   private final RefreshTokenService refreshTokenService;
@@ -50,12 +48,8 @@ public class UserAccountService implements IUserAccountService {
       if (emailValidator.isEmail(rawIdentifier)) {
         normalizedIdentifier = emailValidator.normalize(rawIdentifier);
         user = userService.getUserByEmail(normalizedIdentifier);
-      } else if (phoneNumberValidator.isPhoneNumber(rawIdentifier)) {
-        normalizedIdentifier = phoneNumberValidator.normalize(rawIdentifier);
-        user = userService.getUserByPhoneNumber(normalizedIdentifier);
       } else {
-        return new ApiResponse<>(400, "Invalid identifier. Must be an email or phone number.",
-          null);
+        return new ApiResponse<>(400, "Invalid identifier. Must be an email.", null);
       }
     } catch (UsernameNotFoundException e) {
       return new ApiResponse<>(404, "User not found", null);
@@ -134,40 +128,20 @@ public class UserAccountService implements IUserAccountService {
   }
 
   private String processIdentifier(RegistrationRequest request, RegistrationRequest tempRegistration) {
-    String identifier = null;
-
-    if (request.getEmail() != null && !request.getEmail().isBlank()) {
-      String email = emailValidator.normalize(request.getEmail());
-      if (!emailValidator.isEmail(email)) {
-        throw new IllegalArgumentException("Invalid email format");
-      }
-      if (userService.existsByEmail(email)) {
-        throw new IllegalArgumentException("User with this email already exists");
-      }
-      tempRegistration.setEmail(email);
-      identifier = email;
+    if (request.getEmail() == null || request.getEmail().isBlank()) {
+      throw new IllegalArgumentException("Email is required for registration");
     }
 
-    if (request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()) {
-      String phone = phoneNumberValidator.normalize(request.getPhoneNumber());
-      if (!phoneNumberValidator.isPhoneNumber(phone)) {
-        throw new IllegalArgumentException("Invalid phone number format.");
-      }
-      if (userService.existsByPhoneNumber(phone)) {
-        throw new IllegalArgumentException("User with this phone number already exists");
-      }
-      tempRegistration.setPhoneNumber(phone);
-
-      if (identifier == null) {
-        identifier = phone;
-      }
+    String email = emailValidator.normalize(request.getEmail());
+    if (!emailValidator.isEmail(email)) {
+      throw new IllegalArgumentException("Invalid email format");
     }
-
-    if (identifier == null) {
-      throw new IllegalArgumentException("Email or Phone Number is required for registration");
+    if (userService.existsByEmail(email)) {
+      throw new IllegalArgumentException("User with this email already exists");
     }
+    tempRegistration.setEmail(email);
 
-    return identifier;
+    return email;
   }
 
   private ApiResponse<String> handleCooldown(String identifier) {
@@ -212,10 +186,7 @@ public class UserAccountService implements IUserAccountService {
     if (emailValidator.isEmail(raw)) {
       return emailValidator.normalize(raw);
     }
-    if (phoneNumberValidator.isPhoneNumber(raw)) {
-      return phoneNumberValidator.normalize(raw);
-    }
-    throw new IllegalArgumentException("Invalid identifier format.");
+    throw new IllegalArgumentException("Invalid email format.");
   }
 
   private ApiResponse<?> preValidateOtpChecks(String identifier, OtpType type) {
@@ -249,7 +220,7 @@ public class UserAccountService implements IUserAccountService {
   public ApiResponse<String> forgotPassword(String identifier) {
 
     if (identifier == null) {
-      return new ApiResponse<>(400, "Email or phone number is required", null);
+      return new ApiResponse<>(400, "Email is required", null);
     }
 
     String normalizedIdentifier;
@@ -258,9 +229,6 @@ public class UserAccountService implements IUserAccountService {
       if (emailValidator.isEmail(identifier)) {
         normalizedIdentifier = emailValidator.normalize(identifier);
         user = userService.getUserByEmail(normalizedIdentifier);
-      } else if (phoneNumberValidator.isPhoneNumber(identifier)) {
-        normalizedIdentifier = phoneNumberValidator.normalize(identifier);
-        user = userService.getUserByPhoneNumber(normalizedIdentifier);
       } else {
         return new ApiResponse<>(200, "OTP has been sent",
           null);
@@ -278,7 +246,7 @@ public class UserAccountService implements IUserAccountService {
 
     String tempToken = sendForgotPasswordOtpAndCreateTempToken(normalizedIdentifier, user);
 
-    return new ApiResponse<>(200, "OTP sent to your registered email/phone", tempToken);
+    return new ApiResponse<>(200, "OTP sent to your registered email", tempToken);
   }
 
   public ApiResponse<String> resetPassword(ResetPasswordRequest request) {
@@ -287,10 +255,8 @@ public class UserAccountService implements IUserAccountService {
 
     if (emailValidator.isEmail(identifier)) {
       normalizedIdentifier = emailValidator.normalize(identifier);
-    } else if (phoneNumberValidator.isPhoneNumber(identifier)) {
-      normalizedIdentifier = phoneNumberValidator.normalize(identifier);
     } else {
-      return new ApiResponse<>(400, "Invalid identifier.", null);
+      return new ApiResponse<>(400, "Invalid email.", null);
     }
 
     String tempToken = request.getTempToken();
@@ -304,11 +270,7 @@ public class UserAccountService implements IUserAccountService {
 
     User user;
     try {
-      if (emailValidator.isEmail(normalizedIdentifier)) {
-        user = userService.getUserByEmail(normalizedIdentifier);
-      } else {
-        user = userService.getUserByPhoneNumber(normalizedIdentifier);
-      }
+      user = userService.getUserByEmail(normalizedIdentifier);
     } catch (Exception e) {
       return new ApiResponse<>(400, "User not found", null);
     }
@@ -369,10 +331,7 @@ public class UserAccountService implements IUserAccountService {
   }
 
   private boolean isUserAlreadyRegistered(RegistrationRequest tempRequest) {
-    if (tempRequest.getEmail() != null && userService.existsByEmail(tempRequest.getEmail())) {
-      return true;
-    }
-    return tempRequest.getPhoneNumber() != null && userService.existsByPhoneNumber(tempRequest.getPhoneNumber());
+    return tempRequest.getEmail() != null && userService.existsByEmail(tempRequest.getEmail());
   }
 
   private User buildUserFromRequest(RegistrationRequest tempRequest) {
@@ -388,9 +347,6 @@ public class UserAccountService implements IUserAccountService {
     if (tempRequest.getEmail() != null) {
       newUser.setEmail(tempRequest.getEmail());
     }
-    if (tempRequest.getPhoneNumber() != null) {
-      newUser.setPhoneNumber(tempRequest.getPhoneNumber());
-    }
 
     return newUser;
   }
@@ -403,10 +359,8 @@ public class UserAccountService implements IUserAccountService {
     String normalizedIdentifier;
     if (emailValidator.isEmail(identifier)) {
       normalizedIdentifier = emailValidator.normalize(identifier);
-    } else if (phoneNumberValidator.isPhoneNumber(identifier)) {
-      normalizedIdentifier = phoneNumberValidator.normalize(identifier);
     } else {
-      return new ApiResponse<>(400, "Invalid identifier format.", null);
+      return new ApiResponse<>(400, "Invalid email format.", null);
     }
 
     String savedToken = redisService.getValue("REGISTRATION_SESSION_" + normalizedIdentifier);
@@ -436,10 +390,8 @@ public class UserAccountService implements IUserAccountService {
 
     if (emailValidator.isEmail(rawIdentifier)) {
       normalizedIdentifier = emailValidator.normalize(rawIdentifier);
-    } else if (phoneNumberValidator.isPhoneNumber(rawIdentifier)) {
-      normalizedIdentifier = phoneNumberValidator.normalize(rawIdentifier);
     } else {
-      return new ApiResponse<>(400, "Invalid identifier format.", null);
+      return new ApiResponse<>(400, "Invalid email format.", null);
     }
 
     String otp = request.getOtp();
@@ -468,11 +420,7 @@ public class UserAccountService implements IUserAccountService {
     otpService.markAsUsed(normalizedIdentifier, otp, OtpType.FORGOT_PASSWORD);
     User user;
     try {
-      if (emailValidator.isEmail(normalizedIdentifier)) {
-        user = userService.getUserByEmail(normalizedIdentifier);
-      } else {
-        user = userService.getUserByPhoneNumber(normalizedIdentifier);
-      }
+      user = userService.getUserByEmail(normalizedIdentifier);
     } catch (Exception e) {
       return new ApiResponse<>(400, "User not found", null);
     }
@@ -499,11 +447,7 @@ public class UserAccountService implements IUserAccountService {
 
     User user;
     try {
-      if (emailValidator.isEmail(identifier)) {
-        user = userService.getUserByEmail(identifier);
-      } else {
-        user = userService.getUserByPhoneNumber(identifier);
-      }
+      user = userService.getUserByEmail(identifier);
     } catch (Exception e) {
       return new ApiResponse<>(404, "User not found", null);
     }
@@ -518,12 +462,7 @@ public class UserAccountService implements IUserAccountService {
 
   private boolean isUserAlreadyVerified(String identifier) {
     try {
-      User existingUser;
-      if (emailValidator.isEmail(identifier)) {
-        existingUser = userService.getUserByEmail(identifier);
-      } else {
-        existingUser = userService.getUserByPhoneNumber(identifier);
-      }
+      User existingUser = userService.getUserByEmail(identifier);
       return existingUser != null && Boolean.TRUE.equals(existingUser.getEnabled());
     } catch (Exception ignored) {
       return false;
