@@ -22,6 +22,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.Map;
 
@@ -34,16 +35,12 @@ public class UserController {
   private final IUserService userService;
 
   @PostMapping("/login")
-  public ResponseEntity<ApiResponse<TokenResponse>> login(@RequestBody LoginRequest request) {
+  public ResponseEntity<ApiResponse<TokenResponse>> login(
+      HttpServletRequest httpRequest,
+      @RequestBody LoginRequest request) {
     ApiResponse<TokenResponse> resp = accountService.login(request);
     if (resp.getStatus() == 200 && resp.getData() != null) {
-      ResponseCookie cookie = ResponseCookie.from("accessToken", resp.getData().getAccessToken())
-          .httpOnly(true)
-          .secure(false)
-          .sameSite("Lax")
-          .path("/")
-          .maxAge(24 * 60 * 60)
-          .build();
+      ResponseCookie cookie = buildAccessTokenCookie(httpRequest, resp.getData().getAccessToken(), 24 * 60 * 60);
       return ResponseEntity.status(resp.getStatus())
           .header(HttpHeaders.SET_COOKIE, cookie.toString())
           .body(resp);
@@ -82,16 +79,12 @@ public class UserController {
   }
 
   @PostMapping("/logout")
-  public ResponseEntity<ApiResponse<String>> logout(@RequestBody(required = false) RefreshRequest request) {
+  public ResponseEntity<ApiResponse<String>> logout(
+      HttpServletRequest httpRequest,
+      @RequestBody(required = false) RefreshRequest request) {
     ApiResponse<String> resp = accountService.logout(request);
     if (resp.getStatus() == 200) {
-      ResponseCookie cookie = ResponseCookie.from("accessToken", "")
-          .httpOnly(true)
-          .secure(false)
-          .sameSite("Lax")
-          .path("/")
-          .maxAge(0)
-          .build();
+      ResponseCookie cookie = buildAccessTokenCookie(httpRequest, "", 0);
       return ResponseEntity.status(resp.getStatus())
           .header(HttpHeaders.SET_COOKIE, cookie.toString())
           .body(resp);
@@ -109,6 +102,35 @@ public class UserController {
   public ResponseEntity<ApiResponse<String>> resendForgotPasswordOtp(@RequestBody ResendForgotOtpRequest request) {
     ApiResponse<String> resp = accountService.resendForgotPasswordOtp(request.getTempToken());
     return ResponseEntity.status(resp.getStatus()).body(resp);
+  }
+
+  private ResponseCookie buildAccessTokenCookie(HttpServletRequest request, String value, long maxAgeSeconds) {
+    ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from("accessToken", value)
+        .httpOnly(true)
+        .path("/")
+        .maxAge(maxAgeSeconds);
+
+    if (isLocalDevelopment(request)) {
+      return builder.secure(false)
+          .sameSite("Lax")
+          .build();
+    }
+
+    return builder.secure(true)
+        .sameSite("None")
+        .build();
+  }
+
+  private boolean isLocalDevelopment(HttpServletRequest request) {
+    String origin = request.getHeader("Origin");
+    if (origin != null) {
+      return origin.contains("localhost") || origin.contains("127.0.0.1") || origin.contains("::1");
+    }
+
+    String host = request.getServerName();
+    return "localhost".equalsIgnoreCase(host)
+        || "127.0.0.1".equals(host)
+        || "::1".equals(host);
   }
 
   @PostMapping("/signal")
