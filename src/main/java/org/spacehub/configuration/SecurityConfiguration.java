@@ -9,6 +9,7 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -22,10 +23,14 @@ public class SecurityConfiguration {
 
   private final Filters filter;
   private final AuthenticationProvider authenticationProvider;
+  private final AuthenticationEntryPoint authenticationEntryPoint;
 
-  public SecurityConfiguration(Filters filter, AuthenticationProvider authenticationProvider) {
+  public SecurityConfiguration(Filters filter,
+                               AuthenticationProvider authenticationProvider,
+                               AuthenticationEntryPoint authenticationEntryPoint) {
     this.filter = filter;
     this.authenticationProvider = authenticationProvider;
+    this.authenticationEntryPoint = authenticationEntryPoint;
   }
 
   @Bean
@@ -68,8 +73,6 @@ public class SecurityConfiguration {
             .requestMatchers(
                 "/ws-messages/**",
                 "/api/v1/voice-room/**",
-                "/api/v1/**",
-                "/api/**",
                 "/ws/**",
                 "/swagger-ui.html",
                 "/swagger-ui/**",
@@ -81,19 +84,27 @@ public class SecurityConfiguration {
                 "/files/**",
                 "/notification/**",
                 "/wss/**"
-            // "/api/v1/login",
-            // "/api/v1/registration",
-            // "/api/v1/validateregisterotp",
-            // "/api/v1/forgotpassword",
-            // "/api/v1/validateforgototp",
-            // "/api/v1/resetpassword",
-            // "/api/v1/resendotp",
-            // "/api/v1/resendforgototp",
-            // "/swagger-ui/**",
-            // "/v3/api-docs/**"
-
+            ).permitAll()
+            .requestMatchers(
+                "/api/v1/login",
+                "/api/v1/registration",
+                "/api/v1/validateregisterotp",
+                "/api/v1/forgotpassword",
+                "/api/v1/validateforgototp",
+                "/api/v1/resetpassword",
+                "/api/v1/resendotp",
+                "/api/v1/resendforgototp",
+                "/api/v1/logout",
+                "/api/v1/signal",
+                "/api/v1/community/all",
+                "/api/v1/community/search",
+                "/api/v1/community/discover",
+                "/api/v1/community/exists",
+                "/api/v1/community/{id}",
+                "/api/v1/community/{id}/rooms/all"
             ).permitAll()
             .anyRequest().authenticated())
+        .exceptionHandling(exception -> exception.authenticationEntryPoint(authenticationEntryPoint))
         .httpBasic(AbstractHttpConfigurer::disable)
         .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         // .sessionManagement(session ->

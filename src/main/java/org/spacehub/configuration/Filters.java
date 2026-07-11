@@ -13,6 +13,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -62,22 +63,32 @@ public class Filters extends OncePerRequestFilter {
       }
     }
 
-    if (token != null) {
-      userEmail = usernameService.extractUsername(token);
+    try {
+      if (token != null) {
+        userEmail = usernameService.extractUsername(token);
+      }
+    } catch (Exception ignored) {
+      SecurityContextHolder.clearContext();
     }
 
     if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-      UserDetails userDetails = userService.loadUserByUsername(userEmail);
-      User user = (User) userDetails;
+      try {
+        UserDetails userDetails = userService.loadUserByUsername(userEmail);
+        User user = (User) userDetails;
 
-      Claims claims = usernameService.extractClaim(token, Function.identity());
-      int tokenVersion = (Integer) claims.get("passwordVersion");
+        Claims claims = usernameService.extractClaim(token, Function.identity());
+        int tokenVersion = (Integer) claims.get("passwordVersion");
 
-      if (usernameService.validToken(token, user) && tokenVersion == user.getPasswordVersion()) {
-        UsernamePasswordAuthenticationToken authToken =
-          new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
-        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-        SecurityContextHolder.getContext().setAuthentication(authToken);
+        if (usernameService.validToken(token, user) && tokenVersion == user.getPasswordVersion()) {
+          UsernamePasswordAuthenticationToken authToken =
+            new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+          authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+          SecurityContextHolder.getContext().setAuthentication(authToken);
+        }
+      } catch (UsernameNotFoundException ignored) {
+        SecurityContextHolder.clearContext();
+      } catch (Exception ignored) {
+        SecurityContextHolder.clearContext();
       }
     }
 

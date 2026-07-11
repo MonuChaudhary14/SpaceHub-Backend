@@ -1128,6 +1128,11 @@ public class CommunityService implements ICommunityService {
     listMyCommunities() {
     try {
       String requesterEmail = SecurityUtils.getCurrentUserEmail();
+      if (requesterEmail == null || requesterEmail.isBlank()) {
+        return ResponseEntity.status(401).body(
+          new ApiResponse<>(401, "Unauthorized: valid access token required", null)
+        );
+      }
 
       String normalizedEmail = requesterEmail.trim().toLowerCase();
       Optional<User> userOpt = userRepository.findByEmail(normalizedEmail);
