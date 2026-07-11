@@ -76,9 +76,11 @@ public class Filters extends OncePerRequestFilter {
         User user = (User) userDetails;
 
         Claims claims = usernameService.extractClaim(token, Function.identity());
-        int tokenVersion = (Integer) claims.get("passwordVersion");
+        Integer tokenVersionObj = (Integer) claims.get("passwordVersion");
+        int tokenVersion = tokenVersionObj != null ? tokenVersionObj : 0;
+        int userVersion = user.getPasswordVersion() != null ? user.getPasswordVersion() : 0;
 
-        if (usernameService.validToken(token, user) && tokenVersion == user.getPasswordVersion()) {
+        if (usernameService.validToken(token, user) && tokenVersion == userVersion) {
           UsernamePasswordAuthenticationToken authToken =
             new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
           authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
