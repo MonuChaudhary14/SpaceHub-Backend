@@ -11,5 +11,4 @@ public class InviteAcceptDTO {
   private String type;
   private UUID id;
   private String inviteCode;
-  private String acceptorEmail;
 }

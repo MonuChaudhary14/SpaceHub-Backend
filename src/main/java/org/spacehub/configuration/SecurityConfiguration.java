@@ -45,7 +45,7 @@ public class SecurityConfiguration {
         "http://localhost:5500",
         "http://localhost:5173",
         "http://localhost:8080",
-        "https://codewithketan.me",
+        "https://spacehub.monu14.me",
         "https://space-hub-frontend.vercel.app",
         "https://www.spacehubx.me",
         "https://audio-room-tawny.vercel.app",

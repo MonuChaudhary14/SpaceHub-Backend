@@ -19,9 +19,6 @@ public class RoleChangeAction {
   private UUID roomCode;
 
   @NotNull
-  private String requesterEmail;
-
-  @NotNull
   private String targetEmail;
 
   @NotNull

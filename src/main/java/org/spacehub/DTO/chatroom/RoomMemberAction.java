@@ -16,9 +16,6 @@ public class RoomMemberAction {
   private UUID roomCode;
 
   @NotNull
-  private String Email;
-
-  @NotNull
   private String targetEmail;
 
 }

@@ -20,6 +20,7 @@ import org.spacehub.repository.community.CommunityRepository;
 import org.spacehub.repository.community.CommunityUserRepository;
 import org.spacehub.service.Notification.NotificationService;
 import org.spacehub.service.community.CommunityInterfaces.ICommunityInviteService;
+import org.spacehub.utils.SecurityUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,16 +46,14 @@ public class CommunityInviteService implements ICommunityInviteService {
   }
 
   public ApiResponse<CommunityInviteResponseDTO> createInvite(UUID communityId, CommunityInviteRequestDTO request) {
-    if (request == null || request.getInviterEmail() == null || request.getInviterEmail().isBlank()) {
-      return new ApiResponse<>(400, "inviterEmail is required", null);
-    }
+    String currentUserEmail = SecurityUtils.getCurrentUserEmail();
 
     Community community = communityRepository.findById(communityId).orElse(null);
     if (community == null) {
       return new ApiResponse<>(404, "Community not found", null);
     }
 
-    User inviter = userRepository.findByEmail(request.getInviterEmail()).orElse(null);
+    User inviter = userRepository.findByEmail(currentUserEmail).orElse(null);
     if (inviter == null) {
       return new ApiResponse<>(404, "Inviter not found", null);
     }
@@ -84,7 +83,7 @@ public class CommunityInviteService implements ICommunityInviteService {
 
     CommunityInvite invite = CommunityInvite.builder()
             .communityId(communityId)
-            .inviterEmail(request.getInviterEmail())
+            .inviterEmail(currentUserEmail)
             .maxUses(request.getMaxUses())
             .inviteCode(generateInviteCode())
             .expiresAt(LocalDateTime.now().plusHours(request.getExpiresInHours()))
@@ -93,7 +92,7 @@ public class CommunityInviteService implements ICommunityInviteService {
 
     inviteRepository.save(invite);
 
-    String inviteLink = "https://codewithketan.me/invite/"
+    String inviteLink = "https://spacehub.monu14.me/invite/"
             + communityId + "/" + invite.getInviteCode();
 
     CommunityInviteResponseDTO response = CommunityInviteResponseDTO.builder()
@@ -115,8 +114,9 @@ public class CommunityInviteService implements ICommunityInviteService {
 
     String inviteCode = extractInviteCode(request.getInviteCode());
     UUID communityId = request.getCommunityId();
+    String currentUserEmail = SecurityUtils.getCurrentUserEmail();
 
-    User user = userRepository.findByEmail(request.getAcceptorEmail()).orElse(null);
+    User user = userRepository.findByEmail(currentUserEmail).orElse(null);
     if (user == null) {
       return new ApiResponse<>(404, "User not found", null);
     }
@@ -212,7 +212,7 @@ public class CommunityInviteService implements ICommunityInviteService {
     List<CommunityInviteResponseDTO> invites = inviteRepository.findByCommunityId(communityId).stream()
       .map(invite -> CommunityInviteResponseDTO.builder()
                     .inviteCode(invite.getInviteCode())
-                    .inviteLink("https://codewithketan.me/invite/" + communityId + "/" + invite.getInviteCode())
+                    .inviteLink("https://spacehub.monu14.me/invite/" + communityId + "/" + invite.getInviteCode())
                     .communityId(invite.getCommunityId())
                     .inviterEmail(invite.getInviterEmail())
                     .maxUses(invite.getMaxUses())

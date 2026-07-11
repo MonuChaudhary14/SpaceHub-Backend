@@ -11,6 +11,5 @@ public class CommunityInviteAcceptDTO {
 
   private UUID communityId;
   private String inviteCode;
-  private String acceptorEmail;
 
 }

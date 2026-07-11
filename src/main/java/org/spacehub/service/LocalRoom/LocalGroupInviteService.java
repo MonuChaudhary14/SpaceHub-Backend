@@ -14,6 +14,7 @@ import org.spacehub.repository.localgroup.LocalGroupInviteRepository;
 import org.spacehub.repository.localgroup.LocalGroupRepository;
 import org.spacehub.service.Interface.ILocalGroupInviteService;
 import org.spacehub.service.Notification.NotificationService;
+import org.spacehub.utils.SecurityUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,14 +44,15 @@ public class LocalGroupInviteService implements ILocalGroupInviteService {
       return new ApiResponse<>(404, "Local group not found", null);
     }
 
-    User inviter = userRepository.findByEmail(request.getInviterEmail()).orElse(null);
+    String currentUserEmail = SecurityUtils.getCurrentUserEmail();
+    User inviter = userRepository.findByEmail(currentUserEmail).orElse(null);
     if (inviter == null) {
       return new ApiResponse<>(404, "Inviter user not found", null);
     }
 
     LocalGroupInvite invite = LocalGroupInvite.builder()
             .localGroup(optionalGroup.get())
-            .inviterEmail(request.getInviterEmail())
+            .inviterEmail(currentUserEmail)
             .maxUses(request.getMaxUses())
             .inviteCode(generateInviteCode())
             .expiresAt(LocalDateTime.now().plusHours(request.getExpiresInHours()))
@@ -59,7 +61,7 @@ public class LocalGroupInviteService implements ILocalGroupInviteService {
 
     inviteRepository.save(invite);
 
-    String inviteLink = String.format("https://codewithketan.me.localgroup/invite/%s/%s", groupId, invite.getInviteCode());
+    String inviteLink = String.format("https://spacehub.monu14.me.localgroup/invite/%s/%s", groupId, invite.getInviteCode());
 
     LocalGroupInviteResponseDTO response = LocalGroupInviteResponseDTO.builder()
             .inviteCode(invite.getInviteCode())
@@ -78,10 +80,7 @@ public class LocalGroupInviteService implements ILocalGroupInviteService {
   @Override
   public ApiResponse<?> acceptInvite(LocalGroupInviteAcceptDTO request) {
 
-    String acceptorEmail = request.getAcceptorEmail();
-    if (acceptorEmail == null || acceptorEmail.isBlank()) {
-      return badRequest("Acceptor email is required");
-    }
+    String acceptorEmail = SecurityUtils.getCurrentUserEmail();
 
     String inviteCode = extractInviteCode(request.getInviteCode());
     Optional<LocalGroupInvite> inviteOpt = inviteRepository.findByInviteCode(inviteCode);
@@ -190,7 +189,7 @@ public class LocalGroupInviteService implements ILocalGroupInviteService {
     List<LocalGroupInviteResponseDTO> invites = inviteRepository.findByLocalGroupId(groupId).stream()
       .map(invite -> LocalGroupInviteResponseDTO.builder()
                     .inviteCode(invite.getInviteCode())
-                    .inviteLink("https://codewithketan.me.localgroup/invite/" + groupId + "/" + invite.getInviteCode())
+                    .inviteLink("https://spacehub.monu14.me.localgroup/invite/" + groupId + "/" + invite.getInviteCode())
                     .groupId(groupId)
                     .inviterEmail(invite.getInviterEmail())
                     .maxUses(invite.getMaxUses())

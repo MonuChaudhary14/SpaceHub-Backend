@@ -6,7 +6,6 @@ import lombok.Data;
 public class ChatRoomReportRequest {
 
   private Long messageId;
-  private String reporterEmail;
   private String senderEmail;
   private String chatRoomCode;
   private String communityCode;

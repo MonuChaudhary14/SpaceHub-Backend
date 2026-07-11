@@ -41,9 +41,6 @@ public class AllInviteService {
     if (!StringUtils.hasText(req.getInviteCode())) {
       return new ApiResponse<>(400, "inviteCode is required", null);
     }
-    if (!StringUtils.hasText(req.getAcceptorEmail())) {
-      return new ApiResponse<>(400, "acceptorEmail is required", null);
-    }
 
     return null;
   }
@@ -69,7 +66,6 @@ public class AllInviteService {
     CommunityInviteAcceptDTO dto = CommunityInviteAcceptDTO.builder()
       .communityId(req.getId())
       .inviteCode(req.getInviteCode())
-      .acceptorEmail(req.getAcceptorEmail())
       .build();
     return communityInviteService.acceptInvite(dto);
   }
@@ -78,7 +74,6 @@ public class AllInviteService {
     LocalGroupInviteAcceptDTO dto = LocalGroupInviteAcceptDTO.builder()
       .groupId(req.getId())
       .inviteCode(req.getInviteCode())
-      .acceptorEmail(req.getAcceptorEmail())
       .build();
     return localGroupInviteService.acceptInvite(dto);
   }

@@ -18,6 +18,7 @@ import org.spacehub.repository.Reports.DirectMessageReportRepository;
 import org.spacehub.repository.community.CommunityRepository;
 import org.spacehub.service.Interface.IReportService;
 import org.spacehub.service.Notification.NotificationService;
+import org.spacehub.utils.SecurityUtils;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -38,7 +39,7 @@ public class ReportService implements IReportService {
 
     DirectMessageReport report = DirectMessageReport.builder()
             .messageId(req.getMessageId())
-            .reporterEmail(req.getReporterEmail())
+            .reporterEmail(SecurityUtils.getCurrentUserEmail())
             .senderEmail(req.getSenderEmail())
             .receiverEmail(req.getReceiverEmail())
             .reason(Optional.ofNullable(req.getReason()).orElse("No reason provided"))
@@ -61,7 +62,7 @@ public class ReportService implements IReportService {
 
     ChatRoomMessageReport report = ChatRoomMessageReport.builder()
             .messageId(req.getMessageId())
-            .reporterEmail(req.getReporterEmail())
+            .reporterEmail(SecurityUtils.getCurrentUserEmail())
             .senderEmail(req.getSenderEmail())
             .chatRoomCode(req.getChatRoomCode())
             .communityCode(req.getCommunityCode())

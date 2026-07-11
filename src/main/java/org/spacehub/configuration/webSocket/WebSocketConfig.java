@@ -20,7 +20,7 @@ public class WebSocketConfig implements WebSocketConfigurer{
 
             .setAllowedOrigins("*");
 //            .setAllowedOrigins(
-//                    "https://codewithketan.me",
+//                    "https://spacehub.monu14.me",
 //                    "https://space-hub-frontend.vercel.app",
 //                    "https://www.spacehubx.me",
 //                    "https://audio-room-tawny.vercel.app"

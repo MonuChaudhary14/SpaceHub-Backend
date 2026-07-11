@@ -13,6 +13,5 @@ public class LocalGroupInviteAcceptDTO {
 
   private UUID groupId;
   private String inviteCode;
-  private String acceptorEmail;
 
 }

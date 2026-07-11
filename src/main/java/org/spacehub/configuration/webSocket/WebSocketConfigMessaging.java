@@ -21,7 +21,7 @@ public class WebSocketConfigMessaging implements WebSocketConfigurer {
     registry.addHandler(chatWebSocketHandler, "/ws/direct-chat")
             .setAllowedOriginPatterns(
                     "*",
-                    "https://codewithketan.me",
+                    "https://spacehub.monu14.me",
                     "https://www.spacehubx.me",
                     "https://space-hub-frontend.vercel.app",
                     "http://localhost:5500",
