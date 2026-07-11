@@ -95,6 +95,7 @@ public class SecurityConfiguration {
                 "/api/v1/resendotp",
                 "/api/v1/resendforgototp",
                 "/api/v1/logout",
+                "/api/v1/auth/refresh",
                 "/api/v1/signal",
                 "/api/v1/community/all",
                 "/api/v1/community/search",

@@ -49,6 +49,7 @@ public class TokenController {
     User user = refreshToken.getUser();
     String accessToken = userNameService.generateToken(user);
     TokenResponse tokens = new TokenResponse(accessToken, refreshToken.getToken());
+    tokens.setEmail(user.getEmail());
 
     ResponseCookie cookie = buildAccessTokenCookie(httpRequest, accessToken, 24 * 60 * 60);
 
