@@ -93,7 +93,10 @@ public class User implements UserDetails {
     if (this.username != null && !this.username.isBlank()) {
       return this.username;
     }
-    return "Enter your username";
+    if (this.email != null && !this.email.isBlank()) {
+      return this.email;
+    }
+    return "";
   }
 
 
@@ -120,4 +123,3 @@ public class User implements UserDetails {
 
 
 }
-
