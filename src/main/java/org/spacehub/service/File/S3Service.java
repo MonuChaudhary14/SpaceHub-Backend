@@ -56,6 +56,12 @@ public class S3Service implements IS3Service {
   }
 
   public String generatePresignedDownloadUrl(String key, Duration duration) {
+    if (key == null || key.isBlank()) {
+      return null;
+    }
+    if (key.startsWith("http://") || key.startsWith("https://") || key.startsWith("data:")) {
+      return key;
+    }
     GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
       .getObjectRequest(b -> b.bucket(bucketName).key(key))
       .signatureDuration(duration)
