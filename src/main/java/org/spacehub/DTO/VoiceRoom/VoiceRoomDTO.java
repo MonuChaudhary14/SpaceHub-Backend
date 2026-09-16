@@ -6,12 +6,14 @@ import org.spacehub.entities.VoiceRoom.VoiceRoom;
 @Data
 public class VoiceRoomDTO {
 
-  private int janusRoomId;
+  private Long id;
+  private String roomCode;
   private String name;
   private String createdBy;
 
   public VoiceRoomDTO(VoiceRoom entity) {
-    this.janusRoomId = entity.getJanusRoomId();
+    this.id = entity.getId();
+    this.roomCode = entity.getRoomCode();
     this.name = entity.getName();
     this.createdBy = entity.getCreatedBy();
   }

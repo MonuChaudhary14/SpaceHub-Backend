@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.spacehub.utils.SecurityUtils;
 import java.util.List;
-import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
@@ -28,11 +27,9 @@ public class VoiceRoomService implements IVoiceRoomService {
       throw new IllegalStateException("Voice room '" + name + "' already exists in this group");
     });
 
-    int roomIdNumeric = 1000 + new Random().nextInt(900000);
     String roomCode = "vr_" + (chatRoom != null ? chatRoom.getId() : "global") + "_" + System.currentTimeMillis();
 
     VoiceRoom voiceRoom = VoiceRoom.builder()
-      .janusRoomId(roomIdNumeric)
       .name(name)
       .createdBy(createdBy)
       .chatRoom(chatRoom)

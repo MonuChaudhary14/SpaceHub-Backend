@@ -115,7 +115,7 @@ public class DataInitializer implements CommandLineRunner {
       "Vance",
       "Password@123",
       UserRole.USER,
-      "AI & Real-Time Media Researcher | WebRTC/Janus Hacker",
+      "AI & Real-Time Media Researcher | WebRTC/LiveKit Hacker",
       "Berlin, Germany",
       "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80",
       "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1200&q=80"
@@ -291,7 +291,7 @@ public class DataInitializer implements CommandLineRunner {
         new MemberRole(monu, Role.ADMIN),
         new MemberRole(marcus, Role.MODERATOR)
       ),
-      List.of("kafka-streams", "webrtc-janus", "system-design", "whitepapers")
+      List.of("kafka-streams", "webrtc-livekit", "system-design", "whitepapers")
     );
 
     createOrGetCommunity(
@@ -471,7 +471,7 @@ public class DataInitializer implements CommandLineRunner {
     createDirectMessage(
       marcus.getEmail(),
       monu.getEmail(),
-      "Hey! I'm testing the Janus WebRTC SFU audio/video room integration.",
+      "Hey! I'm testing the LiveKit WebRTC SFU audio/video room integration.",
       now - 10 * minute
     );
   }

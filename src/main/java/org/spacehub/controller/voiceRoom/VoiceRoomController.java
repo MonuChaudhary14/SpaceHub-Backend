@@ -64,25 +64,22 @@ public class VoiceRoomController {
 
   @PostMapping("/join")
   public ResponseEntity<?> joinVoiceRoom(
-    @RequestParam(required = false) String roomCode,
-    @RequestParam(required = false, defaultValue = "0") int janusRoomId,
+    @RequestParam String roomCode,
     @RequestParam(required = false) String displayName) {
 
     try {
-      String roomName = (roomCode != null && !roomCode.isBlank()) ? roomCode : "room_" + janusRoomId;
       String userEmail = org.spacehub.utils.SecurityUtils.getCurrentUserEmail();
       if (userEmail == null || userEmail.isBlank()) {
         userEmail = displayName != null ? displayName : "guest";
       }
 
-      String token = liveKitTokenService.createToken(roomName, userEmail, displayName != null ? displayName : userEmail);
+      String token = liveKitTokenService.createToken(roomCode, userEmail, displayName != null ? displayName : userEmail);
 
       return ResponseEntity.ok(Map.of(
         "message", "Joined voice room successfully",
         "token", token,
         "serverUrl", liveKitTokenService.getLivekitUrl(),
-        "roomCode", roomName,
-        "janusRoomId", janusRoomId,
+        "roomCode", roomCode,
         "identity", userEmail
       ));
     } catch (Exception e) {
