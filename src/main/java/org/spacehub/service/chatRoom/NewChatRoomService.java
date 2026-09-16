@@ -72,7 +72,7 @@ public class NewChatRoomService implements INewChatRoomService {
       Optional<NewChatRoom> newChatRoom = newChatRoomRepository.findByRoomCode(UUID.fromString(newChatRoomCode));
 
       return newChatRoom.map(room -> new ApiResponse<>(200, "Fetched new chat room",
-          room))
+        room))
         .orElseGet(() -> new ApiResponse<>(404, "NewChatRoom not found", null));
 
     } catch (IllegalArgumentException e) {

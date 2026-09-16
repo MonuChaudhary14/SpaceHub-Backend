@@ -10,12 +10,12 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @Table(
-        name = "direct_messages",
-        indexes = {
-                @Index(name = "idx_receiver_read_status", columnList = "receiverEmail, readStatus"),
-                @Index(name = "idx_sender_receiver_ts", columnList = "senderEmail, receiverEmail, timestamp"),
-                @Index(name = "idx_message_uuid", columnList = "messageUuid")
-        }
+  name = "direct_messages",
+  indexes = {
+    @Index(name = "idx_receiver_read_status", columnList = "receiverEmail, readStatus"),
+    @Index(name = "idx_sender_receiver_ts", columnList = "senderEmail, receiverEmail, timestamp"),
+    @Index(name = "idx_message_uuid", columnList = "messageUuid")
+  }
 )
 public class Message {
 
@@ -64,7 +64,11 @@ public class Message {
 
   @PrePersist
   public void prePersist() {
-    if (this.messageUuid == null) this.messageUuid = UUID.randomUUID().toString();
-    if (this.timestamp == null) this.timestamp = java.time.Instant.now().toEpochMilli();
+    if (this.messageUuid == null) {
+      this.messageUuid = UUID.randomUUID().toString();
+    }
+    if (this.timestamp == null) {
+      this.timestamp = java.time.Instant.now().toEpochMilli();
+    }
   }
 }

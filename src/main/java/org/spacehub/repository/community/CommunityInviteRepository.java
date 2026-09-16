@@ -10,6 +10,7 @@ import java.util.UUID;
 public interface CommunityInviteRepository extends JpaRepository<CommunityInvite, UUID> {
 
   Optional<CommunityInvite> findByInviteCode(String inviteCode);
+
   List<CommunityInvite> findByCommunityId(UUID communityId);
 
 }

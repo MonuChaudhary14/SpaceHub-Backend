@@ -10,12 +10,12 @@ import java.util.UUID;
 
 public interface ILocalGroupInviteService {
 
-    ApiResponse<LocalGroupInviteResponseDTO> createInvite(UUID groupId, LocalGroupInviteRequestDTO request);
+  ApiResponse<LocalGroupInviteResponseDTO> createInvite(UUID groupId, LocalGroupInviteRequestDTO request);
 
-    ApiResponse<?> acceptInvite(LocalGroupInviteAcceptDTO request);
+  ApiResponse<?> acceptInvite(LocalGroupInviteAcceptDTO request);
 
-    ApiResponse<List<LocalGroupInviteResponseDTO>> getGroupInvites(UUID groupId);
+  ApiResponse<List<LocalGroupInviteResponseDTO>> getGroupInvites(UUID groupId);
 
-    ApiResponse<String> revokeInvite(String inviteCode);
+  ApiResponse<String> revokeInvite(String inviteCode);
 
 }

@@ -42,8 +42,8 @@ public class UserController {
     if (resp.getStatus() == 200 && resp.getData() != null) {
       ResponseCookie cookie = buildAccessTokenCookie(httpRequest, resp.getData().getAccessToken(), 24 * 60 * 60);
       return ResponseEntity.status(resp.getStatus())
-          .header(HttpHeaders.SET_COOKIE, cookie.toString())
-          .body(resp);
+        .header(HttpHeaders.SET_COOKIE, cookie.toString())
+        .body(resp);
     }
     return ResponseEntity.status(resp.getStatus()).body(resp);
   }
@@ -86,8 +86,8 @@ public class UserController {
     if (resp.getStatus() == 200) {
       ResponseCookie cookie = buildAccessTokenCookie(httpRequest, "", 0);
       return ResponseEntity.status(resp.getStatus())
-          .header(HttpHeaders.SET_COOKIE, cookie.toString())
-          .body(resp);
+        .header(HttpHeaders.SET_COOKIE, cookie.toString())
+        .body(resp);
     }
     return ResponseEntity.status(resp.getStatus()).body(resp);
   }
@@ -106,19 +106,19 @@ public class UserController {
 
   private ResponseCookie buildAccessTokenCookie(HttpServletRequest request, String value, long maxAgeSeconds) {
     ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from("accessToken", value)
-        .httpOnly(true)
-        .path("/")
-        .maxAge(maxAgeSeconds);
+      .httpOnly(true)
+      .path("/")
+      .maxAge(maxAgeSeconds);
 
     if (isLocalDevelopment(request)) {
       return builder.secure(false)
-          .sameSite("Lax")
-          .build();
+        .sameSite("Lax")
+        .build();
     }
 
     return builder.secure(true)
-        .sameSite("None")
-        .build();
+      .sameSite("None")
+      .build();
   }
 
   private boolean isLocalDevelopment(HttpServletRequest request) {
@@ -129,8 +129,8 @@ public class UserController {
 
     String host = request.getServerName();
     return "localhost".equalsIgnoreCase(host)
-        || "127.0.0.1".equals(host)
-        || "::1".equals(host);
+      || "127.0.0.1".equals(host)
+      || "::1".equals(host);
   }
 
   @PostMapping("/signal")

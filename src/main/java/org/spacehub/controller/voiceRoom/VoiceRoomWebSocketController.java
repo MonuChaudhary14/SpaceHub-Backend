@@ -137,7 +137,7 @@ public class VoiceRoomWebSocketController {
       return;
     }
 
-    boolean mute = action.equalsIgnoreCase("mute");
+    boolean mute = "mute".equalsIgnoreCase(action);
     janusService.setMute(sessionId, handleId, mute);
 
     Map<String, Object> event = new HashMap<>();

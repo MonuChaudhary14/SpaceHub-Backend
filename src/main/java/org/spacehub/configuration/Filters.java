@@ -50,8 +50,7 @@ public class Filters extends OncePerRequestFilter {
 
     if (header != null && header.startsWith("Bearer ")) {
       token = header.substring(7);
-    } 
-    else if (request.getCookies() != null) {
+    } else if (request.getCookies() != null) {
       for (Cookie cookie : request.getCookies()) {
         if ("accessToken".equals(cookie.getName())) {
           token = cookie.getValue();

@@ -5,6 +5,7 @@ import org.spacehub.entities.User.User;
 
 public interface IVerificationService {
   boolean checkCredentials(User user, String rawPassword);
+
   TokenResponse generateTokens(User user);
 }
 

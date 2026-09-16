@@ -36,18 +36,18 @@ public class VoiceRoomService implements IVoiceRoomService {
     janusService.createAudioRoom(sessionId, handleId, janusRoomId);
 
     VoiceRoom voiceRoom = VoiceRoom.builder()
-            .janusRoomId(janusRoomId)
-            .name(name)
-            .createdBy(createdBy)
-            .chatRoom(chatRoom)
-            .active(true)
-            .roomCode(String.valueOf(janusRoomId))
-            .build();
+      .janusRoomId(janusRoomId)
+      .name(name)
+      .createdBy(createdBy)
+      .chatRoom(chatRoom)
+      .active(true)
+      .roomCode(String.valueOf(janusRoomId))
+      .build();
 
     voiceRoomRepository.save(voiceRoom);
 
     logger.info("Created voice room '{}' (janusId={}) for chatRoom '{}'",
-            name, janusRoomId, chatRoom.getName());
+      name, janusRoomId, chatRoom.getName());
 
     return voiceRoom;
   }
@@ -61,7 +61,7 @@ public class VoiceRoomService implements IVoiceRoomService {
   public void deleteVoiceRoom(ChatRoom chatRoom, String roomName) {
     String requester = SecurityUtils.getCurrentUserEmail();
     VoiceRoom room = voiceRoomRepository.findByNameAndChatRoom(roomName, chatRoom)
-            .orElseThrow(() -> new RuntimeException("Voice room not found: " + roomName));
+      .orElseThrow(() -> new RuntimeException("Voice room not found: " + roomName));
 
     if (!room.getCreatedBy().equals(requester)) {
       throw new RuntimeException("Only the creator can delete this voice room");

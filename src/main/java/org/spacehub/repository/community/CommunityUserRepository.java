@@ -15,10 +15,15 @@ import java.util.UUID;
 public interface CommunityUserRepository extends JpaRepository<CommunityUser, UUID> {
 
   List<CommunityUser> findByCommunityId(UUID communityId);
+
   List<CommunityUser> findByUserAndRole(User user, Role role);
+
   void deleteByUserId(UUID userId);
+
   Optional<CommunityUser> findByCommunityIdAndUserId(UUID communityId, UUID userId);
+
   void deleteByCommunityId(UUID communityId);
+
   long countByCommunityIdAndRoleInAndIsBannedFalseAndIsBlockedFalse(UUID communityId, List<Role> roles);
 
   Optional<CommunityUser> findByCommunityAndUser(Community community, User user);

@@ -24,3 +24,6 @@
 //  @Query("DELETE FROM UserLocationEntity u WHERE u.lastActive < :threshold")
 //  void deleteInactiveUsers(@Param("threshold") long threshold);
 //}
+
+
+

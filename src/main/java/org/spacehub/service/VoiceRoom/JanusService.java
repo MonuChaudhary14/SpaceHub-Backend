@@ -68,7 +68,11 @@ public class JanusService {
             break;
           }
           logger.error("Error polling Janus for session {}: {}", sessionId, e.getMessage());
-          try { Thread.sleep(1000); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+          try {
+            Thread.sleep(1000);
+          } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+          }
         }
       }
       keepaliveFuture.cancel(true);

@@ -66,10 +66,10 @@ public class User implements UserDetails {
   private LocalDateTime updatedAt;
 
   public User(String firstName,
-                 String lastName,
-                 String email,
-                 String password,
-                 UserRole userRole) {
+              String lastName,
+              String email,
+              String password,
+              UserRole userRole) {
     this.firstName = firstName;
     this.lastName = lastName;
     this.email = email;

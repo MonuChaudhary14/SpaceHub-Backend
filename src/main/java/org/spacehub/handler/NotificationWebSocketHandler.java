@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 @RequiredArgsConstructor
-public class NotificationWebSocketHandler extends TextWebSocketHandler{
+public class NotificationWebSocketHandler extends TextWebSocketHandler {
 
   private final NotificationRepository notificationRepository;
   private final NotificationMapper notificationMapper;
@@ -30,8 +30,8 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler{
   private final Map<String, WebSocketSession> userSessions = new ConcurrentHashMap<>();
 
   private final ObjectMapper objectMapper = new ObjectMapper()
-          .registerModule(new JavaTimeModule())
-          .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    .registerModule(new JavaTimeModule())
+    .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
   @Override
   public void afterConnectionEstablished(@NonNull WebSocketSession session) throws Exception {
@@ -45,8 +45,7 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler{
       sendPreviousNotifications(email);
 
       System.out.println("Active sessions: " + userSessions.keySet());
-    }
-    else {
+    } else {
       System.out.println("WebSocket rejected: email missing");
       session.close(CloseStatus.BAD_DATA);
     }
@@ -71,7 +70,8 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler{
       System.out.println("Sent previous notifications to " + email);
 
     }
-    catch (Exception ignored) {}
+    catch (Exception ignored) {
+    }
   }
 
 //  @Override
@@ -91,14 +91,17 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler{
 
   private String getEmailFromSession(WebSocketSession session) {
     String query = session.getUri() != null ? session.getUri().getQuery() : null;
-    if (query == null) return null;
+    if (query == null) {
+      return null;
+    }
 
     for (String param : query.split("&")) {
       if (param.startsWith("email=")) {
         try {
           return URLDecoder.decode(param.split("=", 2)[1], StandardCharsets.UTF_8);
         }
-        catch (Exception ignored) {}
+        catch (Exception ignored) {
+        }
       }
     }
     return null;

@@ -120,7 +120,9 @@ public class MessageService implements IMessageService {
   @Transactional
   public Message markAsRead(Long messageId) {
     Optional<Message> optionalMessage = repo.findById(messageId);
-    if (optionalMessage.isEmpty()) return null;
+    if (optionalMessage.isEmpty()) {
+      return null;
+    }
     Message mess = optionalMessage.get();
     if (!Boolean.TRUE.equals(mess.getReadStatus())) {
       mess.setReadStatus(true);
@@ -132,7 +134,9 @@ public class MessageService implements IMessageService {
   @Transactional
   public void markAsReadByUuid(String messageUuid) {
     Optional<Message> optionalMessage = repo.findByMessageUuid(messageUuid);
-    if (optionalMessage.isEmpty()) return;
+    if (optionalMessage.isEmpty()) {
+      return;
+    }
     Message mess = optionalMessage.get();
     if (!Boolean.TRUE.equals(mess.getReadStatus())) {
       mess.setReadStatus(true);
@@ -177,7 +181,9 @@ public class MessageService implements IMessageService {
       String requesterEmail = SecurityUtils.getCurrentUserEmail();
       if (forEveryone) {
         Message mess = getMessageById(id);
-        if (mess == null) return ResponseEntity.notFound().build();
+        if (mess == null) {
+          return ResponseEntity.notFound().build();
+        }
         if (!requesterEmail.equals(mess.getSenderEmail())) {
           return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Only sender can delete for everyone");
         }
@@ -187,7 +193,9 @@ public class MessageService implements IMessageService {
         return ResponseEntity.ok(mess);
       } else {
         Message updated = deleteMessageForUser(id, requesterEmail);
-        if (updated == null) return ResponseEntity.notFound().build();
+        if (updated == null) {
+          return ResponseEntity.notFound().build();
+        }
         return ResponseEntity.ok(updated);
       }
     } catch (SecurityException se) {

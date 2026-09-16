@@ -17,7 +17,8 @@ public class PresenceService implements IPresenceService {
   private final ConcurrentMap<Long, ConcurrentMap<String, Integer>> online = new ConcurrentHashMap<>();
   private final ConcurrentMap<String, PresenceSession> sessions = new ConcurrentHashMap<>();
 
-  public record PresenceSession(Long communityId, String email) {}
+  public record PresenceSession(Long communityId, String email) {
+  }
 
   public void userConnected(String sessionId, Long communityId, String email) {
     sessions.put(sessionId, new PresenceSession(communityId, email));
@@ -54,7 +55,9 @@ public class PresenceService implements IPresenceService {
       return v - 1;
     });
 
-    if (communityMap.isEmpty()) online.remove(communityId);
+    if (communityMap.isEmpty()) {
+      online.remove(communityId);
+    }
 
     broadcastOnlineUsers(communityId);
   }

@@ -6,7 +6,7 @@ import org.spacehub.handler.ChatWebSocketHandler;
 
 @Configuration
 @EnableWebSocket
-public class WebSocketConfig implements WebSocketConfigurer{
+public class WebSocketConfig implements WebSocketConfigurer {
 
   private final ChatWebSocketHandler chatWebSocketHandler;
 
@@ -18,7 +18,7 @@ public class WebSocketConfig implements WebSocketConfigurer{
   public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
     registry.addHandler(chatWebSocketHandler, "/chat")
 
-            .setAllowedOrigins("*");
+      .setAllowedOrigins("*");
 //            .setAllowedOrigins(
 //                    "https://spacehub.monu14.me",
 //                    "https://space-hub-frontend.vercel.app",

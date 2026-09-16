@@ -19,14 +19,14 @@ public class WebSocketConfigMessaging implements WebSocketConfigurer {
   @Override
   public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
     registry.addHandler(chatWebSocketHandler, "/ws/direct-chat")
-            .setAllowedOriginPatterns(
-                    "*",
-                    "https://spacehub.monu14.me",
-                    "https://www.spacehubx.me",
-                    "https://space-hub-frontend.vercel.app",
-                    "http://localhost:5500",
-                    "http://127.0.0.1:5500",
-                    "http://localhost:8080"
+      .setAllowedOriginPatterns(
+        "*",
+        "https://spacehub.monu14.me",
+        "https://www.spacehubx.me",
+        "https://space-hub-frontend.vercel.app",
+        "http://localhost:5500",
+        "http://127.0.0.1:5500",
+        "http://localhost:8080"
       );
   }
 }

@@ -99,7 +99,8 @@ public class ChatFileService implements IChatFileService {
     } catch (RuntimeException e) {
       try {
         s3Service.deleteFile(fileKey);
-      } catch (Exception ignore) {}
+      } catch (Exception ignore) {
+      }
       throw new StorageException("Failed to generate download URL", e);
     }
   }
@@ -110,7 +111,8 @@ public class ChatFileService implements IChatFileService {
     } catch (RuntimeException e) {
       try {
         s3Service.deleteFile(fileKey);
-      } catch (Exception ignore) {}
+      } catch (Exception ignore) {
+      }
       throw new RuntimeException("Failed to enqueue chat message", e);
     }
   }

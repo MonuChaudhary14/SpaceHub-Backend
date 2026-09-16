@@ -88,7 +88,8 @@ public class NotificationService implements INotificationService {
     NotificationResponseDTO dto = notificationMapper.mapToDTO(notification);
     try {
       notificationWebSocketHandler.sendNotification(request.getEmail(), dto);
-    } catch (Exception ignored) {}
+    } catch (Exception ignored) {
+    }
   }
 
   private User fetchRecipient(String email) {
@@ -131,8 +132,8 @@ public class NotificationService implements INotificationService {
 
     if (scope != null && !scope.isBlank()) {
       list = list.stream()
-              .filter(n -> scope.equalsIgnoreCase(n.getScope()))
-              .toList();
+        .filter(n -> scope.equalsIgnoreCase(n.getScope()))
+        .toList();
     }
 
     int start = page * size;
@@ -176,7 +177,7 @@ public class NotificationService implements INotificationService {
   @Override
   public void markAsRead(UUID id) {
     Notification notification = notificationRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Notification not found"));
+      .orElseThrow(() -> new RuntimeException("Notification not found"));
 
     if (!notification.isRead() && !notification.isActionable()) {
       notification.setRead(true);
@@ -204,7 +205,7 @@ public class NotificationService implements INotificationService {
   public void deleteByPublicId(UUID publicId) {
     String userEmail = SecurityUtils.getCurrentUserEmail();
     Notification notification = notificationRepository.findByPublicId(publicId)
-            .orElseThrow(() -> new RuntimeException("Notification not found"));
+      .orElseThrow(() -> new RuntimeException("Notification not found"));
 
     if (!notification.getRecipient().getEmail().equalsIgnoreCase(userEmail)) {
       throw new RuntimeException("You cannot delete another user's notification");
@@ -215,13 +216,13 @@ public class NotificationService implements INotificationService {
 
   public void sendLocalGroupJoinNotification(User newMember, User inviter, UUID groupId) {
     NotificationRequestDTO request = NotificationRequestDTO.builder()
-            .senderEmail(newMember.getEmail())
-            .email(inviter.getEmail())
-            .type(NotificationType.LOCAL_GROUP_JOIN)
-            .scope("local-group")
-            .actionable(false)
-            .referenceId(groupId)
-            .build();
+      .senderEmail(newMember.getEmail())
+      .email(inviter.getEmail())
+      .type(NotificationType.LOCAL_GROUP_JOIN)
+      .scope("local-group")
+      .actionable(false)
+      .referenceId(groupId)
+      .build();
 
     createNotification(request);
   }
@@ -252,7 +253,8 @@ public class NotificationService implements INotificationService {
     createNotification(request);
   }
 
-  private record Template(String titleTpl, String messageTpl, String scope, Boolean actionableDefault) {}
+  private record Template(String titleTpl, String messageTpl, String scope, Boolean actionableDefault) {
+  }
 
   private static final Template DEFAULT_TEMPLATE =
     new Template("Notification", "You have a new notification.", "general",

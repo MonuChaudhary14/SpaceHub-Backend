@@ -27,7 +27,9 @@ public class JanusVideoService {
   private final Map<String, Future<?>> pollingTasks = new ConcurrentHashMap<>();
 
   public void startEventPolling(String sessionId, java.util.function.Consumer<JsonNode> onEvent) {
-    if (pollingTasks.containsKey(sessionId)) return;
+    if (pollingTasks.containsKey(sessionId)) {
+      return;
+    }
 
     String sessionUrl = janusUrl + "/" + sessionId;
 
@@ -54,9 +56,15 @@ public class JanusVideoService {
             }
           }
         } catch (Exception e) {
-          if (Thread.currentThread().isInterrupted()) break;
+          if (Thread.currentThread().isInterrupted()) {
+            break;
+          }
           log.error("Error polling Janus Video for session {}: {}", sessionId, e.getMessage());
-          try { Thread.sleep(1000); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+          try {
+            Thread.sleep(1000);
+          } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+          }
         }
       }
       keepaliveFuture.cancel(true);
@@ -68,13 +76,15 @@ public class JanusVideoService {
 
   public void stopEventPolling(String sessionId) {
     Future<?> f = pollingTasks.remove(sessionId);
-    if (f != null) f.cancel(true);
+    if (f != null) {
+      f.cancel(true);
+    }
   }
 
   public String createSession() {
 // ... rest of file (already updated in previous steps, but I'll make sure it's consistent)
     Map<String, Object> request = Map.of(
-            "janus", "create", "transaction", UUID.randomUUID().toString()
+      "janus", "create", "transaction", UUID.randomUUID().toString()
     );
 
     ResponseEntity<JsonNode> response = restTemplate.postForEntity(janusUrl, request, JsonNode.class);
@@ -85,11 +95,11 @@ public class JanusVideoService {
     throw new RuntimeException("Failed to create Janus session");
   }
 
-  public String attachVideoRoomPlugin(String sessionId){
+  public String attachVideoRoomPlugin(String sessionId) {
 
     Map<String, Object> request = Map.of(
-            "janus", "attach", "plugin", "janus.plugin.videoroom",
-            "transaction", UUID.randomUUID().toString()
+      "janus", "attach", "plugin", "janus.plugin.videoroom",
+      "transaction", UUID.randomUUID().toString()
     );
 
     String sessionUrl = janusUrl + "/" + sessionId;
@@ -103,18 +113,18 @@ public class JanusVideoService {
 
   }
 
-  public void createVideoRoom(String sessionId, String handleId, int roomId, String description){
+  public void createVideoRoom(String sessionId, String handleId, int roomId, String description) {
 
     Map<String, Object> body = Map.of(
-             "request", "create", "room", roomId, "description", description, "bitrate",
+      "request", "create", "room", roomId, "description", description, "bitrate",
       512000,
-             "publishers", 10, "record", false, "is_private", false
+      "publishers", 10, "record", false, "is_private", false
     );
 
     Map<String, Object> request = Map.of(
-            "janus", "message",
-            "transaction", UUID.randomUUID().toString(),
-            "body", body
+      "janus", "message",
+      "transaction", UUID.randomUUID().toString(),
+      "body", body
     );
 
     String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
@@ -127,7 +137,7 @@ public class JanusVideoService {
       "display", displayName);
 
     Map<String, Object> request = Map.of(
-            "janus", "message", "transaction", UUID.randomUUID().toString(), "body", body);
+      "janus", "message", "transaction", UUID.randomUUID().toString(), "body", body);
 
     String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
     restTemplate.postForEntity(handleUrl, request, JsonNode.class);
@@ -137,9 +147,9 @@ public class JanusVideoService {
     Map<String, Object> body = Map.of("request", "publish", "audio", true, "video", true);
 
     Map<String, Object> request = Map.of(
-            "janus", "message", "transaction", UUID.randomUUID().toString(), "body", body,
+      "janus", "message", "transaction", UUID.randomUUID().toString(), "body", body,
       "jsep", Map.of(
-            "type", "offer", "sdp", offer)
+      "type", "offer", "sdp", offer)
     );
 
     String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
@@ -149,10 +159,10 @@ public class JanusVideoService {
 
   public JsonNode subscribeToFeed(String sessionId, String handleId, int roomId, int feedId) {
     Map<String, Object> body = Map.of(
-            "request", "join", "room", roomId, "ptype", "subscriber", "feed", feedId);
+      "request", "join", "room", roomId, "ptype", "subscriber", "feed", feedId);
 
     Map<String, Object> request = Map.of(
-            "janus", "message", "transaction", UUID.randomUUID().toString(), "body", body);
+      "janus", "message", "transaction", UUID.randomUUID().toString(), "body", body);
 
     String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
     ResponseEntity<JsonNode> response = restTemplate.postForEntity(handleUrl, request, JsonNode.class);
@@ -161,11 +171,11 @@ public class JanusVideoService {
 
   public void leaveVideoRoom(String sessionId, String handleId) {
     Map<String, Object> body = Map.of(
-            "request", "leave"
+      "request", "leave"
     );
 
     Map<String, Object> request = Map.of(
-            "janus", "message", "transaction", UUID.randomUUID().toString(), "body", body);
+      "janus", "message", "transaction", UUID.randomUUID().toString(), "body", body);
 
     String handleUrl = String.format("%s/%s/%s", janusUrl, sessionId, handleId);
     restTemplate.postForEntity(handleUrl, request, JsonNode.class);

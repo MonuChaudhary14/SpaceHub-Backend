@@ -39,7 +39,9 @@ public class DashBoardService implements IDashBoardService {
 
     String email = SecurityUtils.getCurrentUserEmail();
     ApiResponse<String> validationError = validateUsernameInputs(email, username);
-    if (validationError != null) return validationError;
+    if (validationError != null) {
+      return validationError;
+    }
 
     try {
       User user = findUserByEmail(email);
@@ -181,7 +183,8 @@ public class DashBoardService implements IDashBoardService {
       if (user.getAvatarUrl() != null && !user.getAvatarUrl().isBlank()) {
         try {
           presignedUrl = s3Service.generatePresignedDownloadUrl(user.getAvatarUrl(), Duration.ofHours(2));
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
       }
 
       Map<String, Object> data = new HashMap<>();
@@ -257,7 +260,8 @@ public class DashBoardService implements IDashBoardService {
         Duration.ofHours(2)
       );
       result.put("profileImage", previewUrl);
-    } catch (Exception ignored) {}
+    } catch (Exception ignored) {
+    }
   }
 
   private ApiResponse<Map<String, Object>> processEmailUpdate(User user, String newEmail,
@@ -356,7 +360,8 @@ public class DashBoardService implements IDashBoardService {
     String previewUrl = null;
     try {
       previewUrl = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(2));
-    } catch (Exception ignored) {}
+    } catch (Exception ignored) {
+    }
 
     result.put("profileImage", previewUrl);
     return null;

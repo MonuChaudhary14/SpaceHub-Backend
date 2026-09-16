@@ -33,6 +33,6 @@ public class OTP {
   private OtpType type;
 
   @Column(nullable = false)
-  private boolean used = false;
+  private boolean used;
 
 }

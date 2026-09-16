@@ -43,8 +43,9 @@ public class ChatMessageService implements IChatMessageService {
   @Transactional
   public boolean deleteMessageByUuid(String messageUuid) {
     return chatMessageRepository.findByMessageUuid(messageUuid)
-            .map(m -> {
-              chatMessageRepository.deleteByMessageUuid(messageUuid);
-              return true;}).orElse(false);
+      .map(m -> {
+        chatMessageRepository.deleteByMessageUuid(messageUuid);
+        return true;
+      }).orElse(false);
   }
 }

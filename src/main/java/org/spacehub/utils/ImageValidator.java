@@ -2,7 +2,7 @@ package org.spacehub.utils;
 
 import org.springframework.web.multipart.MultipartFile;
 
-public class ImageValidator {
+public final class ImageValidator {
 
   private static final long MAX_FILE_SIZE = 2 * 1024 * 1024;
 

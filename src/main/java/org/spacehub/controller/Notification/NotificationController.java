@@ -33,7 +33,7 @@ public class NotificationController {
       @RequestParam(value = "page", defaultValue = "0") int page,
       @RequestParam(value = "size", defaultValue = "20") int size) {
     List<NotificationResponseDTO> notifications =
-        notificationService.getUserNotifications(scope, page, size);
+      notificationService.getUserNotifications(scope, page, size);
     return ResponseEntity.ok(new ApiResponse<>(200, "Notifications fetched successfully", notifications));
   }
 
@@ -44,10 +44,10 @@ public class NotificationController {
     int size = request != null && request.getSize() > 0 ? request.getSize() : 20;
 
     List<NotificationResponseDTO> notifications =
-            notificationService.getUserNotifications(
-                    scope,
-                    page,
-                    size);
+      notificationService.getUserNotifications(
+        scope,
+        page,
+        size);
 
     return ResponseEntity.ok(new ApiResponse<>(200, "Notifications fetched successfully", notifications)
     );
@@ -68,9 +68,9 @@ public class NotificationController {
     int size = request != null && request.getSize() > 0 ? request.getSize() : 20;
 
     List<NotificationResponseDTO> notifications =
-            notificationService.fetchAndMarkRead(
-                    page,
-                    size);
+      notificationService.fetchAndMarkRead(
+        page,
+        size);
 
     return ResponseEntity.ok(new ApiResponse<>(200, "Notifications fetched and processed", notifications)
     );
@@ -110,7 +110,7 @@ public class NotificationController {
     }
     catch (Exception e) {
       return ResponseEntity.internalServerError()
-              .body(new ApiResponse<>(500, "Failed to delete: " + e.getMessage(), null));
+        .body(new ApiResponse<>(500, "Failed to delete: " + e.getMessage(), null));
     }
   }
 

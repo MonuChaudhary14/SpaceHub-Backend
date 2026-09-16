@@ -63,8 +63,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     this.s3Service = s3Service;
     this.userRepository = userRepository;
     this.objectMapper = new ObjectMapper()
-            .registerModule(new JavaTimeModule())
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+      .registerModule(new JavaTimeModule())
+      .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
   }
 
   @Override
@@ -100,7 +100,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
       logger.error("Error establishing WebSocket connection", e);
       try {
         session.close(CloseStatus.SERVER_ERROR.withReason("Internal server error"));
-      } catch (IOException ignored) {}
+      } catch (IOException ignored) {
+      }
     }
   }
 
@@ -117,12 +118,14 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
   private Map<String, String> parseQuery(String query) {
     Map<String, String> map = new HashMap<>();
-    if (query == null || query.isBlank()) return map;
+    if (query == null || query.isBlank()) {
+      return map;
+    }
     for (String pair : query.split("&")) {
       String[] kv = pair.split("=", 2);
       if (kv.length == 2) {
         map.put(URLDecoder.decode(kv[0], StandardCharsets.UTF_8),
-                URLDecoder.decode(kv[1], StandardCharsets.UTF_8));
+          URLDecoder.decode(kv[1], StandardCharsets.UTF_8));
       }
     }
     return map;
@@ -158,9 +161,9 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         formatted.add(payload);
       }
       Map<String, Object> response = Map.of(
-              "type", "history",
-              "roomCode", newChatRoom.getRoomCode(),
-              "messages", formatted);
+        "type", "history",
+        "roomCode", newChatRoom.getRoomCode(),
+        "messages", formatted);
       session.sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
     }
     catch (IOException e) {
@@ -175,7 +178,9 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     if (roomCode != null) {
       Set<WebSocketSession> set = rooms.getOrDefault(roomCode, ConcurrentHashMap.newKeySet());
       set.remove(session);
-      if (set.isEmpty()) rooms.remove(roomCode);
+      if (set.isEmpty()) {
+        rooms.remove(roomCode);
+      }
       broadcastSystemMessage(roomCode, email + " left the chat");
     }
   }
@@ -183,7 +188,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
   @Override
   protected void handleTextMessage(@NonNull WebSocketSession session, @NonNull TextMessage textMessage) {
     try {
-      Map<String, Object> clientPayload = objectMapper.readValue(textMessage.getPayload(), new TypeReference<>() {});
+      Map<String, Object> clientPayload = objectMapper.readValue(textMessage.getPayload(), new TypeReference<>() {
+      });
       String type = ((String) clientPayload.getOrDefault("type", "MESSAGE")).toUpperCase();
       String roomCode = sessionRoom.get(session);
       String senderEmail = userSessions.get(session);
@@ -214,14 +220,14 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     String messageUuid = UUID.randomUUID().toString();
     ChatMessage message = ChatMessage.builder()
-            .messageUuid(messageUuid)
-            .senderEmail(senderEmail)
-            .message((String) payload.get("message"))
-            .timestamp(Instant.now().toEpochMilli())
-            .roomCode(roomCode)
-            .newChatRoom(optionalRoom.get())
-            .type("MESSAGE")
-            .build();
+      .messageUuid(messageUuid)
+      .senderEmail(senderEmail)
+      .message((String) payload.get("message"))
+      .timestamp(Instant.now().toEpochMilli())
+      .roomCode(roomCode)
+      .newChatRoom(optionalRoom.get())
+      .type("MESSAGE")
+      .build();
 
     chatMessageQueue.enqueue(message);
 
@@ -246,17 +252,17 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     String previewUrl = S3PreviewHelper.generatePreviewUrlQuietly(s3Service, fileKey, Duration.ofMinutes(15));
 
     ChatMessage message = ChatMessage.builder()
-            .messageUuid(messageUuid)
-            .senderEmail(senderEmail)
-            .message("[File] " + fileName)
-            .fileName(fileName)
-            .fileUrl(previewUrl)
-            .contentType(contentType)
-            .timestamp(Instant.now().toEpochMilli())
-            .roomCode(roomCode)
-            .newChatRoom(optionalRoom.get())
-            .type("FILE")
-            .build();
+      .messageUuid(messageUuid)
+      .senderEmail(senderEmail)
+      .message("[File] " + fileName)
+      .fileName(fileName)
+      .fileUrl(previewUrl)
+      .contentType(contentType)
+      .timestamp(Instant.now().toEpochMilli())
+      .roomCode(roomCode)
+      .newChatRoom(optionalRoom.get())
+      .type("FILE")
+      .build();
 
     chatMessageQueue.enqueue(message);
 
@@ -282,18 +288,18 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     }
 
     Map<String, Object> deletePayload = Map.of(
-            "type", "DELETE",
-            "messageUuid", messageUuid,
-            "deletedBy", senderEmail,
-            "timestamp", Instant.now().toEpochMilli());
+      "type", "DELETE",
+      "messageUuid", messageUuid,
+      "deletedBy", senderEmail,
+      "timestamp", Instant.now().toEpochMilli());
     broadcastToRoom(roomCode, deletePayload);
   }
 
   private WebSocketSession findSessionFor(String roomCode, String email) {
     return sessionRoom.entrySet().stream()
-            .filter(e -> roomCode.equals(e.getValue()) &&
-              email.equals(userSessions.get(e.getKey())))
-            .map(Map.Entry::getKey).findFirst().orElse(null);
+      .filter(e -> roomCode.equals(e.getValue()) &&
+        email.equals(userSessions.get(e.getKey())))
+      .map(Map.Entry::getKey).findFirst().orElse(null);
   }
 
   private Map<String, Object> buildMessagePayload(ChatMessage message) {
@@ -328,7 +334,9 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
   }
 
   private void sendSystemMessage(WebSocketSession session, String content) throws IOException {
-    if (session == null) return;
+    if (session == null) {
+      return;
+    }
     Map<String, Object> sys = Map.of("type", "system", "system", content, "timestamp",
       Instant.now().toEpochMilli());
     session.sendMessage(new TextMessage(objectMapper.writeValueAsString(sys)));

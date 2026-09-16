@@ -16,6 +16,6 @@ public class ScheduledMessage {
   private String senderEmail;
   private String message;
   private LocalDateTime scheduledTime;
-  private boolean sent = false;
+  private boolean sent;
 
 }

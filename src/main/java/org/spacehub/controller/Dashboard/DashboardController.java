@@ -28,7 +28,7 @@ public class DashboardController {
   @PostMapping("/set-username")
   public ResponseEntity<ApiResponse<String>> setUsername(@Valid @RequestBody UsernameRequest request) {
     ApiResponse<String> resp = dashboardService.saveUsername(
-            request.getUsername()
+      request.getUsername()
     );
     return ResponseEntity.status(resp.getStatus()).body(resp);
   }
@@ -73,7 +73,7 @@ public class DashboardController {
       String existing = redisService.getValue(key);
       if (existing != null) {
         ApiResponse<String> response = new ApiResponse<>(429,
-                "You may only send a custom email to this recipient once every 24 hours. Try again later.", null);
+          "You may only send a custom email to this recipient once every 24 hours. Try again later.", null);
         return ResponseEntity.status(429).body(response);
       }
 
@@ -95,7 +95,7 @@ public class DashboardController {
     }
     catch (Exception e) {
       ApiResponse<String> response = new ApiResponse<>(500,
-              "Failed to send email: " + e.getMessage(), null);
+        "Failed to send email: " + e.getMessage(), null);
       return ResponseEntity.status(500).body(response);
     }
   }

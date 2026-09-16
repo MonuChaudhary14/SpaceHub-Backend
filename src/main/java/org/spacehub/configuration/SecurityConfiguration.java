@@ -40,19 +40,19 @@ public class SecurityConfiguration {
     // config.setAllowedOriginPatterns(List.of("*"));
 
     config.setAllowedOrigins(List.of(
-        "http://localhost",
-        "http://127.0.0.1:5500",
-        "http://localhost:5500",
-        "http://localhost:5173",
-        "http://localhost:8080",
-        "https://spacehub.monu14.me",
-        "https://space-hub-frontend.vercel.app",
-        "https://www.spacehubx.me",
-        "https://audio-room-tawny.vercel.app",
-        "https://somiljain2006.github.io/Audio-room",
-        "https://somiljain2006.github.io",
-        "https://direct-message-wheat.vercel.app",
-        "https://audio-room-nine.vercel.app"));
+      "http://localhost",
+      "http://127.0.0.1:5500",
+      "http://localhost:5500",
+      "http://localhost:5173",
+      "http://localhost:8080",
+      "https://spacehub.monu14.me",
+      "https://space-hub-frontend.vercel.app",
+      "https://www.spacehubx.me",
+      "https://audio-room-tawny.vercel.app",
+      "https://somiljain2006.github.io/Audio-room",
+      "https://somiljain2006.github.io",
+      "https://direct-message-wheat.vercel.app",
+      "https://audio-room-nine.vercel.app"));
     config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
     config.setAllowedHeaders(List.of("*"));
     config.setExposedHeaders(List.of("Authorization"));
@@ -66,45 +66,45 @@ public class SecurityConfiguration {
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http
-        .cors(withDefaults())
-        .csrf(AbstractHttpConfigurer::disable)
-        .authorizeHttpRequests(auth -> auth
-            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-            .requestMatchers(
-                "/error",
-                "/swagger-ui.html",
-                "/swagger-ui/**",
-                "/v3/api-docs",
-                "/v3/api-docs/**",
-                "/v3/api-docs.yaml"
-            ).permitAll()
-            .requestMatchers(
-                "/api/v1/login",
-                "/api/v1/registration",
-                "/api/v1/validateregisterotp",
-                "/api/v1/forgotpassword",
-                "/api/v1/validateforgototp",
-                "/api/v1/resetpassword",
-                "/api/v1/resendotp",
-                "/api/v1/resendforgototp",
-                "/api/v1/logout",
-                "/api/v1/auth/refresh"
-            ).permitAll()
-            .anyRequest().authenticated())
-        .exceptionHandling(exception -> exception.authenticationEntryPoint(authenticationEntryPoint))
-        .httpBasic(AbstractHttpConfigurer::disable)
-        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        // .sessionManagement(session ->
-        // session.sessionCreationPolicy(SessionCreationPolicy.ALWAYS))
-        .authenticationProvider(authenticationProvider)
-        .addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class);
+      .cors(withDefaults())
+      .csrf(AbstractHttpConfigurer::disable)
+      .authorizeHttpRequests(auth -> auth
+        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+        .requestMatchers(
+          "/error",
+          "/swagger-ui.html",
+          "/swagger-ui/**",
+          "/v3/api-docs",
+          "/v3/api-docs/**",
+          "/v3/api-docs.yaml"
+        ).permitAll()
+        .requestMatchers(
+          "/api/v1/login",
+          "/api/v1/registration",
+          "/api/v1/validateregisterotp",
+          "/api/v1/forgotpassword",
+          "/api/v1/validateforgototp",
+          "/api/v1/resetpassword",
+          "/api/v1/resendotp",
+          "/api/v1/resendforgototp",
+          "/api/v1/logout",
+          "/api/v1/auth/refresh"
+        ).permitAll()
+        .anyRequest().authenticated())
+      .exceptionHandling(exception -> exception.authenticationEntryPoint(authenticationEntryPoint))
+      .httpBasic(AbstractHttpConfigurer::disable)
+      .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+      // .sessionManagement(session ->
+      // session.sessionCreationPolicy(SessionCreationPolicy.ALWAYS))
+      .authenticationProvider(authenticationProvider)
+      .addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class);
 
     return http.build();
   }
 
   @Bean
   public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig)
-      throws Exception {
+    throws Exception {
     return authConfig.getAuthenticationManager();
   }
 }

@@ -35,17 +35,19 @@ public class ScheduledMessageService implements IScheduledMessageService {
 
     for (ScheduledMessage message : scheduled) {
       Optional<ChatRoom> optionalRoom = chatRoomService.findByRoomCode(UUID.fromString(message.getRoomCode()));
-      if (optionalRoom.isEmpty()) continue;
+      if (optionalRoom.isEmpty()) {
+        continue;
+      }
 
       ChatRoom room = optionalRoom.get();
 
       ChatMessage chatMessage = ChatMessage.builder()
-              .room(room)
-              .roomCode(String.valueOf(room.getRoomCode()))
-              .senderEmail(message.getSenderEmail())
-              .message(message.getMessage())
-              .timestamp(System.currentTimeMillis())
-              .build();
+        .room(room)
+        .roomCode(String.valueOf(room.getRoomCode()))
+        .senderEmail(message.getSenderEmail())
+        .message(message.getMessage())
+        .timestamp(System.currentTimeMillis())
+        .build();
 
       chatMessageQueue.enqueue(chatMessage);
 

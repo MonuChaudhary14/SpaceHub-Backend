@@ -136,12 +136,29 @@ public class DataInitializer implements CommandLineRunner {
     if (existing.isPresent()) {
       User u = existing.get();
       boolean changed = false;
-      if (!Boolean.TRUE.equals(u.getEnabled())) { u.setEnabled(true); changed = true; }
-      if (!Boolean.TRUE.equals(u.getIsVerifiedRegistration())) { u.setIsVerifiedRegistration(true); changed = true; }
-      if (!Boolean.TRUE.equals(u.getIsVerifiedLogin())) { u.setIsVerifiedLogin(true); changed = true; }
-      if (u.getAvatarUrl() == null || u.getAvatarUrl().isBlank()) { u.setAvatarUrl(avatarUrl); changed = true; }
-      if (u.getCoverPhotoUrl() == null || u.getCoverPhotoUrl().isBlank()) { u.setCoverPhotoUrl(coverPhotoUrl); changed = true; }
-      if (changed) userRepository.save(u);
+      if (!Boolean.TRUE.equals(u.getEnabled())) {
+        u.setEnabled(true);
+        changed = true;
+      }
+      if (!Boolean.TRUE.equals(u.getIsVerifiedRegistration())) {
+        u.setIsVerifiedRegistration(true);
+        changed = true;
+      }
+      if (!Boolean.TRUE.equals(u.getIsVerifiedLogin())) {
+        u.setIsVerifiedLogin(true);
+        changed = true;
+      }
+      if (u.getAvatarUrl() == null || u.getAvatarUrl().isBlank()) {
+        u.setAvatarUrl(avatarUrl);
+        changed = true;
+      }
+      if (u.getCoverPhotoUrl() == null || u.getCoverPhotoUrl().isBlank()) {
+        u.setCoverPhotoUrl(coverPhotoUrl);
+        changed = true;
+      }
+      if (changed) {
+        userRepository.save(u);
+      }
       return u;
     }
 
@@ -240,7 +257,8 @@ public class DataInitializer implements CommandLineRunner {
     );
   }
 
-  private record MemberRole(User user, Role role) {}
+  private record MemberRole(User user, Role role) {
+  }
 
   private Community createOrGetCommunity(
     String name,
@@ -268,7 +286,9 @@ public class DataInitializer implements CommandLineRunner {
         community.setImageUrl(avatarUrl);
         updated = true;
       }
-      if (updated) communityRepository.save(community);
+      if (updated) {
+        communityRepository.save(community);
+      }
     }
 
     for (MemberRole mr : members) {
@@ -353,7 +373,9 @@ public class DataInitializer implements CommandLineRunner {
   }
 
   private void initDirectMessages(User monu, User alex, User sarah, User marcus) {
-    if (messageRepository.count() > 0) return;
+    if (messageRepository.count() > 0) {
+      return;
+    }
 
     long now = System.currentTimeMillis();
     long minute = 60 * 1000L;
@@ -384,7 +406,9 @@ public class DataInitializer implements CommandLineRunner {
   }
 
   private void initNotifications(User monu, User alex, User sarah) {
-    if (notificationRepository.count() > 0) return;
+    if (notificationRepository.count() > 0) {
+      return;
+    }
 
     Notification n1 = Notification.builder()
       .publicId(UUID.randomUUID())

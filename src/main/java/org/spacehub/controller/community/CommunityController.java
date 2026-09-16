@@ -176,7 +176,7 @@ public class CommunityController {
           @RequestParam(value = "description", required = false) String description
   ) {
     return communityService.uploadCommunityBanner(
-            communityId, bannerFile, communityAvatarFile, userAvatarFile, name, description
+      communityId, bannerFile, communityAvatarFile, userAvatarFile, name, description
     );
   }
 

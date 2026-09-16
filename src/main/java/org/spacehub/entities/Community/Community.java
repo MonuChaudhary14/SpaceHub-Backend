@@ -49,10 +49,10 @@ public class Community {
   @Column(name = "image_url")
   private String imageUrl;
 
-  @Column(name="avatar_url")
+  @Column(name = "avatar_url")
   private String avatarUrl;
 
-  @Column(name="banner_url")
+  @Column(name = "banner_url")
   private String bannerUrl;
 
   @Column(name = "community_id", unique = true, updatable = false, nullable = false)

@@ -87,7 +87,7 @@ public class LocalGroupService implements ILocalGroupService {
 
       UUID roomCode = UUID.randomUUID();
       ChatRoom chatRoom = ChatRoom.builder().name(name + " Chat Room")
-              .roomCode(roomCode).community(null).build();
+        .roomCode(roomCode).community(null).build();
 
       group.setChatRoom(chatRoom);
 
@@ -316,7 +316,8 @@ public class LocalGroupService implements ILocalGroupService {
       if (key != null && !key.isBlank()) {
         try {
           resp.setImageUrl(s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1)));
-        } catch (Exception ignored) { }
+        } catch (Exception ignored) {
+        }
       }
       return ResponseEntity.ok(new ApiResponse<>(200, "Local group fetched", resp));
     } else {
@@ -491,7 +492,8 @@ public class LocalGroupService implements ILocalGroupService {
       }
       try {
         resp.setImageUrl(s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1)));
-      } catch (Exception ignored) {}
+      } catch (Exception ignored) {
+      }
     }
   }
 

@@ -9,7 +9,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface ChatRoomRepository extends JpaRepository<ChatRoom, UUID>{
+public interface ChatRoomRepository extends JpaRepository<ChatRoom, UUID> {
 
   Optional<ChatRoom> findByRoomCode(UUID roomCode);
 

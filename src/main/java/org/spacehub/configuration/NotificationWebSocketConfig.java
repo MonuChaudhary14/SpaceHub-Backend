@@ -8,7 +8,7 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 
 @Configuration
 @EnableWebSocket
-public class NotificationWebSocketConfig implements WebSocketConfigurer{
+public class NotificationWebSocketConfig implements WebSocketConfigurer {
 
   private final NotificationWebSocketHandler notificationWebSocketHandler;
 
@@ -19,12 +19,12 @@ public class NotificationWebSocketConfig implements WebSocketConfigurer{
   @Override
   public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
     registry.addHandler(notificationWebSocketHandler, "/notification")
-            .setAllowedOrigins(
-                    "http://localhost:5173",
-                    "https://spacehub.monu14.me",
-                    "https://space-hub-frontend.vercel.app",
-                    "https://www.spacehubx.me",
-                    "https://audio-room-tawny.vercel.app"
+      .setAllowedOrigins(
+        "http://localhost:5173",
+        "https://spacehub.monu14.me",
+        "https://space-hub-frontend.vercel.app",
+        "https://www.spacehubx.me",
+        "https://audio-room-tawny.vercel.app"
       );
   }
 

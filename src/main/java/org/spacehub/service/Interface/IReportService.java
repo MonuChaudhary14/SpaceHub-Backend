@@ -8,8 +8,8 @@ import java.util.Map;
 
 public interface IReportService {
 
-    ApiResponse<Map<String, Object>> reportDirectMessage(DirectMessageReportRequest request);
+  ApiResponse<Map<String, Object>> reportDirectMessage(DirectMessageReportRequest request);
 
-    ApiResponse<Map<String, Object>> reportChatRoomMessage(ChatRoomReportRequest request);
+  ApiResponse<Map<String, Object>> reportChatRoomMessage(ChatRoomReportRequest request);
 
 }

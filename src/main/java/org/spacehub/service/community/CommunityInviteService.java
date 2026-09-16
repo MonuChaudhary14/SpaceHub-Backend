@@ -59,11 +59,11 @@ public class CommunityInviteService implements ICommunityInviteService {
     }
 
     boolean isCreator = community.getCreatedBy() != null &&
-            community.getCreatedBy().getId().equals(inviter.getId());
+      community.getCreatedBy().getId().equals(inviter.getId());
 
     CommunityUser membership = communityUserRepository
-            .findByCommunityIdAndUserId(communityId, inviter.getId())
-            .orElse(null);
+      .findByCommunityIdAndUserId(communityId, inviter.getId())
+      .orElse(null);
 
     if (membership == null && !isCreator) {
       return new ApiResponse<>(403, "You are not a member of this community", null);
@@ -76,33 +76,33 @@ public class CommunityInviteService implements ICommunityInviteService {
       return new ApiResponse<>(403, "Only admins or owners can create invites", null);
     }
 
-    int maxUses = (request != null && request.getMaxUses() > 0) ? request.getMaxUses() : 10;
-    int expiresInHours = (request != null && request.getExpiresInHours() > 0) ? request.getExpiresInHours() : 72;
+    int maxUses = request != null && request.getMaxUses() > 0 ? request.getMaxUses() : 10;
+    int expiresInHours = request != null && request.getExpiresInHours() > 0 ? request.getExpiresInHours() : 72;
 
     CommunityInvite invite = CommunityInvite.builder()
-            .communityId(communityId)
-            .inviterEmail(currentUserEmail)
-            .maxUses(maxUses)
-            .inviteCode(generateInviteCode())
-            .expiresAt(LocalDateTime.now().plusHours(expiresInHours))
-            .status(InviteStatus.ACTIVE)
-            .build();
+      .communityId(communityId)
+      .inviterEmail(currentUserEmail)
+      .maxUses(maxUses)
+      .inviteCode(generateInviteCode())
+      .expiresAt(LocalDateTime.now().plusHours(expiresInHours))
+      .status(InviteStatus.ACTIVE)
+      .build();
 
     inviteRepository.save(invite);
 
     String inviteLink = "https://spacehub.monu14.me/invite/"
-            + communityId + "/" + invite.getInviteCode();
+      + communityId + "/" + invite.getInviteCode();
 
     CommunityInviteResponseDTO response = CommunityInviteResponseDTO.builder()
-            .inviteCode(invite.getInviteCode())
-            .inviteLink(inviteLink)
-            .communityId(communityId)
-            .inviterEmail(invite.getInviterEmail())
-            .maxUses(invite.getMaxUses())
-            .uses(invite.getUses())
-            .expiresAt(invite.getExpiresAt())
-            .status(invite.getStatus().name())
-            .build();
+      .inviteCode(invite.getInviteCode())
+      .inviteLink(inviteLink)
+      .communityId(communityId)
+      .inviterEmail(invite.getInviterEmail())
+      .maxUses(invite.getMaxUses())
+      .uses(invite.getUses())
+      .expiresAt(invite.getExpiresAt())
+      .status(invite.getStatus().name())
+      .build();
 
     return new ApiResponse<>(200, "Invite created successfully", response);
   }
@@ -150,16 +150,16 @@ public class CommunityInviteService implements ICommunityInviteService {
     incrementInviteUsage(invite);
 
     NotificationRequestDTO notification = NotificationRequestDTO.builder()
-            .senderEmail(user.getEmail())
-            .email(invite.getInviterEmail())
-            .type(NotificationType.COMMUNITY_JOINED)
-            .title("New Member Joined")
-            .message(user.getFirstName() + " joined your community.")
-            .scope("community")
-            .actionable(false)
-            .referenceId(communityId)
-            .communityId(communityId)
-            .build();
+      .senderEmail(user.getEmail())
+      .email(invite.getInviterEmail())
+      .type(NotificationType.COMMUNITY_JOINED)
+      .title("New Member Joined")
+      .message(user.getFirstName() + " joined your community.")
+      .scope("community")
+      .actionable(false)
+      .referenceId(communityId)
+      .communityId(communityId)
+      .build();
     notificationService.createNotification(notification);
 
     return new ApiResponse<>(200, "User joined community successfully",
@@ -176,11 +176,15 @@ public class CommunityInviteService implements ICommunityInviteService {
 
   private CommunityInvite validateInvite(String inviteCode, UUID communityId) {
     Optional<CommunityInvite> inviteOpt = inviteRepository.findByInviteCode(inviteCode);
-    if (inviteOpt.isEmpty()) return null;
+    if (inviteOpt.isEmpty()) {
+      return null;
+    }
 
     CommunityInvite invite = inviteOpt.get();
 
-    if (!invite.getCommunityId().equals(communityId)) return null;
+    if (!invite.getCommunityId().equals(communityId)) {
+      return null;
+    }
 
     if (invite.getExpiresAt().isBefore(LocalDateTime.now())) {
       invite.setStatus(InviteStatus.EXPIRED);
@@ -209,16 +213,16 @@ public class CommunityInviteService implements ICommunityInviteService {
   public ApiResponse<List<CommunityInviteResponseDTO>> getCommunityInvites(UUID communityId) {
     List<CommunityInviteResponseDTO> invites = inviteRepository.findByCommunityId(communityId).stream()
       .map(invite -> CommunityInviteResponseDTO.builder()
-                    .inviteCode(invite.getInviteCode())
-                    .inviteLink("https://spacehub.monu14.me/invite/" + communityId + "/" + invite.getInviteCode())
-                    .communityId(invite.getCommunityId())
-                    .inviterEmail(invite.getInviterEmail())
-                    .maxUses(invite.getMaxUses())
-                    .uses(invite.getUses())
-                    .expiresAt(invite.getExpiresAt())
-                    .status(invite.getStatus().name())
-                    .build())
-            .collect(Collectors.toList());
+        .inviteCode(invite.getInviteCode())
+        .inviteLink("https://spacehub.monu14.me/invite/" + communityId + "/" + invite.getInviteCode())
+        .communityId(invite.getCommunityId())
+        .inviterEmail(invite.getInviterEmail())
+        .maxUses(invite.getMaxUses())
+        .uses(invite.getUses())
+        .expiresAt(invite.getExpiresAt())
+        .status(invite.getStatus().name())
+        .build())
+      .collect(Collectors.toList());
 
     return new ApiResponse<>(200, "Invites fetched successfully", invites);
   }
@@ -239,16 +243,16 @@ public class CommunityInviteService implements ICommunityInviteService {
     inviteRepository.delete(invite);
 
     NotificationRequestDTO notification = NotificationRequestDTO.builder()
-            .senderEmail("system@spacehub.com")
-            .email(invite.getInviterEmail())
-            .type(NotificationType.COMMUNITY_INVITE_REVOKED)
-            .title("Invite Revoked")
-            .message("Your community invite (" + invite.getInviteCode() + ") has been revoked.")
-            .scope("community")
-            .actionable(false)
-            .referenceId(invite.getCommunityId())
-            .communityId(invite.getCommunityId())
-            .build();
+      .senderEmail("system@spacehub.com")
+      .email(invite.getInviterEmail())
+      .type(NotificationType.COMMUNITY_INVITE_REVOKED)
+      .title("Invite Revoked")
+      .message("Your community invite (" + invite.getInviteCode() + ") has been revoked.")
+      .scope("community")
+      .actionable(false)
+      .referenceId(invite.getCommunityId())
+      .communityId(invite.getCommunityId())
+      .build();
     notificationService.createNotification(notification);
 
     return new ApiResponse<>(200, "Invite revoked successfully", null);

@@ -47,16 +47,20 @@ public class ProfileService implements IProfileService {
   @Override
   public UserProfileResponse getProfile() {
     String email = SecurityUtils.getCurrentUserEmail();
-    if (email == null || email.isBlank()) throw new IllegalArgumentException("User not authenticated");
+    if (email == null || email.isBlank()) {
+      throw new IllegalArgumentException("User not authenticated");
+    }
     User user = userRepository.findByEmail(email.trim().toLowerCase())
-            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+      .orElseThrow(() -> new IllegalArgumentException("User not found"));
     return buildResponse(user);
   }
 
   @Override
   public UserProfileResponse updateProfile(UserProfileDTO dto) {
     String email = SecurityUtils.getCurrentUserEmail();
-    if (email == null || email.isBlank()) throw new IllegalArgumentException("User not authenticated");
+    if (email == null || email.isBlank()) {
+      throw new IllegalArgumentException("User not authenticated");
+    }
     validateInput(email, dto);
 
     User user = userRepository.findByEmail(email.trim().toLowerCase())
@@ -97,11 +101,13 @@ public class ProfileService implements IProfileService {
   @Override
   public UserProfileResponse uploadAvatar(MultipartFile file) {
     String email = SecurityUtils.getCurrentUserEmail();
-    if (email == null || email.isBlank()) throw new IllegalArgumentException("User not authenticated");
+    if (email == null || email.isBlank()) {
+      throw new IllegalArgumentException("User not authenticated");
+    }
     validateImage(file);
 
     User user = userRepository.findByEmail(email.trim().toLowerCase())
-            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+      .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
     String key = "avatars/" + System.currentTimeMillis() + "_" + file.getOriginalFilename();
     try {
@@ -119,11 +125,13 @@ public class ProfileService implements IProfileService {
   @Override
   public UserProfileResponse uploadCoverPhoto(MultipartFile file) {
     String email = SecurityUtils.getCurrentUserEmail();
-    if (email == null || email.isBlank()) throw new IllegalArgumentException("User not authenticated");
+    if (email == null || email.isBlank()) {
+      throw new IllegalArgumentException("User not authenticated");
+    }
     validateImage(file);
 
     User user = userRepository.findByEmail(email.trim().toLowerCase())
-            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+      .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
     String key = "covers/" + System.currentTimeMillis() + "_" + file.getOriginalFilename();
     try {
@@ -185,11 +193,15 @@ public class ProfileService implements IProfileService {
   }
 
   private void validateImage(MultipartFile file) {
-    if (file.isEmpty()) throw new IllegalArgumentException("File cannot be empty");
-    if (file.getSize() > 2 * 1024 * 1024)
+    if (file.isEmpty()) {
+      throw new IllegalArgumentException("File cannot be empty");
+    }
+    if (file.getSize() > 2 * 1024 * 1024) {
       throw new IllegalArgumentException("File size exceeds 2 MB");
-    if (file.getContentType() == null || !file.getContentType().startsWith("image/"))
+    }
+    if (file.getContentType() == null || !file.getContentType().startsWith("image/")) {
       throw new IllegalArgumentException("Only image files are allowed");
+    }
   }
 
   private UserProfileResponse buildResponse(User user) {
@@ -243,7 +255,9 @@ public class ProfileService implements IProfileService {
   }
 
   private void safeDelete(String fileUrl) {
-    if (fileUrl == null || fileUrl.isBlank()) return;
+    if (fileUrl == null || fileUrl.isBlank()) {
+      return;
+    }
     try {
       s3Service.deleteFile(fileUrl);
     } catch (Exception e) {
@@ -262,26 +276,26 @@ public class ProfileService implements IProfileService {
 
   private void updateBasicDetails(User user, UserProfileDTO dto) {
     Optional.ofNullable(dto.getFirstName())
-            .filter(s -> !s.isBlank()).ifPresent(user::setFirstName);
+      .filter(s -> !s.isBlank()).ifPresent(user::setFirstName);
 
     Optional.ofNullable(dto.getLastName())
-            .filter(s -> !s.isBlank()).ifPresent(user::setLastName);
+      .filter(s -> !s.isBlank()).ifPresent(user::setLastName);
 
     Optional.ofNullable(dto.getBio())
-            .filter(s -> !s.isBlank()).ifPresent(user::setBio);
+      .filter(s -> !s.isBlank()).ifPresent(user::setBio);
 
     Optional.ofNullable(dto.getUsername())
-            .filter(s -> !s.isBlank()).ifPresent(user::setUsername);
+      .filter(s -> !s.isBlank()).ifPresent(user::setUsername);
 
     Optional.ofNullable(dto.getDateOfBirth())
-            .ifPresent(d -> {
-              try {
-                user.setDateOfBirth(LocalDate.parse(d));
-              }
-              catch (Exception e) {
-                throw new IllegalArgumentException("Invalid date format. Expected format: yyyy-MM-dd");
-              }
-            });
+      .ifPresent(d -> {
+        try {
+          user.setDateOfBirth(LocalDate.parse(d));
+        }
+        catch (Exception e) {
+          throw new IllegalArgumentException("Invalid date format. Expected format: yyyy-MM-dd");
+        }
+      });
   }
 
 

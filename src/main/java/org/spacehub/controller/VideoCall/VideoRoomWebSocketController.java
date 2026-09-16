@@ -14,122 +14,134 @@ import java.util.concurrent.ConcurrentHashMap;
 @Controller
 public class VideoRoomWebSocketController {
 
-    private final JanusVideoService janusVideoService;
-    private final SimpMessagingTemplate messagingTemplate;
+  private final JanusVideoService janusVideoService;
+  private final SimpMessagingTemplate messagingTemplate;
 
-    public VideoRoomWebSocketController(JanusVideoService janusVideoService, SimpMessagingTemplate messagingTemplate) {
-        this.janusVideoService = janusVideoService;
-        this.messagingTemplate = messagingTemplate;
+  public VideoRoomWebSocketController(JanusVideoService janusVideoService, SimpMessagingTemplate messagingTemplate) {
+    this.janusVideoService = janusVideoService;
+    this.messagingTemplate = messagingTemplate;
+  }
+
+  private final ConcurrentHashMap<String, String> userSessionMap = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, String> userHandleMap = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, String> userRoomMap = new ConcurrentHashMap<>();
+
+  @MessageMapping("/video/register")
+  public void registerUser(Map<String, String> payload) {
+    String userId = payload.get("userId");
+    String sessionId = payload.get("sessionId");
+    String handleId = payload.get("handleId");
+    String roomId = payload.get("roomId");
+
+    if (userId == null || sessionId == null || handleId == null || roomId == null) {
+      return;
     }
 
-    private final ConcurrentHashMap<String, String> userSessionMap = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, String> userHandleMap = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, String> userRoomMap = new ConcurrentHashMap<>();
+    userSessionMap.put(userId, sessionId);
+    userHandleMap.put(userId, handleId);
+    userRoomMap.put(userId, roomId);
 
-    @MessageMapping("/video/register")
-    public void registerUser(Map<String, String> payload) {
-        String userId = payload.get("userId");
-        String sessionId = payload.get("sessionId");
-        String handleId = payload.get("handleId");
-        String roomId = payload.get("roomId");
+    janusVideoService.startEventPolling(sessionId, janusEvent -> {
+      try {
+        // For video, we might need more complex event filtering, but for now:
+        messagingTemplate.convertAndSend("/topic/video/" + roomId + "/answer/" + userId, janusEvent);
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    });
 
-        if (userId == null || sessionId == null || handleId == null || roomId == null) return;
+    Map<String, Object> event = Map.of("type", "joined", "userId", userId);
+    messagingTemplate.convertAndSend("/topic/video/" + roomId + "/events", event);
+  }
 
-        userSessionMap.put(userId, sessionId);
-        userHandleMap.put(userId, handleId);
-        userRoomMap.put(userId, roomId);
-
-        janusVideoService.startEventPolling(sessionId, janusEvent -> {
-            try {
-                // For video, we might need more complex event filtering, but for now:
-                messagingTemplate.convertAndSend("/topic/video/" + roomId + "/answer/" + userId, janusEvent);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
-
-        Map<String, Object> event = Map.of("type", "joined", "userId", userId);
-        messagingTemplate.convertAndSend("/topic/video/" + roomId + "/events", event);
+  @MessageMapping("/video/unregister")
+  public void unregisterUser(Map<String, String> payload) {
+    String userId = payload.get("userId");
+    if (userId == null) {
+      return;
     }
 
-    @MessageMapping("/video/unregister")
-    public void unregisterUser(Map<String, String> payload) {
-        String userId = payload.get("userId");
-        if (userId == null) return;
+    String roomId = userRoomMap.remove(userId);
+    String sessionId = userSessionMap.remove(userId);
+    userHandleMap.remove(userId);
 
-        String roomId = userRoomMap.remove(userId);
-        String sessionId = userSessionMap.remove(userId);
-        userHandleMap.remove(userId);
-
-        if (sessionId != null) {
-            janusVideoService.stopEventPolling(sessionId);
-        }
-
-        if (roomId != null) {
-            Map<String, Object> event = Map.of("type", "left", "userId", userId);
-            messagingTemplate.convertAndSend("/topic/video/" + roomId + "/events", event);
-        }
+    if (sessionId != null) {
+      janusVideoService.stopEventPolling(sessionId);
     }
 
-    @MessageMapping("/video/offer")
-    public void handleOffer(Map<String, String> payload) {
-        String userId = payload.get("userId");
-        String roomId = payload.get("roomId");
-        String sdp = payload.get("sdp");
+    if (roomId != null) {
+      Map<String, Object> event = Map.of("type", "left", "userId", userId);
+      messagingTemplate.convertAndSend("/topic/video/" + roomId + "/events", event);
+    }
+  }
 
-        if (userId == null || roomId == null || sdp == null) return;
+  @MessageMapping("/video/offer")
+  public void handleOffer(Map<String, String> payload) {
+    String userId = payload.get("userId");
+    String roomId = payload.get("roomId");
+    String sdp = payload.get("sdp");
 
-        String sessionId = userSessionMap.get(userId);
-        String handleId = userHandleMap.get(userId);
-
-        if (sessionId == null || handleId == null) {
-            Map<String, String> error = Map.of("type", "error", "message", "User not registered");
-            messagingTemplate.convertAndSend("/topic/video/" + roomId + "/answer/" + userId, error);
-            return;
-        }
-
-        JsonNode response = janusVideoService.publishOwnFeed(sessionId, handleId, sdp);
-        messagingTemplate.convertAndSend("/topic/video/" + roomId + "/answer/" + userId, response);
+    if (userId == null || roomId == null || sdp == null) {
+      return;
     }
 
-    @MessageMapping("/video/ice")
-    public void handleIceCandidate(Map<String, Object> payload) {
-        String userId = (String) payload.get("userId");
-        String roomId = (String) payload.get("roomId");
-        Object candidateObj = payload.get("candidate");
+    String sessionId = userSessionMap.get(userId);
+    String handleId = userHandleMap.get(userId);
 
-        if (userId == null || roomId == null || candidateObj == null) return;
-
-        String sessionId = userSessionMap.get(userId);
-        String handleId = userHandleMap.get(userId);
-        if (sessionId == null || handleId == null) return;
-
-        String url = String.format("%s/%s/%s", janusVideoService.getJanusUrl(), sessionId, handleId);
-
-        Map<String, Object> request = Map.of(
-                "janus", "trickle","candidate", candidateObj,"transaction", java.util.UUID.randomUUID().toString());
-
-        try {
-            new RestTemplate().postForEntity(url, request, JsonNode.class);
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
+    if (sessionId == null || handleId == null) {
+      Map<String, String> error = Map.of("type", "error", "message", "User not registered");
+      messagingTemplate.convertAndSend("/topic/video/" + roomId + "/answer/" + userId, error);
+      return;
     }
 
-    @MessageMapping("/video/mute")
-    public void handleVideoToggle(Map<String, String> payload) {
-        String userId = payload.get("userId");
-        String roomId = payload.get("roomId");
-        String action = payload.get("action");
+    JsonNode response = janusVideoService.publishOwnFeed(sessionId, handleId, sdp);
+    messagingTemplate.convertAndSend("/topic/video/" + roomId + "/answer/" + userId, response);
+  }
 
-        if (userId == null || roomId == null || action == null) return;
+  @MessageMapping("/video/ice")
+  public void handleIceCandidate(Map<String, Object> payload) {
+    String userId = (String) payload.get("userId");
+    String roomId = (String) payload.get("roomId");
+    Object candidateObj = payload.get("candidate");
 
-        Map<String, Object> event = new HashMap<>();
-        event.put("userId", userId);
-        event.put("type", action.equalsIgnoreCase("mute") ? "muted" : "unmuted");
-
-        messagingTemplate.convertAndSend("/topic/video/" + roomId + "/events", event);
+    if (userId == null || roomId == null || candidateObj == null) {
+      return;
     }
+
+    String sessionId = userSessionMap.get(userId);
+    String handleId = userHandleMap.get(userId);
+    if (sessionId == null || handleId == null) {
+      return;
+    }
+
+    String url = String.format("%s/%s/%s", janusVideoService.getJanusUrl(), sessionId, handleId);
+
+    Map<String, Object> request = Map.of(
+      "janus", "trickle", "candidate", candidateObj, "transaction", java.util.UUID.randomUUID().toString());
+
+    try {
+      new RestTemplate().postForEntity(url, request, JsonNode.class);
+    }
+    catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  @MessageMapping("/video/mute")
+  public void handleVideoToggle(Map<String, String> payload) {
+    String userId = payload.get("userId");
+    String roomId = payload.get("roomId");
+    String action = payload.get("action");
+
+    if (userId == null || roomId == null || action == null) {
+      return;
+    }
+
+    Map<String, Object> event = new HashMap<>();
+    event.put("userId", userId);
+    event.put("type", "mute".equalsIgnoreCase(action) ? "muted" : "unmuted");
+
+    messagingTemplate.convertAndSend("/topic/video/" + roomId + "/events", event);
+  }
 
 }

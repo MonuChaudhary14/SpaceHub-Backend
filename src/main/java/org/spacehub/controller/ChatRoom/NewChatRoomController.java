@@ -27,8 +27,12 @@ public class NewChatRoomController {
     String roomCode = roomCodeParam;
     String name = nameParam;
     if (body != null) {
-      if (body.get("roomCode") != null) roomCode = body.get("roomCode");
-      if (body.get("name") != null) name = body.get("name");
+      if (body.get("roomCode") != null) {
+        roomCode = body.get("roomCode");
+      }
+      if (body.get("name") != null) {
+        name = body.get("name");
+      }
     }
     return newChatRoomService.createNewChatRoom(roomCode, name);
   }

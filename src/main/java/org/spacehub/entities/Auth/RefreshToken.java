@@ -30,7 +30,8 @@ public class RefreshToken {
   @Column(nullable = false)
   private Instant expiresAt;
 
-  public RefreshToken() {}
+  public RefreshToken() {
+  }
 
   public RefreshToken(User user, Instant createdAt, Instant expiresAt) {
     this.token = UUID.randomUUID().toString();

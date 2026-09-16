@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 @Service
-public class JanusWebSocketService implements WebSocketHandler{
+public class JanusWebSocketService implements WebSocketHandler {
 
   @Value("${janus.ws-url:ws://localhost:8188/janus}")
   private String janusWsUrl;
@@ -39,7 +39,7 @@ public class JanusWebSocketService implements WebSocketHandler{
   }
 
   private volatile WebSocketSession session;
-  private volatile boolean manuallyClosed = false;
+  private volatile boolean manuallyClosed;
   private final AtomicInteger reconnectAttempts = new AtomicInteger(0);
 
   @PostConstruct
@@ -58,18 +58,17 @@ public class JanusWebSocketService implements WebSocketHandler{
       log.info("Connecting to Janus WebSocket at {}", janusWsUrl);
 
       webSocketClient
-              .execute(this, headers, URI.create(janusWsUrl))
-              .whenComplete((session, ex) -> {
-                if (ex != null) {
-                  log.error("WebSocket connection failed: {}", ex.getMessage());
-                  scheduleReconnect();
-                }
-                else {
-                  this.session = session;
-                  reconnectAttempts.set(0);
-                  log.info("Connected to Janus WebSocket (Session ID: {})", session.getId());
-                }
-              });
+        .execute(this, headers, URI.create(janusWsUrl))
+        .whenComplete((session, ex) -> {
+          if (ex != null) {
+            log.error("WebSocket connection failed: {}", ex.getMessage());
+            scheduleReconnect();
+          } else {
+            this.session = session;
+            reconnectAttempts.set(0);
+            log.info("Connected to Janus WebSocket (Session ID: {})", session.getId());
+          }
+        });
 
     }
     catch (Exception e) {

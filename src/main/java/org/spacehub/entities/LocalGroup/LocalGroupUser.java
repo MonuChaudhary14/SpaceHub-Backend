@@ -31,8 +31,8 @@ public class LocalGroupUser {
 
   private LocalDateTime joinDate = LocalDateTime.now();
 
-  private boolean isBanned = false;
-  private boolean isBlocked = false;
+  private boolean isBanned;
+  private boolean isBlocked;
 
   @Override
   public boolean equals(Object o) {

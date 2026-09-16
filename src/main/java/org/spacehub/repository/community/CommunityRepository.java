@@ -17,8 +17,10 @@ import java.util.UUID;
 public interface CommunityRepository extends JpaRepository<Community, UUID> {
 
   Community findByName(String name);
+
   @NonNull
   List<Community> findAll();
+
   boolean existsByNameIgnoreCase(String name);
 
   @Query("SELECT c FROM Community c WHERE LOWER(c.name) LIKE LOWER(CONCAT('%', :pattern, '%'))")

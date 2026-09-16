@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
-public interface ScheduledMessageRepository extends JpaRepository<ScheduledMessage, Long>{
+public interface ScheduledMessageRepository extends JpaRepository<ScheduledMessage, Long> {
 
   List<ScheduledMessage> findBySentFalseAndScheduledTimeBefore(LocalDateTime time);
 

@@ -33,7 +33,7 @@ public class ChatMessageQueue implements IChatMessageQueue {
 
   public synchronized void enqueue(ChatMessage message) {
     pendingByRoom.computeIfAbsent(message.getRoomCode(), k -> Collections.synchronizedList(new ArrayList<>()))
-            .add(message);
+      .add(message);
 
     List<ChatMessage> list = pendingByRoom.get(message.getRoomCode());
     if (list != null && list.size() >= FLUSH_BATCH_SIZE) {
@@ -51,7 +51,9 @@ public class ChatMessageQueue implements IChatMessageQueue {
 
   private synchronized void flushRoom(String roomCode) {
     List<ChatMessage> pending = pendingByRoom.getOrDefault(roomCode, Collections.emptyList());
-    if (pending.isEmpty()) return;
+    if (pending.isEmpty()) {
+      return;
+    }
 
     List<ChatMessage> batch = new ArrayList<>(pending);
     pending.clear();
@@ -67,7 +69,7 @@ public class ChatMessageQueue implements IChatMessageQueue {
 
   public synchronized boolean deleteMessageByUuid(String messageUuid) {
     boolean removedFromMemory = pendingByRoom.values().stream()
-            .anyMatch(list -> list.removeIf(m -> Objects.equals(m.getMessageUuid(), messageUuid)));
+      .anyMatch(list -> list.removeIf(m -> Objects.equals(m.getMessageUuid(), messageUuid)));
 
     boolean removedFromDb = chatMessageService.deleteMessageByUuid(messageUuid);
 
@@ -94,7 +96,7 @@ public class ChatMessageQueue implements IChatMessageQueue {
 
   public boolean isPending(String messageUuid) {
     return pendingByRoom.values().stream().anyMatch(list -> list.stream()
-            .anyMatch(m -> Objects.equals(m.getMessageUuid(), messageUuid)));
+      .anyMatch(m -> Objects.equals(m.getMessageUuid(), messageUuid)));
   }
 
 }

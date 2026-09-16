@@ -100,15 +100,23 @@ public class UserService implements UserDetailsService, IUserService {
     Optional<Friends> relation1 = friendsRepository.findByUserAndFriend(currentUser, user);
     if (relation1.isPresent()) {
       String status = relation1.get().getStatus();
-      if ("ACCEPTED".equalsIgnoreCase(status)) return "FRIEND";
-      if ("PENDING".equalsIgnoreCase(status)) return "REQUEST_SENT";
+      if ("ACCEPTED".equalsIgnoreCase(status)) {
+        return "FRIEND";
+      }
+      if ("PENDING".equalsIgnoreCase(status)) {
+        return "REQUEST_SENT";
+      }
     }
 
     Optional<Friends> relation2 = friendsRepository.findByUserAndFriend(user, currentUser);
     if (relation2.isPresent()) {
       String status = relation2.get().getStatus();
-      if ("ACCEPTED".equalsIgnoreCase(status)) return "FRIEND";
-      if ("PENDING".equalsIgnoreCase(status)) return "REQUEST_RECEIVED";
+      if ("ACCEPTED".equalsIgnoreCase(status)) {
+        return "FRIEND";
+      }
+      if ("PENDING".equalsIgnoreCase(status)) {
+        return "REQUEST_RECEIVED";
+      }
     }
 
     return "NONE";

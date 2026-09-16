@@ -24,9 +24,9 @@ public class ProfileController {
     try {
       UserProfileResponse resp = profileService.getProfile();
       return ResponseEntity.ok(Map.of(
-              "status", 200,
-              "message", "Profile fetched successfully",
-              "data", resp));
+        "status", 200,
+        "message", "Profile fetched successfully",
+        "data", resp));
     }
     catch (IllegalArgumentException e) {
       return ResponseEntity.badRequest().body(Map.of("status", 400, "message", e.getMessage()));
@@ -42,9 +42,9 @@ public class ProfileController {
     try {
       UserProfileResponse updated = profileService.updateProfile(dto);
       return ResponseEntity.ok(Map.of(
-              "status", 200,
-              "message", "Profile updated successfully",
-              "data", updated));
+        "status", 200,
+        "message", "Profile updated successfully",
+        "data", updated));
     }
     catch (IllegalArgumentException e) {
       return ResponseEntity.badRequest().body(Map.of("status", 400, "message", e.getMessage()));
@@ -60,9 +60,9 @@ public class ProfileController {
     try {
       UserProfileResponse updated = profileService.uploadAvatar(file);
       return ResponseEntity.ok(Map.of(
-              "status", 200,
-              "message", "Avatar uploaded successfully",
-              "data", updated
+        "status", 200,
+        "message", "Avatar uploaded successfully",
+        "data", updated
       ));
     }
     catch (IllegalArgumentException e) {
@@ -79,9 +79,9 @@ public class ProfileController {
     try {
       UserProfileResponse updated = profileService.uploadCoverPhoto(file);
       return ResponseEntity.ok(Map.of(
-              "status", 200,
-              "message", "Cover photo uploaded successfully",
-              "data", updated));
+        "status", 200,
+        "message", "Cover photo uploaded successfully",
+        "data", updated));
     }
     catch (IllegalArgumentException e) {
       return ResponseEntity.badRequest().body(Map.of("status", 400, "message", e.getMessage()));

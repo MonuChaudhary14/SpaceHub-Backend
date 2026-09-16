@@ -44,12 +44,12 @@ public class UserNameService implements IUserNameService {
     String subject = resolveSubject(userDetails);
 
     return Jwts.builder()
-        .claim("sub", subject)
-        .claim("passwordVersion", passwordVersion)
-        .claim("iat", nowMillis / 1000L)
-        .claim("exp", expMillis / 1000L)
-        .signWith(getSigningKey())
-        .compact();
+      .claim("sub", subject)
+      .claim("passwordVersion", passwordVersion)
+      .claim("iat", nowMillis / 1000L)
+      .claim("exp", expMillis / 1000L)
+      .signWith(getSigningKey())
+      .compact();
 
   }
 
@@ -58,20 +58,20 @@ public class UserNameService implements IUserNameService {
     long expMillis = nowMillis + 1000L * 60 * 5;
 
     return Jwts.builder()
-        .claim("sub", identifier)
-        .claim("purpose", "registration_session")
-        .claim("iat", nowMillis / 1000L)
-        .claim("exp", expMillis / 1000L)
-        .signWith(getSigningKey())
-        .compact();
+      .claim("sub", identifier)
+      .claim("purpose", "registration_session")
+      .claim("iat", nowMillis / 1000L)
+      .claim("exp", expMillis / 1000L)
+      .signWith(getSigningKey())
+      .compact();
   }
 
   public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
     Claims claims = Jwts.parser()
-        .verifyWith(getSigningKey())
-        .build()
-        .parseSignedClaims(token)
-        .getPayload();
+      .verifyWith(getSigningKey())
+      .build()
+      .parseSignedClaims(token)
+      .getPayload();
     return claimsResolver.apply(claims);
   }
 

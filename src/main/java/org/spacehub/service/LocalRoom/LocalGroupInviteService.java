@@ -51,28 +51,28 @@ public class LocalGroupInviteService implements ILocalGroupInviteService {
     }
 
     LocalGroupInvite invite = LocalGroupInvite.builder()
-            .localGroup(optionalGroup.get())
-            .inviterEmail(currentUserEmail)
-            .maxUses(request.getMaxUses())
-            .inviteCode(generateInviteCode())
-            .expiresAt(LocalDateTime.now().plusHours(request.getExpiresInHours()))
-            .createdAt(LocalDateTime.now())
-            .build();
+      .localGroup(optionalGroup.get())
+      .inviterEmail(currentUserEmail)
+      .maxUses(request.getMaxUses())
+      .inviteCode(generateInviteCode())
+      .expiresAt(LocalDateTime.now().plusHours(request.getExpiresInHours()))
+      .createdAt(LocalDateTime.now())
+      .build();
 
     inviteRepository.save(invite);
 
     String inviteLink = String.format("https://spacehub.monu14.me.localgroup/invite/%s/%s", groupId, invite.getInviteCode());
 
     LocalGroupInviteResponseDTO response = LocalGroupInviteResponseDTO.builder()
-            .inviteCode(invite.getInviteCode())
-            .inviteLink(inviteLink)
-            .groupId(groupId)
-            .inviterEmail(invite.getInviterEmail())
-            .maxUses(invite.getMaxUses())
-            .uses(invite.getUses())
-            .expiresAt(invite.getExpiresAt())
-            .status("ACTIVE")
-            .build();
+      .inviteCode(invite.getInviteCode())
+      .inviteLink(inviteLink)
+      .groupId(groupId)
+      .inviterEmail(invite.getInviterEmail())
+      .maxUses(invite.getMaxUses())
+      .uses(invite.getUses())
+      .expiresAt(invite.getExpiresAt())
+      .status("ACTIVE")
+      .build();
 
     return new ApiResponse<>(200, "Invite created successfully", response);
   }
@@ -180,7 +180,6 @@ public class LocalGroupInviteService implements ILocalGroupInviteService {
   }
 
 
-
   @Override
   public ApiResponse<List<LocalGroupInviteResponseDTO>> getGroupInvites(UUID groupId) {
     if (!groupRepository.existsById(groupId)) {
@@ -188,16 +187,16 @@ public class LocalGroupInviteService implements ILocalGroupInviteService {
     }
     List<LocalGroupInviteResponseDTO> invites = inviteRepository.findByLocalGroupId(groupId).stream()
       .map(invite -> LocalGroupInviteResponseDTO.builder()
-                    .inviteCode(invite.getInviteCode())
-                    .inviteLink("https://spacehub.monu14.me.localgroup/invite/" + groupId + "/" + invite.getInviteCode())
-                    .groupId(groupId)
-                    .inviterEmail(invite.getInviterEmail())
-                    .maxUses(invite.getMaxUses())
-                    .uses(invite.getUses())
-                    .expiresAt(invite.getExpiresAt())
-                    .status(invite.getExpiresAt().isBefore(LocalDateTime.now()) ? "EXPIRED" : "ACTIVE")
-                    .build())
-            .collect(Collectors.toList());
+        .inviteCode(invite.getInviteCode())
+        .inviteLink("https://spacehub.monu14.me.localgroup/invite/" + groupId + "/" + invite.getInviteCode())
+        .groupId(groupId)
+        .inviterEmail(invite.getInviterEmail())
+        .maxUses(invite.getMaxUses())
+        .uses(invite.getUses())
+        .expiresAt(invite.getExpiresAt())
+        .status(invite.getExpiresAt().isBefore(LocalDateTime.now()) ? "EXPIRED" : "ACTIVE")
+        .build())
+      .collect(Collectors.toList());
 
     return new ApiResponse<>(200, "Invites fetched successfully", invites);
   }

@@ -90,7 +90,7 @@ public class OTPService implements IOTPService {
   public long cooldownTime(String identifier, OtpType type) {
     String key = "OTP_COOLDOWN_" + type + "_" + identifier;
     Long liveTime = redisService.getLiveTime(key);
-    return (liveTime != null && liveTime > 0) ? liveTime : 0;
+    return liveTime != null && liveTime > 0 ? liveTime : 0;
   }
 
   public void saveTempOtp(String identifier, RegistrationRequest request) {
@@ -108,7 +108,9 @@ public class OTPService implements IOTPService {
     try {
       String key = "REGISTRATION_TEMP_" + identifier;
       String json = redisService.getValue(key);
-      if (json == null) return null;
+      if (json == null) {
+        return null;
+      }
       return objectMapper.readValue(json, RegistrationRequest.class);
     } catch (Exception e) {
       return null;
@@ -128,7 +130,9 @@ public class OTPService implements IOTPService {
   public long incrementOtpAttempts(String identifier, OtpType type) {
     String attemptKey = "OTP_ATTEMPTS_" + type + "_" + identifier;
     Long attempts = redisService.incrementValue(attemptKey);
-    if (attempts == 1) redisService.setExpiry(attemptKey, BLOCK_DURATION);
+    if (attempts == 1) {
+      redisService.setExpiry(attemptKey, BLOCK_DURATION);
+    }
     return attempts;
   }
 

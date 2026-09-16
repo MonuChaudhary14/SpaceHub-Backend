@@ -7,6 +7,6 @@ import lombok.Setter;
 @Setter
 public class NotificationUserRequest {
   private String scope = "global";
-  private int page = 0;
+  private int page;
   private int size = 20;
 }

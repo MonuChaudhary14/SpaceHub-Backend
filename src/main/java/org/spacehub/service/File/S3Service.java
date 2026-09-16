@@ -27,39 +27,39 @@ public class S3Service implements IS3Service {
 
   public void uploadFile(String key, InputStream inputStream, long contentLength) {
     PutObjectRequest request = PutObjectRequest.builder()
-            .bucket(bucketName)
-            .key(key)
-            .build();
+      .bucket(bucketName)
+      .key(key)
+      .build();
     s3Client.putObject(request, RequestBody.fromInputStream(inputStream, contentLength));
   }
 
   public void deleteFile(String key) {
     DeleteObjectRequest request = DeleteObjectRequest.builder()
-            .bucket(bucketName)
-            .key(key)
-            .build();
+      .bucket(bucketName)
+      .key(key)
+      .build();
     s3Client.deleteObject(request);
   }
 
   public String generatePresignedUploadUrl(String key, Duration duration) {
     PutObjectRequest request = PutObjectRequest.builder()
-            .bucket(bucketName)
-            .key(key)
-            .build();
+      .bucket(bucketName)
+      .key(key)
+      .build();
 
     PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
-            .signatureDuration(duration)
-            .putObjectRequest(request)
-            .build();
+      .signatureDuration(duration)
+      .putObjectRequest(request)
+      .build();
 
     return s3Presigner.presignPutObject(presignRequest).url().toString();
   }
 
   public String generatePresignedDownloadUrl(String key, Duration duration) {
     GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-            .getObjectRequest(b -> b.bucket(bucketName).key(key))
-            .signatureDuration(duration)
-            .build();
+      .getObjectRequest(b -> b.bucket(bucketName).key(key))
+      .signatureDuration(duration)
+      .build();
 
     return s3Presigner.presignGetObject(presignRequest).url().toString();
   }
@@ -71,9 +71,9 @@ public class S3Service implements IS3Service {
 
   public InputStream getFileStream(String key) {
     GetObjectRequest getReq = GetObjectRequest.builder()
-            .bucket(bucketName)
-            .key(key)
-            .build();
+      .bucket(bucketName)
+      .key(key)
+      .build();
 
     return s3Client.getObject(getReq, ResponseTransformer.toInputStream());
   }
@@ -81,9 +81,9 @@ public class S3Service implements IS3Service {
   public String getContentType(String key) {
     try {
       HeadObjectRequest headReq = HeadObjectRequest.builder()
-              .bucket(bucketName)
-              .key(key)
-              .build();
+        .bucket(bucketName)
+        .key(key)
+        .build();
       HeadObjectResponse headResp = s3Client.headObject(headReq);
       return headResp.contentType();
     }

@@ -24,9 +24,9 @@ public class RedisConfig {
     RedisStandaloneConfiguration redisConfig = new RedisStandaloneConfiguration(redisHost, redisPort);
 
     LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
-            .commandTimeout(Duration.ofSeconds(60))
-            .shutdownTimeout(Duration.ofSeconds(10))
-            .build();
+      .commandTimeout(Duration.ofSeconds(60))
+      .shutdownTimeout(Duration.ofSeconds(10))
+      .build();
 
     return new LettuceConnectionFactory(redisConfig, clientConfig);
   }

@@ -15,8 +15,10 @@ import java.util.UUID;
 public interface LocalGroupRepository extends JpaRepository<LocalGroup, UUID> {
   Page<LocalGroup> findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCase(
     String name, String description, Pageable pageable);
+
   @Query("SELECT lg FROM LocalGroup lg LEFT JOIN FETCH lg.createdBy LEFT JOIN FETCH lg.members")
   List<LocalGroup> findAllWithCreatorAndMembers();
+
   List<LocalGroup> findAllByCreatedBy(User user);
 
   @Query("SELECT g FROM LocalGroup g JOIN g.members m WHERE m = :user AND g.createdBy != :user")

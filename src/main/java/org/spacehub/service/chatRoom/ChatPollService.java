@@ -30,9 +30,11 @@ public class ChatPollService implements IChatPollService {
     ChatRoom room = chatRoomService.findByRoomCode(UUID.fromString(roomCode)).orElseThrow(() -> new RuntimeException("Room not found"));
 
     boolean checkAccess = chatRoomUserService.getMembers(room).stream().anyMatch(member -> member.getEmail().equals(email) &&
-                    (member.getRole() == Role.ADMIN || member.getRole() == Role.WORKSPACE_OWNER));
+      (member.getRole() == Role.ADMIN || member.getRole() == Role.WORKSPACE_OWNER));
 
-    if (!checkAccess) throw new RuntimeException("Permission denied");
+    if (!checkAccess) {
+      throw new RuntimeException("Permission denied");
+    }
 
     String question = (String) body.get("question");
     Object optionsObj = body.get("options");
@@ -48,11 +50,11 @@ public class ChatPollService implements IChatPollService {
 
 
     ChatPoll poll = ChatPoll.builder()
-            .room(room)
-            .question(question)
-            .options(options)
-            .timestamp(System.currentTimeMillis())
-            .build();
+      .room(room)
+      .question(question)
+      .options(options)
+      .timestamp(System.currentTimeMillis())
+      .build();
 
     return pollRepository.save(poll);
   }
@@ -81,8 +83,7 @@ public class ChatPollService implements IChatPollService {
     if (existingVote.isPresent()) {
       vote = existingVote.get();
       vote.setOptionIndex(optionIndex);
-    }
-    else {
+    } else {
       vote = ChatVote.builder().poll(poll).email(email).optionIndex(optionIndex).build();
     }
     voteRepository.save(vote);

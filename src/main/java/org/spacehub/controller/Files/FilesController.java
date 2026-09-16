@@ -48,7 +48,7 @@ public class FilesController {
     String key = s3Service.generateFileKey(filename);
     String uploadUrl = s3Service.generatePresignedUploadUrl(key, Duration.ofMinutes(10));
     return ResponseEntity.ok(new ApiResponse<>(200, "Chat presigned upload URL generated",
-            Map.of("uploadUrl", uploadUrl, "key", key)));
+      Map.of("uploadUrl", uploadUrl, "key", key)));
   }
 
   @GetMapping("/download")
@@ -84,10 +84,10 @@ public class FilesController {
     String fileUrl = s3Service.generatePresignedDownloadUrl(key, Duration.ofMinutes(10));
 
     Map<String, String> response = Map.of(
-            "fileName", Objects.requireNonNull(file.getOriginalFilename()),
-            "fileKey", key,
-            "fileUrl", fileUrl,
-            "contentType", Objects.requireNonNull(file.getContentType()));
+      "fileName", Objects.requireNonNull(file.getOriginalFilename()),
+      "fileKey", key,
+      "fileUrl", fileUrl,
+      "contentType", Objects.requireNonNull(file.getContentType()));
 
     return ResponseEntity.ok(new ApiResponse<>(200, "File uploaded successfully", response));
   }
@@ -99,14 +99,14 @@ public class FilesController {
       InputStreamResource resource = new InputStreamResource(is);
 
       String contentType = s3ServiceImpl.getContentType(key);
-      MediaType mediaType = (contentType != null) ? MediaType.parseMediaType(contentType) : MediaType.APPLICATION_OCTET_STREAM;
+      MediaType mediaType = contentType != null ? MediaType.parseMediaType(contentType) : MediaType.APPLICATION_OCTET_STREAM;
 
       String disposition = "attachment; filename=\"" + key.substring(Math.max(key.lastIndexOf('/') + 1, 0)) + "\"";
 
       return ResponseEntity.ok()
-              .header(HttpHeaders.CONTENT_DISPOSITION, disposition)
-              .contentType(mediaType)
-              .body(resource);
+        .header(HttpHeaders.CONTENT_DISPOSITION, disposition)
+        .contentType(mediaType)
+        .body(resource);
 
     }
     catch (Exception e) {

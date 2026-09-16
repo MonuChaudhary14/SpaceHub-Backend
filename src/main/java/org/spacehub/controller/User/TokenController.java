@@ -27,23 +27,23 @@ public class TokenController {
 
   @PostMapping("/refresh")
   public ResponseEntity<ApiResponse<TokenResponse>> refresh(HttpServletRequest httpRequest,
-      @RequestBody RefreshRequest req) {
+                                                            @RequestBody RefreshRequest req) {
     if (req == null || req.getRefreshToken() == null) {
       return ResponseEntity.status(400).body(new ApiResponse<>(400, "Refresh token required",
-          null));
+        null));
     }
 
     var opt = refreshTokenRepository.findByToken(req.getRefreshToken());
     if (opt.isEmpty()) {
       return ResponseEntity.status(401).body(new ApiResponse<>(401, "Invalid refresh token",
-          null));
+        null));
     }
 
     var refreshToken = opt.get();
     if (refreshToken.getExpiresAt().isBefore(Instant.now())) {
       refreshTokenRepository.delete(refreshToken);
       return ResponseEntity.status(401).body(new ApiResponse<>(401, "Refresh token expired",
-          null));
+        null));
     }
 
     User user = refreshToken.getUser();
@@ -54,25 +54,25 @@ public class TokenController {
     ResponseCookie cookie = buildAccessTokenCookie(httpRequest, accessToken, 24 * 60 * 60);
 
     return ResponseEntity.ok()
-        .header(HttpHeaders.SET_COOKIE, cookie.toString())
-        .body(new ApiResponse<>(200, "Token refreshed", tokens));
+      .header(HttpHeaders.SET_COOKIE, cookie.toString())
+      .body(new ApiResponse<>(200, "Token refreshed", tokens));
   }
 
   private ResponseCookie buildAccessTokenCookie(HttpServletRequest request, String value, long maxAgeSeconds) {
     ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from("accessToken", value)
-        .httpOnly(true)
-        .path("/")
-        .maxAge(maxAgeSeconds);
+      .httpOnly(true)
+      .path("/")
+      .maxAge(maxAgeSeconds);
 
     if (isLocalDevelopment(request)) {
       return builder.secure(false)
-          .sameSite("Lax")
-          .build();
+        .sameSite("Lax")
+        .build();
     }
 
     return builder.secure(true)
-        .sameSite("None")
-        .build();
+      .sameSite("None")
+      .build();
   }
 
   private boolean isLocalDevelopment(HttpServletRequest request) {
@@ -83,7 +83,7 @@ public class TokenController {
 
     String host = request.getServerName();
     return "localhost".equalsIgnoreCase(host)
-        || "127.0.0.1".equals(host)
-        || "::1".equals(host);
+      || "127.0.0.1".equals(host)
+      || "::1".equals(host);
   }
 }
