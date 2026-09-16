@@ -22,9 +22,9 @@ import org.spacehub.repository.community.CommunityUserRepository;
 import org.spacehub.repository.friend.FriendsRepository;
 import org.spacehub.repository.localgroup.LocalGroupRepository;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -43,16 +43,26 @@ public class DataInitializer implements CommandLineRunner {
   private final MessageRepository messageRepository;
   private final NotificationRepository notificationRepository;
   private final PasswordEncoder passwordEncoder;
+  private final JdbcTemplate jdbcTemplate;
 
   @Override
-  @Transactional
   public void run(String... args) {
     try {
       log.info("Checking database for mock data seeding with rich media...");
+      dropLegacyCheckConstraints();
       initMockData();
       log.info("Mock data initialization completed successfully.");
     } catch (Exception e) {
       log.warn("Mock data seeding encountered an issue (continuing startup): {}", e.getMessage());
+    }
+  }
+
+  private void dropLegacyCheckConstraints() {
+    try {
+      jdbcTemplate.execute("ALTER TABLE community_user DROP CONSTRAINT IF EXISTS community_user_role_check");
+      jdbcTemplate.execute("ALTER TABLE chat_room_user DROP CONSTRAINT IF EXISTS chat_room_user_role_check");
+    } catch (Exception e) {
+      log.warn("Could not drop legacy role check constraints: {}", e.getMessage());
     }
   }
 
