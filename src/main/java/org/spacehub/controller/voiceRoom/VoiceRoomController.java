@@ -6,7 +6,7 @@ import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.VoiceRoom.VoiceRoom;
 import org.spacehub.repository.ChatRoom.ChatRoomRepository;
 import org.spacehub.service.Interface.IVoiceRoomService;
-import org.spacehub.service.VoiceRoom.JanusService;
+import org.spacehub.service.VoiceRoom.LiveKitTokenService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
@@ -23,52 +23,69 @@ public class VoiceRoomController {
 
   private static final Logger logger = LoggerFactory.getLogger(VoiceRoomController.class);
 
-  private final JanusService janusService;
+  private final LiveKitTokenService liveKitTokenService;
   private final IVoiceRoomService voiceRoomService;
   private final ChatRoomRepository chatRoomRepository;
 
-  @PostMapping("/create")
-  public ResponseEntity<?> createVoiceRoom(
-    @RequestParam UUID chatRoomId,
-    @RequestParam String roomName) {
+  @PostMapping("/token")
+  public ResponseEntity<?> getLiveKitToken(
+    @RequestParam String roomCode,
+    @RequestParam(required = false) String identity,
+    @RequestParam(required = false) String displayName) {
 
     try {
-      ChatRoom chatRoom = chatRoomRepository.findById(chatRoomId)
-        .orElseThrow(() -> new RuntimeException("ChatRoom not found with ID: " + chatRoomId));
+      String userEmail = identity != null && !identity.isBlank()
+        ? identity
+        : org.spacehub.utils.SecurityUtils.getCurrentUserEmail();
 
-      VoiceRoom voiceRoom = voiceRoomService.createVoiceRoom(chatRoom, roomName);
-
-      VoiceRoomDTO voiceRoomDTO = new VoiceRoomDTO(voiceRoom);
+      String token = liveKitTokenService.createToken(roomCode, userEmail, displayName != null ? displayName : userEmail);
 
       return ResponseEntity.ok(Map.of(
-        "message", "Voice room created successfully",
-        "voiceRoom", voiceRoomDTO
+        "token", token,
+        "serverUrl", liveKitTokenService.getLivekitUrl(),
+        "roomCode", roomCode,
+        "identity", userEmail,
+        "displayName", displayName != null ? displayName : userEmail
       ));
     } catch (Exception e) {
-      logger.error("Error creating voice room: {}", e.getMessage(), e);
+      logger.error("Error generating LiveKit token: {}", e.getMessage(), e);
       return ResponseEntity.status(500)
-        .body(Map.of("error", "Failed to create voice room", "message", e.getMessage()));
+        .body(Map.of("error", "Failed to generate LiveKit token", "message", e.getMessage()));
     }
+  }
+
+  @GetMapping("/token")
+  public ResponseEntity<?> getLiveKitTokenGet(
+    @RequestParam String roomCode,
+    @RequestParam(required = false) String identity,
+    @RequestParam(required = false) String displayName) {
+    return getLiveKitToken(roomCode, identity, displayName);
   }
 
   @PostMapping("/join")
   public ResponseEntity<?> joinVoiceRoom(
-    @RequestParam int janusRoomId,
-    @RequestParam String displayName) {
+    @RequestParam(required = false) String roomCode,
+    @RequestParam(required = false, defaultValue = "0") int janusRoomId,
+    @RequestParam(required = false) String displayName) {
 
     try {
-      String sessionId = janusService.createSession();
-      String handleId = janusService.attachAudioBridgePlugin(sessionId);
-      janusService.joinAudioRoom(sessionId, handleId, janusRoomId, displayName);
+      String roomName = (roomCode != null && !roomCode.isBlank()) ? roomCode : "room_" + janusRoomId;
+      String userEmail = org.spacehub.utils.SecurityUtils.getCurrentUserEmail();
+      if (userEmail == null || userEmail.isBlank()) {
+        userEmail = displayName != null ? displayName : "guest";
+      }
+
+      String token = liveKitTokenService.createToken(roomName, userEmail, displayName != null ? displayName : userEmail);
 
       return ResponseEntity.ok(Map.of(
         "message", "Joined voice room successfully",
+        "token", token,
+        "serverUrl", liveKitTokenService.getLivekitUrl(),
+        "roomCode", roomName,
         "janusRoomId", janusRoomId,
-        "sessionId", sessionId,
-        "handleId", handleId
+        "identity", userEmail
       ));
-    }
-    catch (Exception e) {
+    } catch (Exception e) {
       logger.error("Error joining voice room: {}", e.getMessage(), e);
       return ResponseEntity.status(500)
         .body(Map.of("error", "Failed to join voice room", "message", e.getMessage()));

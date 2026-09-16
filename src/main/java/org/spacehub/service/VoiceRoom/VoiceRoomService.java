@@ -19,7 +19,6 @@ public class VoiceRoomService implements IVoiceRoomService {
 
   private static final Logger logger = LoggerFactory.getLogger(VoiceRoomService.class);
 
-  private final JanusService janusService;
   private final VoiceRoomRepository voiceRoomRepository;
 
   @Transactional
@@ -29,25 +28,22 @@ public class VoiceRoomService implements IVoiceRoomService {
       throw new IllegalStateException("Voice room '" + name + "' already exists in this group");
     });
 
-    String sessionId = janusService.createSession();
-    String handleId = janusService.attachAudioBridgePlugin(sessionId);
-    int janusRoomId = 1000 + new Random().nextInt(9000);
-
-    janusService.createAudioRoom(sessionId, handleId, janusRoomId);
+    int roomIdNumeric = 1000 + new Random().nextInt(900000);
+    String roomCode = "vr_" + (chatRoom != null ? chatRoom.getId() : "global") + "_" + System.currentTimeMillis();
 
     VoiceRoom voiceRoom = VoiceRoom.builder()
-      .janusRoomId(janusRoomId)
+      .janusRoomId(roomIdNumeric)
       .name(name)
       .createdBy(createdBy)
       .chatRoom(chatRoom)
       .active(true)
-      .roomCode(String.valueOf(janusRoomId))
+      .roomCode(roomCode)
       .build();
 
     voiceRoomRepository.save(voiceRoom);
 
-    logger.info("Created voice room '{}' (janusId={}) for chatRoom '{}'",
-      name, janusRoomId, chatRoom.getName());
+    logger.info("Created LiveKit voice/video room '{}' (roomCode={}) for chatRoom '{}'",
+      name, roomCode, chatRoom != null ? chatRoom.getName() : "none");
 
     return voiceRoom;
   }
