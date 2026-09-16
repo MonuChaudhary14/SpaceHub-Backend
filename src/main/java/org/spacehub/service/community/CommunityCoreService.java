@@ -180,7 +180,7 @@ public class CommunityCoreService {
         long memberCount = 0;
         if (c != null) {
           memberCount = c.getCommunityUsers().stream()
-            .filter(cu -> cu.getRole() == Role.MEMBER || cu.getRole() == Role.ADMIN || cu.getRole() == Role.WORKSPACE_OWNER)
+            .filter(cu -> cu.getRole() != null)
             .filter(cu -> !cu.isBlocked() && !cu.isBanned())
             .map(CommunityUser::getUser)
             .filter(Objects::nonNull)
@@ -230,9 +230,10 @@ public class CommunityCoreService {
       }
 
       Role role = communityUser.getRole();
-      boolean isAdmin = role == Role.ADMIN;
-      boolean isWorkspaceOwner = role == Role.WORKSPACE_OWNER;
       boolean isCreator = community.getCreatedBy() != null && community.getCreatedBy().getId().equals(requester.getId());
+      boolean isOwner = role == Role.OWNER || isCreator;
+      boolean isAdmin = role == Role.ADMIN;
+      boolean isModerator = role == Role.MODERATOR;
 
       List<ChatRoom> rooms = chatRoomRepository.findByCommunityId(communityId);
       Map<String, Object> response = new HashMap<>();
@@ -252,8 +253,9 @@ public class CommunityCoreService {
       }
       response.put("members", members);
       response.put("role", role.toString());
+      response.put("isOwner", isOwner);
       response.put("isAdmin", isAdmin);
-      response.put("isWorkspaceOwner", isWorkspaceOwner);
+      response.put("isModerator", isModerator);
       response.put("isCreator", isCreator);
 
       return ResponseEntity.ok(new ApiResponse<>(200, "Community details fetched successfully", response));
@@ -392,7 +394,7 @@ public class CommunityCoreService {
       m.put("isBanned", false);
     }
 
-    List<Role> rolesToCount = List.of(Role.MEMBER, Role.ADMIN, Role.WORKSPACE_OWNER);
+    List<Role> rolesToCount = List.of(Role.MEMBER, Role.MODERATOR, Role.ADMIN, Role.OWNER);
     long memberCount = communityUserRepository.countByCommunityIdAndRoleInAndIsBannedFalseAndIsBlockedFalse(c.getId(), rolesToCount);
     m.put("memberCount", memberCount);
 
@@ -436,7 +438,7 @@ public class CommunityCoreService {
     CommunityUser admin = new CommunityUser();
     admin.setCommunity(community);
     admin.setUser(creator);
-    admin.setRole(Role.ADMIN);
+    admin.setRole(Role.OWNER);
     admin.setJoinDate(LocalDateTime.now());
     admin.setBlocked(false);
     admin.setBanned(false);
@@ -485,7 +487,7 @@ public class CommunityCoreService {
   private boolean canUpdateCommunity(Community community, User requester) {
     Role requesterRole = getUserRoleInCommunity(community, requester);
     return community.getCreatedBy().getId().equals(requester.getId()) ||
-      requesterRole == Role.WORKSPACE_OWNER ||
+      requesterRole == Role.OWNER ||
       requesterRole == Role.ADMIN;
   }
 
@@ -517,7 +519,7 @@ public class CommunityCoreService {
         m.put("communityId", c.getId());
         m.put("name", c.getName());
         m.put("description", c.getDescription());
-        m.put("role", isCreator ? "ADMIN" : "MEMBER");
+        m.put("role", isCreator ? "OWNER" : "MEMBER");
         String mainKey = c.getImageUrl() != null && !c.getImageUrl().isBlank() ? c.getImageUrl() : c.getAvatarUrl();
         if (mainKey == null || mainKey.isBlank()) {
           mainKey = c.getBannerUrl();

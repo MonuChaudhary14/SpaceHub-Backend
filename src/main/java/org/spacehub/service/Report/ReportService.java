@@ -104,7 +104,7 @@ public class ReportService implements IReportService {
     String chatRoomCode = report.getChatRoomCode();
 
     Set<User> owners = community.getCommunityUsers().stream()
-      .filter(cu -> cu.getRole() == Role.WORKSPACE_OWNER && !cu.isBlocked() && !cu.isBanned())
+      .filter(cu -> cu.getRole() == Role.OWNER && !cu.isBlocked() && !cu.isBanned())
       .map(CommunityUser::getUser)
       .collect(Collectors.toSet());
 
@@ -138,7 +138,7 @@ public class ReportService implements IReportService {
         .email(user.getEmail())
         .senderEmail(reporter)
         .type(NotificationType.SYSTEM_UPDATE)
-        .title(isOwner ? "Message reported in your workspace" : "ChatRoom message reported")
+        .title(isOwner ? "Message reported in your community" : "ChatRoom message reported")
         .message(isOwner ?
           "A message in chat room `" + chatRoomCode + "` was reported by " + reporter +
             ". Please review it."

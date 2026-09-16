@@ -97,11 +97,12 @@ public class CommunityMemberRoleService {
       Role targetRole = getUserRoleInCommunity(community, target);
       Role newRole = Role.valueOf(request.getNewRole().toUpperCase());
 
-      if (!community.getCreatedBy().getId().equals(requester.getId())) {
-        throw new SecurityException("Only the community creator can change roles");
+      boolean isCreator = community.getCreatedBy() != null && community.getCreatedBy().getId().equals(requester.getId());
+      if (!isCreator && requesterRole != Role.OWNER && requesterRole != Role.ADMIN) {
+        throw new SecurityException("Only the community owner or admins can change roles");
       }
 
-      if (!canChangeRole(requesterRole, targetRole, newRole)) {
+      if (!canChangeRole(isCreator, requesterRole, targetRole, newRole)) {
         return ResponseEntity.status(403).body(new ApiResponse<>(403, "You do not have permission to change this user's role", null));
       }
 
@@ -176,10 +177,11 @@ public class CommunityMemberRoleService {
       CommunityUser tarCU = communityUserRepository.findByCommunityIdAndUserId(community.getId(), target.getId())
         .orElseThrow(() -> new RuntimeException("Target is not a member of this community"));
 
+      boolean isCreator = community.getCreatedBy() != null && community.getCreatedBy().getId().equals(requester.getId());
       Role requesterRole = reqCU.getRole();
       Role targetRole = tarCU.getRole();
 
-      if (!canRequesterBlockTarget(requesterRole, targetRole)) {
+      if (!canRequesterBlockTarget(isCreator, requesterRole, targetRole)) {
         return ResponseEntity.status(403)
           .body(new ApiResponse<>(403, "You do not have permission to block or unblock this user", null));
       }
@@ -213,13 +215,15 @@ public class CommunityMemberRoleService {
         return ResponseEntity.status(403).body(new ApiResponse<>(403, "You are not a member of this community", null));
       }
 
+      boolean isCreator = community.getCreatedBy() != null && community.getCreatedBy().getId().equals(requester.getId());
       Role role = cuOpt.get().getRole();
       Map<String, Object> roleInfo = new HashMap<>();
       roleInfo.put("role", role.toString());
+      roleInfo.put("isOwner", role == Role.OWNER || isCreator);
       roleInfo.put("isAdmin", role == Role.ADMIN);
-      roleInfo.put("isWorkspaceOwner", role == Role.WORKSPACE_OWNER);
+      roleInfo.put("isModerator", role == Role.MODERATOR);
       roleInfo.put("isMember", role == Role.MEMBER);
-      roleInfo.put("isCreator", community.getCreatedBy() != null && community.getCreatedBy().getId().equals(requester.getId()));
+      roleInfo.put("isCreator", isCreator);
 
       return ResponseEntity.ok(new ApiResponse<>(200, "Role details fetched successfully", roleInfo));
     } catch (RuntimeException e) {
@@ -229,20 +233,27 @@ public class CommunityMemberRoleService {
     }
   }
 
-  private boolean canRequesterBlockTarget(Role requesterRole, Role targetRole) {
-    return switch (requesterRole) {
-      case ADMIN -> true;
-      case WORKSPACE_OWNER -> targetRole == Role.MEMBER;
-      default -> false;
-    };
+  private boolean canRequesterBlockTarget(boolean isCreator, Role requesterRole, Role targetRole) {
+    if (isCreator || requesterRole == Role.OWNER) {
+      return targetRole != Role.OWNER;
+    }
+    if (requesterRole == Role.ADMIN) {
+      return targetRole == Role.MODERATOR || targetRole == Role.MEMBER;
+    }
+    if (requesterRole == Role.MODERATOR) {
+      return targetRole == Role.MEMBER;
+    }
+    return false;
   }
 
-  private boolean canChangeRole(Role requesterRole, Role targetRole, Role newRole) {
-    return switch (requesterRole) {
-      case ADMIN -> true;
-      case WORKSPACE_OWNER -> (targetRole == Role.MEMBER && newRole == Role.WORKSPACE_OWNER);
-      default -> false;
-    };
+  private boolean canChangeRole(boolean isCreator, Role requesterRole, Role targetRole, Role newRole) {
+    if (isCreator || requesterRole == Role.OWNER) {
+      return targetRole != Role.OWNER;
+    }
+    if (requesterRole == Role.ADMIN) {
+      return (targetRole == Role.MODERATOR || targetRole == Role.MEMBER) && (newRole == Role.MODERATOR || newRole == Role.MEMBER);
+    }
+    return false;
   }
 
   private Role getUserRoleInCommunity(Community community, User user) {
@@ -263,27 +274,32 @@ public class CommunityMemberRoleService {
   private ResponseEntity<ApiResponse<String>> checkRemovalPermissions(
     Community community, CommunityUser requesterCU, CommunityUser targetCU) {
 
-    boolean isCreator = community.getCreatedBy().getId().equals(requesterCU.getUser().getId());
+    boolean isCreator = community.getCreatedBy() != null && community.getCreatedBy().getId().equals(requesterCU.getUser().getId());
     Role reqRole = requesterCU.getRole();
     Role tarRole = targetCU.getRole();
 
-    if (isCreator) {
+    if (isCreator || reqRole == Role.OWNER) {
+      if (tarRole == Role.OWNER && !isCreator) {
+        return ResponseEntity.status(403).body(new ApiResponse<>(403, "Cannot remove another community owner", null));
+      }
       return null;
     }
 
-    if (reqRole == Role.WORKSPACE_OWNER && tarRole == Role.WORKSPACE_OWNER) {
-      return ResponseEntity.status(403).body(new ApiResponse<>(403, "Cannot remove another workspace owner", null));
+    if (reqRole == Role.ADMIN) {
+      if (tarRole == Role.OWNER || tarRole == Role.ADMIN) {
+        return ResponseEntity.status(403).body(new ApiResponse<>(403, "Admins cannot remove Owners or other Admins", null));
+      }
+      return null;
     }
 
-    if (reqRole == Role.ADMIN && (tarRole == Role.ADMIN || tarRole == Role.WORKSPACE_OWNER)) {
-      return ResponseEntity.status(403).body(new ApiResponse<>(403, "Admins can only remove members, not other admins or workspace owners", null));
+    if (reqRole == Role.MODERATOR) {
+      if (tarRole != Role.MEMBER) {
+        return ResponseEntity.status(403).body(new ApiResponse<>(403, "Moderators can only remove regular members", null));
+      }
+      return null;
     }
 
-    if (reqRole == Role.MEMBER) {
-      return ResponseEntity.status(403).body(new ApiResponse<>(403, "You do not have permission to remove this member", null));
-    }
-
-    return null;
+    return ResponseEntity.status(403).body(new ApiResponse<>(403, "You do not have permission to remove this member", null));
   }
 
   private void performRemoval(Community community, User target, CommunityUser targetCU) {

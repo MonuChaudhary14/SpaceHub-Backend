@@ -261,9 +261,9 @@ public class DataInitializer implements CommandLineRunner {
       monu,
       "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80",
       List.of(
-        new MemberRole(monu, Role.ADMIN),
-        new MemberRole(alex, Role.WORKSPACE_OWNER),
-        new MemberRole(sarah, Role.MEMBER),
+        new MemberRole(monu, Role.OWNER),
+        new MemberRole(alex, Role.ADMIN),
+        new MemberRole(sarah, Role.MODERATOR),
         new MemberRole(marcus, Role.MEMBER)
       ),
       List.of("announcements", "general", "dev-chat", "architecture-lounge")
@@ -275,9 +275,9 @@ public class DataInitializer implements CommandLineRunner {
       alex,
       "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=800&q=80",
       List.of(
-        new MemberRole(alex, Role.ADMIN),
-        new MemberRole(monu, Role.WORKSPACE_OWNER),
-        new MemberRole(marcus, Role.MEMBER)
+        new MemberRole(alex, Role.OWNER),
+        new MemberRole(monu, Role.ADMIN),
+        new MemberRole(marcus, Role.MODERATOR)
       ),
       List.of("kafka-streams", "webrtc-janus", "system-design", "whitepapers")
     );
@@ -288,9 +288,9 @@ public class DataInitializer implements CommandLineRunner {
       sarah,
       "https://images.unsplash.com/photo-1558655146-d09347e92766?auto=format&fit=crop&w=800&q=80",
       List.of(
-        new MemberRole(sarah, Role.ADMIN),
-        new MemberRole(monu, Role.MEMBER),
-        new MemberRole(alex, Role.MEMBER)
+        new MemberRole(sarah, Role.OWNER),
+        new MemberRole(monu, Role.ADMIN),
+        new MemberRole(alex, Role.MODERATOR)
       ),
       List.of("design-critique", "prototypes", "theme-engine")
     );
@@ -340,6 +340,12 @@ public class DataInitializer implements CommandLineRunner {
         cu.setBlocked(false);
         cu.setBanned(false);
         communityUserRepository.save(cu);
+      } else {
+        CommunityUser cu = cuOpt.get();
+        if (cu.getRole() != mr.role()) {
+          cu.setRole(mr.role());
+          communityUserRepository.save(cu);
+        }
       }
     }
 

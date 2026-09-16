@@ -2,8 +2,9 @@ package org.spacehub.entities.Community;
 
 public enum Role {
 
+  OWNER,
   ADMIN,
-  WORKSPACE_OWNER,
+  MODERATOR,
   MEMBER
 
 }

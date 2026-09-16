@@ -88,7 +88,7 @@ public class ChatRoomService implements IChatRoomService {
     }
 
     Role role = userOpt.get().getRole();
-    if (role != Role.ADMIN && role != Role.WORKSPACE_OWNER) {
+    if (role != Role.ADMIN && role != Role.OWNER) {
       return new ApiResponse<>(403, "You are not authorized to delete this room", null);
     }
 
@@ -141,9 +141,9 @@ public class ChatRoomService implements IChatRoomService {
     }
 
     assert ctx != null;
-    if (ctx.requesterRole == Role.WORKSPACE_OWNER) {
-      if (ctx.targetRole == Role.WORKSPACE_OWNER) {
-        return new ApiResponse<>(403, "A Workspace Owner cannot remove another Workspace Owner.", null);
+    if (ctx.requesterRole == Role.OWNER) {
+      if (ctx.targetRole == Role.OWNER) {
+        return new ApiResponse<>(403, "An Owner cannot remove another Owner.", null);
       }
       chatRoomUserService.removeUserFromRoom(room, requestDTO.getTargetEmail());
       return new ApiResponse<>(200, "Member removed successfully",
@@ -151,8 +151,17 @@ public class ChatRoomService implements IChatRoomService {
     }
 
     if (ctx.requesterRole == Role.ADMIN) {
-      if (ctx.targetRole == Role.WORKSPACE_OWNER || ctx.targetRole == Role.ADMIN) {
-        return new ApiResponse<>(403, "An Admin cannot remove another Admin or a Workspace Owner.", null);
+      if (ctx.targetRole == Role.OWNER || ctx.targetRole == Role.ADMIN) {
+        return new ApiResponse<>(403, "An Admin cannot remove an Owner or another Admin.", null);
+      }
+      chatRoomUserService.removeUserFromRoom(room, requestDTO.getTargetEmail());
+      return new ApiResponse<>(200, "Member removed successfully",
+        "User " + ctx.target.getEmail() + " removed from room " + room.getRoomCode());
+    }
+
+    if (ctx.requesterRole == Role.MODERATOR) {
+      if (ctx.targetRole != Role.MEMBER) {
+        return new ApiResponse<>(403, "A Moderator can only remove Members.", null);
       }
       chatRoomUserService.removeUserFromRoom(room, requestDTO.getTargetEmail());
       return new ApiResponse<>(200, "Member removed successfully",
@@ -183,17 +192,19 @@ public class ChatRoomService implements IChatRoomService {
     }
 
     assert ctx != null;
-    if (ctx.requesterRole == Role.ADMIN) {
+    if (ctx.requesterRole == Role.OWNER) {
+      if (ctx.targetRole == Role.OWNER) {
+        return new ApiResponse<>(403, "Cannot change role of another Owner", null);
+      }
       ctx.target.setRole(requestDTO.getNewRole());
       chatRoomUserService.saveUser(ctx.target);
       return new ApiResponse<>(200, "Role updated successfully, User " + ctx.target.getEmail()
         + " is now " + ctx.target.getRole());
     }
 
-    if (ctx.requesterRole == Role.WORKSPACE_OWNER) {
-      if (ctx.targetRole == Role.ADMIN || ctx.targetRole == Role.WORKSPACE_OWNER) {
-        return new ApiResponse<>(403,
-          "Workspace owner cannot change the role of Admin or another Workspace Owner", null);
+    if (ctx.requesterRole == Role.ADMIN) {
+      if (ctx.targetRole == Role.OWNER || ctx.targetRole == Role.ADMIN) {
+        return new ApiResponse<>(403, "Admin cannot change the role of Owner or another Admin", null);
       }
       ctx.target.setRole(requestDTO.getNewRole());
       chatRoomUserService.saveUser(ctx.target);

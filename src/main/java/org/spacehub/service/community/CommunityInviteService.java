@@ -70,10 +70,10 @@ public class CommunityInviteService implements ICommunityInviteService {
     }
 
     Role role = membership != null ? membership.getRole() : Role.MEMBER;
-    boolean hasPermission = isCreator || (role == Role.ADMIN || role == Role.WORKSPACE_OWNER);
+    boolean hasPermission = isCreator || (role == Role.OWNER || role == Role.ADMIN || role == Role.MODERATOR);
 
     if (!hasPermission) {
-      return new ApiResponse<>(403, "Only admins or owners can create invites", null);
+      return new ApiResponse<>(403, "Only community owners, admins, or moderators can create invites", null);
     }
 
     int maxUses = request != null && request.getMaxUses() > 0 ? request.getMaxUses() : 10;

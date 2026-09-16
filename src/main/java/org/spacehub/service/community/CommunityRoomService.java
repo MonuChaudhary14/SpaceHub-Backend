@@ -54,7 +54,7 @@ public class CommunityRoomService {
       }
 
       if (!canCreateRoom(community, requester, communityUser.getRole())) {
-        return forbidden("Only admins or workspace owners can create rooms");
+        return forbidden("Only owners or admins can create rooms");
       }
 
       if (request.getRoomName() == null || request.getRoomName().isBlank()) {
@@ -175,10 +175,10 @@ public class CommunityRoomService {
         .orElseThrow(() -> new RuntimeException("You are not a member of this community"));
 
       Role role = communityUser.getRole();
-      boolean canDelete = role == Role.ADMIN || role == Role.WORKSPACE_OWNER
+      boolean canDelete = role == Role.ADMIN || role == Role.OWNER
         || (community.getCreatedBy() != null && community.getCreatedBy().getId().equals(requester.getId()));
       if (!canDelete) {
-        return forbidden("Only admins can delete rooms");
+        return forbidden("Only owners or admins can delete rooms");
       }
 
       chatRoomRepository.delete(room);
@@ -209,7 +209,7 @@ public class CommunityRoomService {
       }
 
       if (!canCreateRoom(community, requester, communityUser.getRole())) {
-        return forbidden("Only admins or workspace owners can rename rooms");
+        return forbidden("Only owners or admins can rename rooms");
       }
 
       ChatRoom room = chatRoomRepository.findById(roomId)
@@ -245,7 +245,7 @@ public class CommunityRoomService {
   }
 
   private boolean canCreateRoom(Community community, User requester, Role role) {
-    return role == Role.ADMIN || role == Role.WORKSPACE_OWNER ||
+    return role == Role.ADMIN || role == Role.OWNER ||
       (community.getCreatedBy() != null && community.getCreatedBy().getId().equals(requester.getId()));
   }
 

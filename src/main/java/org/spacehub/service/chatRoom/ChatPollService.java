@@ -30,7 +30,7 @@ public class ChatPollService implements IChatPollService {
     ChatRoom room = chatRoomService.findByRoomCode(UUID.fromString(roomCode)).orElseThrow(() -> new RuntimeException("Room not found"));
 
     boolean checkAccess = chatRoomUserService.getMembers(room).stream().anyMatch(member -> member.getEmail().equals(email) &&
-      (member.getRole() == Role.ADMIN || member.getRole() == Role.WORKSPACE_OWNER));
+      (member.getRole() == Role.OWNER || member.getRole() == Role.ADMIN || member.getRole() == Role.MODERATOR));
 
     if (!checkAccess) {
       throw new RuntimeException("Permission denied");

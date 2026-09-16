@@ -102,8 +102,8 @@ public class CommunityMembershipService {
       community.getPendingRequests().remove(user);
       communityRepository.save(community);
 
-      community.getCommunityUsers().stream()
-        .filter(cu -> cu.getRole() == Role.ADMIN || cu.getRole() == Role.WORKSPACE_OWNER)
+       community.getCommunityUsers().stream()
+        .filter(cu -> cu.getRole() == Role.OWNER || cu.getRole() == Role.ADMIN || cu.getRole() == Role.MODERATOR)
         .forEach(adminCU -> {
           User admin = adminCU.getUser();
           notificationService.createNotification(
@@ -144,7 +144,7 @@ public class CommunityMembershipService {
       User user = userRepository.findByEmail(userEmail).orElseThrow(() -> new RuntimeException("User not found"));
 
       if (!hasPermissionToAccept(community, creator)) {
-        return ResponseEntity.status(403).body(new ApiResponse<>(403, "Only Workspace Owner or Admins can accept requests", null));
+        return ResponseEntity.status(403).body(new ApiResponse<>(403, "Only community owners, admins, or moderators can accept requests", null));
       }
 
       if (!hasPendingRequest(community, user)) {
@@ -256,13 +256,14 @@ public class CommunityMembershipService {
         return ResponseEntity.status(403).body(new ApiResponse<>(403, "You are no longer a member of this community", null));
       }
 
-      boolean isAdmin = community.getCreatedBy().getId().equals(creator.getId());
-      boolean isWorkspaceOwner = community.getCommunityUsers() != null &&
+      boolean isCreator = community.getCreatedBy() != null && community.getCreatedBy().getId().equals(creator.getId());
+      boolean isStaff = community.getCommunityUsers() != null &&
         community.getCommunityUsers().stream()
-          .anyMatch(cu -> cu.getUser().getId().equals(creator.getId()) && cu.getRole() == Role.WORKSPACE_OWNER);
+          .anyMatch(cu -> cu.getUser().getId().equals(creator.getId()) &&
+            (cu.getRole() == Role.OWNER || cu.getRole() == Role.ADMIN || cu.getRole() == Role.MODERATOR));
 
-      if (!isWorkspaceOwner && !isAdmin) {
-        return ResponseEntity.status(403).body(new ApiResponse<>(403, "Only Workspace Owner or Admins can reject requests", null));
+      if (!isStaff && !isCreator) {
+        return ResponseEntity.status(403).body(new ApiResponse<>(403, "Only community owners, admins, or moderators can reject requests", null));
       }
 
       if (!hasPendingRequest(community, user)) {
@@ -355,11 +356,11 @@ public class CommunityMembershipService {
       }
 
       Role requesterRole = communityUserOpt.get().getRole();
-      boolean canViewRequests = requesterRole == Role.ADMIN || requesterRole == Role.WORKSPACE_OWNER
+      boolean canViewRequests = requesterRole == Role.OWNER || requesterRole == Role.ADMIN || requesterRole == Role.MODERATOR
         || (community.getCreatedBy() != null && community.getCreatedBy().getId().equals(requester.getId()));
 
       if (!canViewRequests) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ApiResponse<>(403, "Only admins or workspace owners can view pending requests", null));
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ApiResponse<>(403, "Only owners, admins, or moderators can view pending requests", null));
       }
 
       List<PendingRequestUserDTO> pendingRequests = community.getPendingRequests().stream()
@@ -380,11 +381,14 @@ public class CommunityMembershipService {
       User adminUser = userRepository.findByEmail(requesterEmail)
         .orElseThrow(() -> new RuntimeException("User not found with email: " + requesterEmail));
 
-      List<CommunityUser> adminRoles = communityUserRepository.findByUserAndRole(adminUser, Role.ADMIN);
+      List<CommunityUser> staffRoles = new ArrayList<>();
+      staffRoles.addAll(communityUserRepository.findByUserAndRole(adminUser, Role.OWNER));
+      staffRoles.addAll(communityUserRepository.findByUserAndRole(adminUser, Role.ADMIN));
+      staffRoles.addAll(communityUserRepository.findByUserAndRole(adminUser, Role.MODERATOR));
       List<CommunityPendingRequestDTO> allRequests = new ArrayList<>();
 
-      for (CommunityUser adminRole : adminRoles) {
-        Community community = adminRole.getCommunity();
+      for (CommunityUser staffRole : staffRoles) {
+        Community community = staffRole.getCommunity();
         List<PendingRequestUserDTO> pendingRequests = community.getPendingRequests().stream()
           .map(user -> new PendingRequestUserDTO(user.getId(), user.getUsername(), user.getEmail()))
           .collect(Collectors.toList());
@@ -403,11 +407,12 @@ public class CommunityMembershipService {
   }
 
   private boolean hasPermissionToAccept(Community community, User creator) {
-    boolean isAdmin = community.getCreatedBy().getId().equals(creator.getId());
-    boolean isWorkspaceOwner = community.getCommunityUsers() != null &&
+    boolean isCreator = community.getCreatedBy() != null && community.getCreatedBy().getId().equals(creator.getId());
+    boolean isStaff = community.getCommunityUsers() != null &&
       community.getCommunityUsers().stream()
-        .anyMatch(cu -> cu.getUser().getId().equals(creator.getId()) && cu.getRole() == Role.WORKSPACE_OWNER);
-    return isAdmin || isWorkspaceOwner;
+        .anyMatch(cu -> cu.getUser().getId().equals(creator.getId()) &&
+          (cu.getRole() == Role.OWNER || cu.getRole() == Role.ADMIN || cu.getRole() == Role.MODERATOR));
+    return isCreator || isStaff;
   }
 
   private boolean hasPendingRequest(Community community, User user) {
@@ -432,7 +437,7 @@ public class CommunityMembershipService {
 
   private void notifyCommunityAdmins(Community community, User user) {
     community.getCommunityUsers().stream()
-      .filter(cu -> cu.getRole() == Role.ADMIN || cu.getRole() == Role.WORKSPACE_OWNER)
+      .filter(cu -> cu.getRole() == Role.OWNER || cu.getRole() == Role.ADMIN || cu.getRole() == Role.MODERATOR)
       .forEach(adminCU -> {
         User admin = adminCU.getUser();
         notificationService.createNotification(
@@ -453,7 +458,7 @@ public class CommunityMembershipService {
 
   private void notifyAdmins(Community community, User sender, String title, String message) {
     community.getCommunityUsers().stream()
-      .filter(cu -> cu.getRole() == Role.ADMIN || cu.getRole() == Role.WORKSPACE_OWNER)
+      .filter(cu -> cu.getRole() == Role.OWNER || cu.getRole() == Role.ADMIN || cu.getRole() == Role.MODERATOR)
       .map(CommunityUser::getUser)
       .forEach(admin -> {
         if (!admin.equals(sender)) {
