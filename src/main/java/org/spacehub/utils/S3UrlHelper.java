@@ -19,6 +19,11 @@ public class S3UrlHelper {
     Map<String, Object> result = new HashMap<>();
 
     if (key != null && !key.isBlank()) {
+      if (key.startsWith("http://") || key.startsWith("https://")) {
+        result.put("url", key);
+        result.put("key", key);
+        return result;
+      }
       try {
         String presigned = s3Service.generatePresignedDownloadUrl(key, duration);
         result.put("url", presigned);

@@ -1275,6 +1275,7 @@ public class CommunityService implements ICommunityService {
 
   private String generatePresignedUrlSafely(String key) {
     if (key == null || key.isBlank()) return null;
+    if (key.startsWith("http://") || key.startsWith("https://")) return key;
     try {
       return s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1));
     } catch (Exception e) {
@@ -2114,7 +2115,9 @@ public class CommunityService implements ICommunityService {
     if (key == null || key.isBlank()) {
       return null;
     }
-
+    if (key.startsWith("http://") || key.startsWith("https://")) {
+      return key;
+    }
     try {
       return s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1));
     } catch (Exception e) {

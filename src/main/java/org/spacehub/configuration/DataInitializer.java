@@ -48,7 +48,7 @@ public class DataInitializer implements CommandLineRunner {
   @Transactional
   public void run(String... args) {
     try {
-      log.info("Checking database for mock data seeding...");
+      log.info("Checking database for mock data seeding with rich media...");
       initMockData();
       log.info("Mock data initialization completed successfully.");
     } catch (Exception e) {
@@ -66,7 +66,8 @@ public class DataInitializer implements CommandLineRunner {
       UserRole.ADMIN,
       "SpaceHub Architect & Developer | Distributed Systems",
       "Bangalore, India",
-      "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80"
+      "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=300&q=80",
+      "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&w=1200&q=80"
     );
 
     User alex = createOrGetUser(
@@ -78,7 +79,8 @@ public class DataInitializer implements CommandLineRunner {
       UserRole.USER,
       "Distributed Systems Engineer & Open Source Enthusiast",
       "San Francisco, USA",
-      "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=250&q=80"
+      "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=300&q=80",
+      "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80"
     );
 
     User sarah = createOrGetUser(
@@ -90,7 +92,8 @@ public class DataInitializer implements CommandLineRunner {
       UserRole.USER,
       "Lead Product Designer @ SpaceHub | UI/UX & WebRTC",
       "London, UK",
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=250&q=80"
+      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80",
+      "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=1200&q=80"
     );
 
     User marcus = createOrGetUser(
@@ -102,7 +105,8 @@ public class DataInitializer implements CommandLineRunner {
       UserRole.USER,
       "AI & Real-Time Media Researcher | WebRTC/Janus Hacker",
       "Berlin, Germany",
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80"
+      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80",
+      "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1200&q=80"
     );
 
     initFriends(monu, alex, sarah, marcus);
@@ -125,7 +129,8 @@ public class DataInitializer implements CommandLineRunner {
     UserRole role,
     String bio,
     String location,
-    String avatarUrl
+    String avatarUrl,
+    String coverPhotoUrl
   ) {
     Optional<User> existing = userRepository.findByEmail(email.trim().toLowerCase());
     if (existing.isPresent()) {
@@ -134,6 +139,8 @@ public class DataInitializer implements CommandLineRunner {
       if (!Boolean.TRUE.equals(u.getEnabled())) { u.setEnabled(true); changed = true; }
       if (!Boolean.TRUE.equals(u.getIsVerifiedRegistration())) { u.setIsVerifiedRegistration(true); changed = true; }
       if (!Boolean.TRUE.equals(u.getIsVerifiedLogin())) { u.setIsVerifiedLogin(true); changed = true; }
+      if (u.getAvatarUrl() == null || u.getAvatarUrl().isBlank()) { u.setAvatarUrl(avatarUrl); changed = true; }
+      if (u.getCoverPhotoUrl() == null || u.getCoverPhotoUrl().isBlank()) { u.setCoverPhotoUrl(coverPhotoUrl); changed = true; }
       if (changed) userRepository.save(u);
       return u;
     }
@@ -154,6 +161,7 @@ public class DataInitializer implements CommandLineRunner {
     user.setBio(bio);
     user.setLocation(location);
     user.setAvatarUrl(avatarUrl);
+    user.setCoverPhotoUrl(coverPhotoUrl);
     user.setCreatedAt(LocalDateTime.now().minusDays(30));
     user.setUpdatedAt(LocalDateTime.now());
     return userRepository.save(user);
@@ -188,11 +196,12 @@ public class DataInitializer implements CommandLineRunner {
   }
 
   private void initCommunities(User monu, User alex, User sarah, User marcus) {
-    Community c1 = createOrGetCommunity(
+    createOrGetCommunity(
       "SpaceHub Central",
       "The official SpaceHub community for distributed architecture, engineering discussions, and live collaboration.",
       monu,
-      "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80",
+      "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1400&q=80",
       List.of(
         new MemberRole(monu, Role.ADMIN),
         new MemberRole(alex, Role.WORKSPACE_OWNER),
@@ -202,11 +211,12 @@ public class DataInitializer implements CommandLineRunner {
       List.of("announcements", "general", "dev-chat", "architecture-lounge")
     );
 
-    Community c2 = createOrGetCommunity(
+    createOrGetCommunity(
       "AI & Distributed Systems",
       "Deep-dives into Redis Pub/Sub backplanes, WebRTC SFU streaming, Token Bucket rate limiting, and PostGIS queries.",
       alex,
-      "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=600&q=80",
+      "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1400&q=80",
       List.of(
         new MemberRole(alex, Role.ADMIN),
         new MemberRole(monu, Role.WORKSPACE_OWNER),
@@ -215,11 +225,12 @@ public class DataInitializer implements CommandLineRunner {
       List.of("kafka-streams", "webrtc-janus", "system-design", "whitepapers")
     );
 
-    Community c3 = createOrGetCommunity(
+    createOrGetCommunity(
       "UI/UX & Design Lab",
       "Crafting hyper-polished interfaces, fluid glassmorphism animations, and dynamic community workflows.",
       sarah,
-      "https://images.unsplash.com/photo-1558655146-d09347e92766?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1558655146-d09347e92766?auto=format&fit=crop&w=600&q=80",
+      "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=1400&q=80",
       List.of(
         new MemberRole(sarah, Role.ADMIN),
         new MemberRole(monu, Role.MEMBER),
@@ -235,7 +246,8 @@ public class DataInitializer implements CommandLineRunner {
     String name,
     String description,
     User creator,
-    String imageUrl,
+    String avatarUrl,
+    String bannerUrl,
     List<MemberRole> members,
     List<String> roomNames
   ) {
@@ -245,12 +257,28 @@ public class DataInitializer implements CommandLineRunner {
       community.setName(name);
       community.setDescription(description);
       community.setCreatedBy(creator);
-      community.setImageUrl(imageUrl);
-      community.setAvatarUrl(imageUrl);
+      community.setImageUrl(avatarUrl);
+      community.setAvatarUrl(avatarUrl);
+      community.setBannerUrl(bannerUrl);
       community.setCommunityId(UUID.randomUUID());
       community.setCreatedAt(LocalDateTime.now().minusDays(15));
       community.setUpdatedAt(LocalDateTime.now());
       community = communityRepository.save(community);
+    } else {
+      boolean updated = false;
+      if (community.getImageUrl() == null || community.getImageUrl().isBlank()) {
+        community.setImageUrl(avatarUrl);
+        updated = true;
+      }
+      if (community.getAvatarUrl() == null || community.getAvatarUrl().isBlank()) {
+        community.setAvatarUrl(avatarUrl);
+        updated = true;
+      }
+      if (community.getBannerUrl() == null || community.getBannerUrl().isBlank()) {
+        community.setBannerUrl(bannerUrl);
+        updated = true;
+      }
+      if (updated) communityRepository.save(community);
     }
 
     for (MemberRole mr : members) {
@@ -325,6 +353,12 @@ public class DataInitializer implements CommandLineRunner {
       group.setUpdatedAt(LocalDateTime.now());
       group.setMembers(new HashSet<>(members));
       localGroupRepository.save(group);
+    } else {
+      LocalGroup g = existing.get();
+      if (g.getImageUrl() == null || g.getImageUrl().isBlank()) {
+        g.setImageUrl(imageUrl);
+        localGroupRepository.save(g);
+      }
     }
   }
 
