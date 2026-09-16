@@ -148,8 +148,6 @@ public class CommunityService implements ICommunityService {
     community.setDescription(description);
     community.setCreatedBy(creator);
     community.setImageUrl(imageKey);
-    community.setAvatarUrl(imageKey);
-    community.setBannerUrl(imageKey);
     community.setCreatedAt(LocalDateTime.now());
     return communityRepository.save(community);
   }

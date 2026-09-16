@@ -258,8 +258,6 @@ public class DataInitializer implements CommandLineRunner {
       community.setDescription(description);
       community.setCreatedBy(creator);
       community.setImageUrl(avatarUrl);
-      community.setAvatarUrl(avatarUrl);
-      community.setBannerUrl(bannerUrl);
       community.setCommunityId(UUID.randomUUID());
       community.setCreatedAt(LocalDateTime.now().minusDays(15));
       community.setUpdatedAt(LocalDateTime.now());
@@ -268,14 +266,6 @@ public class DataInitializer implements CommandLineRunner {
       boolean updated = false;
       if (community.getImageUrl() == null || community.getImageUrl().isBlank()) {
         community.setImageUrl(avatarUrl);
-        updated = true;
-      }
-      if (community.getAvatarUrl() == null || community.getAvatarUrl().isBlank()) {
-        community.setAvatarUrl(avatarUrl);
-        updated = true;
-      }
-      if (community.getBannerUrl() == null || community.getBannerUrl().isBlank()) {
-        community.setBannerUrl(bannerUrl);
         updated = true;
       }
       if (updated) communityRepository.save(community);
