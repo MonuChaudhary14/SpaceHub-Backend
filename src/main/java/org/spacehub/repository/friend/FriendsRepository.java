@@ -8,8 +8,10 @@ import org.spacehub.entities.User.User;
 import java.util.List;
 import java.util.Optional;
 
+import java.util.UUID;
+
 @Repository
-public interface FriendsRepository extends JpaRepository<Friends, Long> {
+public interface FriendsRepository extends JpaRepository<Friends, UUID> {
 
   List<Friends> findByUserAndStatus(User user, String status);
 

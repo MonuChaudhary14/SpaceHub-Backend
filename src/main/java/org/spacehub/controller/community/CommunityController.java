@@ -88,8 +88,18 @@ public class CommunityController {
   }
 
   @PostMapping("/members")
-  public ResponseEntity<?> getCommunityMembers(@RequestBody CommunityMemberListRequest request) {
-    return communityService.getCommunityMembers(request.getCommunityId());
+  public ResponseEntity<?> getCommunityMembers(@RequestBody(required = false) CommunityMemberListRequest request) {
+    UUID communityId = request != null ? request.getCommunityId() : null;
+    return communityService.getCommunityMembers(communityId);
+  }
+
+  @GetMapping({"/{id}/members", "/members"})
+  public ResponseEntity<?> getCommunityMembersGet(
+    @PathVariable(value = "id", required = false) UUID pathId,
+    @RequestParam(value = "communityId", required = false) UUID queryId
+  ) {
+    UUID communityId = pathId != null ? pathId : queryId;
+    return communityService.getCommunityMembers(communityId);
   }
 
   @PostMapping("/blockMember")

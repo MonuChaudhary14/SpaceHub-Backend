@@ -58,35 +58,33 @@ public class CommunityInviteService implements ICommunityInviteService {
       return new ApiResponse<>(404, "Inviter not found", null);
     }
 
+    boolean isCreator = community.getCreatedBy() != null &&
+            community.getCreatedBy().getId().equals(inviter.getId());
+
     CommunityUser membership = communityUserRepository
             .findByCommunityIdAndUserId(communityId, inviter.getId())
             .orElse(null);
 
-    if (membership == null) {
+    if (membership == null && !isCreator) {
       return new ApiResponse<>(403, "You are not a member of this community", null);
     }
 
-    Role role = membership.getRole();
-    boolean hasPermission = (role == Role.ADMIN || role == Role.WORKSPACE_OWNER);
+    Role role = membership != null ? membership.getRole() : Role.MEMBER;
+    boolean hasPermission = isCreator || (role == Role.ADMIN || role == Role.WORKSPACE_OWNER);
 
     if (!hasPermission) {
       return new ApiResponse<>(403, "Only admins or owners can create invites", null);
     }
 
-    if (request.getMaxUses() <= 0) {
-      return new ApiResponse<>(400, "maxUses must be >= 1", null);
-    }
-
-    if (request.getExpiresInHours() <= 0) {
-      return new ApiResponse<>(400, "expiresInHours must be >= 1", null);
-    }
+    int maxUses = (request != null && request.getMaxUses() > 0) ? request.getMaxUses() : 10;
+    int expiresInHours = (request != null && request.getExpiresInHours() > 0) ? request.getExpiresInHours() : 72;
 
     CommunityInvite invite = CommunityInvite.builder()
             .communityId(communityId)
             .inviterEmail(currentUserEmail)
-            .maxUses(request.getMaxUses())
+            .maxUses(maxUses)
             .inviteCode(generateInviteCode())
-            .expiresAt(LocalDateTime.now().plusHours(request.getExpiresInHours()))
+            .expiresAt(LocalDateTime.now().plusHours(expiresInHours))
             .status(InviteStatus.ACTIVE)
             .build();
 
