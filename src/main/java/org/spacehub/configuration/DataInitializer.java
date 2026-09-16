@@ -217,8 +217,7 @@ public class DataInitializer implements CommandLineRunner {
       "SpaceHub Central",
       "The official SpaceHub community for distributed architecture, engineering discussions, and live collaboration.",
       monu,
-      "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80",
-      "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1400&q=80",
+      "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80",
       List.of(
         new MemberRole(monu, Role.ADMIN),
         new MemberRole(alex, Role.WORKSPACE_OWNER),
@@ -232,8 +231,7 @@ public class DataInitializer implements CommandLineRunner {
       "AI & Distributed Systems",
       "Deep-dives into Redis Pub/Sub backplanes, WebRTC SFU streaming, Token Bucket rate limiting, and PostGIS queries.",
       alex,
-      "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=600&q=80",
-      "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1400&q=80",
+      "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=800&q=80",
       List.of(
         new MemberRole(alex, Role.ADMIN),
         new MemberRole(monu, Role.WORKSPACE_OWNER),
@@ -246,8 +244,7 @@ public class DataInitializer implements CommandLineRunner {
       "UI/UX & Design Lab",
       "Crafting hyper-polished interfaces, fluid glassmorphism animations, and dynamic community workflows.",
       sarah,
-      "https://images.unsplash.com/photo-1558655146-d09347e92766?auto=format&fit=crop&w=600&q=80",
-      "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=1400&q=80",
+      "https://images.unsplash.com/photo-1558655146-d09347e92766?auto=format&fit=crop&w=800&q=80",
       List.of(
         new MemberRole(sarah, Role.ADMIN),
         new MemberRole(monu, Role.MEMBER),
@@ -264,8 +261,7 @@ public class DataInitializer implements CommandLineRunner {
     String name,
     String description,
     User creator,
-    String avatarUrl,
-    String bannerUrl,
+    String imageUrl,
     List<MemberRole> members,
     List<String> roomNames
   ) {
@@ -275,7 +271,7 @@ public class DataInitializer implements CommandLineRunner {
       community.setName(name);
       community.setDescription(description);
       community.setCreatedBy(creator);
-      community.setImageUrl(avatarUrl);
+      community.setImageUrl(imageUrl);
       community.setCommunityId(UUID.randomUUID());
       community.setCreatedAt(LocalDateTime.now().minusDays(15));
       community.setUpdatedAt(LocalDateTime.now());
@@ -283,7 +279,7 @@ public class DataInitializer implements CommandLineRunner {
     } else {
       boolean updated = false;
       if (community.getImageUrl() == null || community.getImageUrl().isBlank()) {
-        community.setImageUrl(avatarUrl);
+        community.setImageUrl(imageUrl);
         updated = true;
       }
       if (updated) {
