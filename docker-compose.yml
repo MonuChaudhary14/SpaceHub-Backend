@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   app:
     build:
@@ -12,12 +10,14 @@ services:
     env_file:
       - .env
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:${POSTGRES_PORT}/${POSTGRES_DB}
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:${POSTGRES_INTERNAL_PORT}/${POSTGRES_DB}
+      - REDIS_HOST=redis
+      - REDIS_PORT=${REDIS_INTERNAL_PORT}
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - spacehub-net
 
@@ -36,7 +36,7 @@ services:
     networks:
       - spacehub-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${SPRING_DATASOURCE_USERNAME:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -51,6 +51,11 @@ services:
       - redis-data:/data
     networks:
       - spacehub-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 networks:
   spacehub-net:

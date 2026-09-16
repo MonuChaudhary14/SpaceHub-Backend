@@ -33,9 +33,11 @@ public class DirectMessageReport {
   @Column(length = 1000)
   private String reason;
 
+  @Builder.Default
   @Enumerated(EnumType.STRING)
   private ReportStatus status = ReportStatus.PENDING;
 
+  @Builder.Default
   @Column(nullable = false)
   private LocalDateTime reportedAt = LocalDateTime.now();
 

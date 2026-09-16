@@ -46,6 +46,7 @@ public class Message {
   @Column(nullable = false)
   private Long timestamp;
 
+  @Builder.Default
   @Column(nullable = false, length = 50)
   private String type = "MESSAGE";
 

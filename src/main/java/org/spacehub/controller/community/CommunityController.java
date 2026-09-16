@@ -49,7 +49,7 @@ public class CommunityController {
     return communityService.requestToJoinCommunity(joinCommunity);
   }
 
-  @PostMapping("/cancelRequest")
+  @PostMapping({"/cancelRequest", "/cancelJoin"})
   public ResponseEntity<?> cancelJoinRequest(@RequestBody CancelJoinRequest cancelJoinRequest) {
     return communityService.cancelRequestCommunity(cancelJoinRequest);
   }

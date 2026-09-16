@@ -42,8 +42,19 @@ public class FriendController {
     }
   }
 
+  @GetMapping("/list")
+  public ResponseEntity<ApiResponse<List<UserOutput>>> getFriendsList() {
+    try {
+      List<UserOutput> friends = friendService.getFriends();
+      return ResponseEntity.ok(new ApiResponse<>(200, "Friends list retrieved successfully", friends));
+    }
+    catch (Exception e) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Error: " + e.getMessage()));
+    }
+  }
+
   @PostMapping("/list")
-  public ResponseEntity<ApiResponse<List<UserOutput>>> getFriends(@RequestBody UserEmail request) {
+  public ResponseEntity<ApiResponse<List<UserOutput>>> getFriends(@RequestBody(required = false) UserEmail request) {
     try {
       List<UserOutput> friends = friendService.getFriends();
       return ResponseEntity.ok(new ApiResponse<>(200, "Friends list retrieved successfully", friends));
@@ -77,7 +88,7 @@ public class FriendController {
 
 
   @PostMapping("/pending/incoming")
-  public ResponseEntity<ApiResponse<List<UserOutput>>> getIncomingRequests(@RequestBody UserEmail request) {
+  public ResponseEntity<ApiResponse<List<UserOutput>>> getIncomingRequests(@RequestBody(required = false) UserEmail request) {
     try {
       List<UserOutput> incoming = friendService.getIncomingPendingRequests();
       return ResponseEntity.ok(new ApiResponse<>(200, "Incoming requests fetched successfully", incoming));
@@ -88,7 +99,7 @@ public class FriendController {
   }
 
   @PostMapping("/pending/outgoing")
-  public ResponseEntity<ApiResponse<List<UserOutput>>> getOutgoingRequests(@RequestBody UserEmail request) {
+  public ResponseEntity<ApiResponse<List<UserOutput>>> getOutgoingRequests(@RequestBody(required = false) UserEmail request) {
     try {
       List<UserOutput> outgoing = friendService.getOutgoingPendingRequests();
       return ResponseEntity.ok(new ApiResponse<>(200, "Outgoing requests fetched successfully", outgoing));
@@ -98,7 +109,7 @@ public class FriendController {
     }
   }
 
-  @PostMapping("/remove")
+  @PostMapping({"/remove", "/cancel"})
   public ResponseEntity<ApiResponse<String>> removeFriend(@RequestBody BlockUnblock request) {
     try {
       String response = friendService.removeFriend(request.getFriendEmail());

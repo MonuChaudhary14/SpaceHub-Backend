@@ -33,8 +33,10 @@ public class LocalGroupInvite {
 
   private int maxUses;
 
+  @Builder.Default
   private int uses = 0;
 
+  @Builder.Default
   private LocalDateTime createdAt = LocalDateTime.now();
 
   private LocalDateTime expiresAt;

@@ -1,5 +1,6 @@
 package org.spacehub.configuration;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
@@ -12,9 +13,15 @@ import java.time.Duration;
 @Configuration
 public class RedisConfig {
 
+  @Value("${REDIS_HOST}")
+  private String redisHost;
+
+  @Value("${REDIS_PORT}")
+  private int redisPort;
+
   @Bean
   public LettuceConnectionFactory redisConnectionFactory() {
-    RedisStandaloneConfiguration redisConfig = new RedisStandaloneConfiguration("localhost", 6379);
+    RedisStandaloneConfiguration redisConfig = new RedisStandaloneConfiguration(redisHost, redisPort);
 
     LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
             .commandTimeout(Duration.ofSeconds(60))

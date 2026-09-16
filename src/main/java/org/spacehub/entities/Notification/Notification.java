@@ -31,6 +31,7 @@ public class Notification {
   @Enumerated(EnumType.STRING)
   private NotificationType type;
 
+  @Builder.Default
   private boolean read = false;
 
   @ManyToOne(fetch = FetchType.LAZY)
@@ -51,6 +52,7 @@ public class Notification {
 
   private String scope;
 
+  @Builder.Default
   private boolean actionable = false;
 
   private LocalDateTime expiresAt;

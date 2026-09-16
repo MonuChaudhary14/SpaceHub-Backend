@@ -32,6 +32,7 @@ public class ChatRoom implements Serializable {
   @Column(unique = true, nullable = false)
   private UUID roomCode;
 
+  @Builder.Default
   @OneToMany(mappedBy = "chatRoom", cascade = CascadeType.ALL, orphanRemoval = true)
   @JsonManagedReference
   private List<NewChatRoom> newChatRooms = new ArrayList<>();
@@ -41,6 +42,7 @@ public class ChatRoom implements Serializable {
   @JsonBackReference
   private Community community;
 
+  @Builder.Default
   @OneToMany(mappedBy = "chatRoom", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<VoiceRoom> voiceRooms = new ArrayList<>();
 

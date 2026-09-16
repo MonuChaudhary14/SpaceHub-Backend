@@ -27,14 +27,27 @@ public class NotificationController {
     return ResponseEntity.ok(new ApiResponse<>(200, "Notification created successfully", "success"));
   }
 
+  @GetMapping
+  public ResponseEntity<ApiResponse<List<NotificationResponseDTO>>> getNotifications(
+      @RequestParam(value = "scope", defaultValue = "global") String scope,
+      @RequestParam(value = "page", defaultValue = "0") int page,
+      @RequestParam(value = "size", defaultValue = "20") int size) {
+    List<NotificationResponseDTO> notifications =
+        notificationService.getUserNotifications(scope, page, size);
+    return ResponseEntity.ok(new ApiResponse<>(200, "Notifications fetched successfully", notifications));
+  }
+
   @PostMapping("/list")
-  public ResponseEntity<ApiResponse<List<NotificationResponseDTO>>> getUserNotifications(@RequestBody NotificationUserRequest request) {
+  public ResponseEntity<ApiResponse<List<NotificationResponseDTO>>> getUserNotifications(@RequestBody(required = false) NotificationUserRequest request) {
+    String scope = request != null && request.getScope() != null ? request.getScope() : "global";
+    int page = request != null ? request.getPage() : 0;
+    int size = request != null && request.getSize() > 0 ? request.getSize() : 20;
 
     List<NotificationResponseDTO> notifications =
             notificationService.getUserNotifications(
-                    request.getScope(),
-                    request.getPage(),
-                    request.getSize());
+                    scope,
+                    page,
+                    size);
 
     return ResponseEntity.ok(new ApiResponse<>(200, "Notifications fetched successfully", notifications)
     );
@@ -50,12 +63,14 @@ public class NotificationController {
   }
 
   @PostMapping("/inbox")
-  public ResponseEntity<ApiResponse<List<NotificationResponseDTO>>> openInbox(@RequestBody NotificationUserRequest request) {
+  public ResponseEntity<ApiResponse<List<NotificationResponseDTO>>> openInbox(@RequestBody(required = false) NotificationUserRequest request) {
+    int page = request != null ? request.getPage() : 0;
+    int size = request != null && request.getSize() > 0 ? request.getSize() : 20;
 
     List<NotificationResponseDTO> notifications =
             notificationService.fetchAndMarkRead(
-                    request.getPage(),
-                    request.getSize());
+                    page,
+                    size);
 
     return ResponseEntity.ok(new ApiResponse<>(200, "Notifications fetched and processed", notifications)
     );
@@ -80,7 +95,7 @@ public class NotificationController {
   }
 
   @PostMapping("/unread-count")
-  public ResponseEntity<ApiResponse<Long>> getUnreadCount(@RequestBody NotificationUserRequest request) {
+  public ResponseEntity<ApiResponse<Long>> getUnreadCount(@RequestBody(required = false) NotificationUserRequest request) {
 
     long count = notificationService.countUnreadNotifications();
 

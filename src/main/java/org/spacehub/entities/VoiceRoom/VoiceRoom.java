@@ -32,6 +32,7 @@ public class VoiceRoom implements Serializable {
   @Column(nullable = false)
   private String createdBy;
 
+  @Builder.Default
   private Instant createdAt = Instant.now();
 
   @ManyToOne(fetch = FetchType.LAZY)

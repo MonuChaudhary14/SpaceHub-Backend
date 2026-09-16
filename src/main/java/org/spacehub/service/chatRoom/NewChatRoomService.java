@@ -24,33 +24,47 @@ public class NewChatRoomService implements INewChatRoomService {
   private final NewChatRoomRepository newChatRoomRepository;
 
   public ApiResponse<NewChatRoom> createNewChatRoom(String roomCode, String name) {
-    Optional<ChatRoom> optionalChatRoom = chatRoomRepository.findByRoomCode(UUID.fromString(roomCode));
-    if (optionalChatRoom.isEmpty()) {
-      return new ApiResponse<>(404, "Group not found", null);
+    if (roomCode == null || roomCode.isBlank()) {
+      return new ApiResponse<>(400, "roomCode is required", null);
     }
+    try {
+      Optional<ChatRoom> optionalChatRoom = chatRoomRepository.findByRoomCode(UUID.fromString(roomCode));
+      if (optionalChatRoom.isEmpty()) {
+        return new ApiResponse<>(404, "Group not found", null);
+      }
 
-    ChatRoom chatRoom = optionalChatRoom.get();
+      ChatRoom chatRoom = optionalChatRoom.get();
 
-    NewChatRoom newChatRoom = NewChatRoom.builder()
-      .name(name)
-      .roomCode(UUID.randomUUID())
-      .createdAt(System.currentTimeMillis())
-      .chatRoom(chatRoom)
-      .build();
+      NewChatRoom newChatRoom = NewChatRoom.builder()
+        .name(name != null && !name.isBlank() ? name : "general")
+        .roomCode(UUID.randomUUID())
+        .createdAt(System.currentTimeMillis())
+        .chatRoom(chatRoom)
+        .build();
 
-    newChatRoomRepository.save(newChatRoom);
+      newChatRoomRepository.save(newChatRoom);
 
-    return new ApiResponse<>(200, "New chat room created successfully", newChatRoom);
+      return new ApiResponse<>(200, "New chat room created successfully", newChatRoom);
+    } catch (IllegalArgumentException e) {
+      return new ApiResponse<>(400, "Invalid UUID format for roomCode", null);
+    }
   }
 
   public ApiResponse<List<NewChatRoom>> getAllNewChatRooms(String roomCode) {
-    Optional<ChatRoom> optionalChatRoom = chatRoomRepository.findByRoomCode(UUID.fromString(roomCode));
-    if (optionalChatRoom.isEmpty()) {
-      return new ApiResponse<>(404, "ChatRoom not found", null);
+    if (roomCode == null || roomCode.isBlank()) {
+      return new ApiResponse<>(400, "roomCode is required", null);
     }
+    try {
+      Optional<ChatRoom> optionalChatRoom = chatRoomRepository.findByRoomCode(UUID.fromString(roomCode));
+      if (optionalChatRoom.isEmpty()) {
+        return new ApiResponse<>(404, "ChatRoom not found", null);
+      }
 
-    List<NewChatRoom> list = newChatRoomRepository.findByChatRoom(optionalChatRoom.get());
-    return new ApiResponse<>(200, "Fetched new chat rooms", list);
+      List<NewChatRoom> list = newChatRoomRepository.findByChatRoom(optionalChatRoom.get());
+      return new ApiResponse<>(200, "Fetched new chat rooms", list);
+    } catch (IllegalArgumentException e) {
+      return new ApiResponse<>(400, "Invalid UUID format for roomCode", null);
+    }
   }
 
   public ApiResponse<NewChatRoom> getNewChatRoomByCode(String newChatRoomCode) {

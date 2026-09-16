@@ -27,7 +27,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
 
 @RestController
-@RequestMapping(path = "api/v1")
+@RequestMapping(path = "/api/v1")
 @RequiredArgsConstructor
 public class UserController {
 

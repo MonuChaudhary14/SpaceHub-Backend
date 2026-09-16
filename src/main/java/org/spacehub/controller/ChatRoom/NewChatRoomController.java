@@ -20,9 +20,16 @@ public class NewChatRoomController {
 
   @PostMapping("/create")
   public ApiResponse<NewChatRoom> createNewChatRoom(
-    @RequestParam("roomCode") String roomCode,
-    @RequestParam("name") String name
+    @RequestParam(value = "roomCode", required = false) String roomCodeParam,
+    @RequestParam(value = "name", required = false) String nameParam,
+    @RequestBody(required = false) Map<String, String> body
   ) {
+    String roomCode = roomCodeParam;
+    String name = nameParam;
+    if (body != null) {
+      if (body.get("roomCode") != null) roomCode = body.get("roomCode");
+      if (body.get("name") != null) name = body.get("name");
+    }
     return newChatRoomService.createNewChatRoom(roomCode, name);
   }
 
