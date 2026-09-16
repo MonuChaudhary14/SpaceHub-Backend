@@ -109,6 +109,32 @@ public class DataInitializer implements CommandLineRunner {
       "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1200&q=80"
     );
 
+    User demo = createOrGetUser(
+      "demo.user@spacehub.dev",
+      "demouser",
+      "Demo",
+      "User",
+      "Password@123",
+      UserRole.USER,
+      "SpaceHub Platform Explorer & Tester",
+      "New York, USA",
+      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
+      "https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1200&q=80"
+    );
+
+    User admin = createOrGetUser(
+      "admin@spacehub.dev",
+      "admin",
+      "Admin",
+      "SpaceHub",
+      "Password@123",
+      UserRole.ADMIN,
+      "SpaceHub System Administrator",
+      "San Francisco, USA",
+      "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=300&q=80",
+      "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=1200&q=80"
+    );
+
     initFriends(monu, alex, sarah, marcus);
 
     initCommunities(monu, alex, sarah, marcus);
@@ -140,12 +166,28 @@ public class DataInitializer implements CommandLineRunner {
         u.setEnabled(true);
         changed = true;
       }
+      if (Boolean.TRUE.equals(u.getLocked())) {
+        u.setLocked(false);
+        changed = true;
+      }
       if (!Boolean.TRUE.equals(u.getIsVerifiedRegistration())) {
         u.setIsVerifiedRegistration(true);
         changed = true;
       }
       if (!Boolean.TRUE.equals(u.getIsVerifiedLogin())) {
         u.setIsVerifiedLogin(true);
+        changed = true;
+      }
+      if (!Boolean.TRUE.equals(u.getIsVerifiedForgot())) {
+        u.setIsVerifiedForgot(true);
+        changed = true;
+      }
+      if (u.getPasswordVersion() == null) {
+        u.setPasswordVersion(1);
+        changed = true;
+      }
+      if (u.getPassword() == null || !passwordEncoder.matches(rawPassword, u.getPassword())) {
+        u.setPassword(passwordEncoder.encode(rawPassword));
         changed = true;
       }
       if (u.getAvatarUrl() == null || u.getAvatarUrl().isBlank()) {
@@ -376,14 +418,44 @@ public class DataInitializer implements CommandLineRunner {
     long now = System.currentTimeMillis();
     long minute = 60 * 1000L;
 
-    createDirectMessage(alex.getEmail(), monu.getEmail(), "Hey Monu! How is the distributed WebSocket fanout architecture coming along?", now - 60 * minute);
-    createDirectMessage(monu.getEmail(), alex.getEmail(), "Hey Alex! Just configured Redis Pub/Sub message backplane and verified sub-50ms delivery latency.", now - 50 * minute);
-    createDirectMessage(alex.getEmail(), monu.getEmail(), "Awesome! That will easily scale across multiple Spring Boot container instances.", now - 45 * minute);
+    createDirectMessage(
+      alex.getEmail(),
+      monu.getEmail(),
+      "Hey Monu! How is the distributed WebSocket fanout architecture coming along?",
+      now - 60 * minute
+    );
+    createDirectMessage(
+      monu.getEmail(),
+      alex.getEmail(),
+      "Hey Alex! Just configured Redis Pub/Sub message backplane and verified sub-50ms delivery latency.",
+      now - 50 * minute
+    );
+    createDirectMessage(
+      alex.getEmail(),
+      monu.getEmail(),
+      "Awesome! That will easily scale across multiple Spring Boot container instances.",
+      now - 45 * minute
+    );
 
-    createDirectMessage(sarah.getEmail(), monu.getEmail(), "Hi Monu, I updated the community dashboard UI and voice room layout design tokens.", now - 30 * minute);
-    createDirectMessage(monu.getEmail(), sarah.getEmail(), "Looks fantastic Sarah! The theme transitions and glassmorphism styling feel super premium.", now - 20 * minute);
+    createDirectMessage(
+      sarah.getEmail(),
+      monu.getEmail(),
+      "Hi Monu, I updated the community dashboard UI and voice room layout design tokens.",
+      now - 30 * minute
+    );
+    createDirectMessage(
+      monu.getEmail(),
+      sarah.getEmail(),
+      "Looks fantastic Sarah! The theme transitions and glassmorphism styling feel super premium.",
+      now - 20 * minute
+    );
 
-    createDirectMessage(marcus.getEmail(), monu.getEmail(), "Hey! I'm testing the Janus WebRTC SFU audio/video room integration.", now - 10 * minute);
+    createDirectMessage(
+      marcus.getEmail(),
+      monu.getEmail(),
+      "Hey! I'm testing the Janus WebRTC SFU audio/video room integration.",
+      now - 10 * minute
+    );
   }
 
   private void createDirectMessage(String sender, String receiver, String content, long timestamp) {
