@@ -148,6 +148,8 @@ public class CommunityService implements ICommunityService {
     community.setDescription(description);
     community.setCreatedBy(creator);
     community.setImageUrl(imageKey);
+    community.setAvatarUrl(imageKey);
+    community.setBannerUrl(imageKey);
     community.setCreatedAt(LocalDateTime.now());
     return communityRepository.save(community);
   }
@@ -1609,28 +1611,35 @@ public class CommunityService implements ICommunityService {
     m.put("name", c.getName());
     m.put("description", c.getDescription());
 
+    String mainKey = c.getImageUrl() != null && !c.getImageUrl().isBlank() ? c.getImageUrl() : c.getAvatarUrl();
+    if (mainKey == null || mainKey.isBlank()) {
+      mainKey = c.getBannerUrl();
+    }
+    String bannerKey = c.getBannerUrl() != null && !c.getBannerUrl().isBlank() ? c.getBannerUrl() : mainKey;
+
     try {
-      Map<String, Object> img = s3UrlHelper.generatePresignedUrl(c.getImageUrl(), Duration.ofHours(1));
+      Map<String, Object> img = s3UrlHelper.generatePresignedUrl(mainKey, Duration.ofHours(1));
       m.put("imageUrl", img.get("url"));
       m.put("imageKey", img.get("key"));
+      m.put("avatarUrl", img.get("url"));
     }
     catch (Exception e) {
       m.put("imageUrl", null);
       m.put("imageKey", null);
+      m.put("avatarUrl", null);
     }
 
-    String bannerKey = c.getBannerUrl();
     if (bannerKey != null && !bannerKey.isBlank()) {
       try {
-        String presigned = s3Service.generatePresignedDownloadUrl(bannerKey, Duration.ofHours(1));
-        m.put("bannerUrl", presigned);
+        Map<String, Object> banner = s3UrlHelper.generatePresignedUrl(bannerKey, Duration.ofHours(1));
+        m.put("bannerUrl", banner.get("url") != null ? banner.get("url") : m.get("imageUrl"));
       }
       catch (Exception e) {
-        m.put("bannerUrl", null);
+        m.put("bannerUrl", m.get("imageUrl"));
       }
     }
     else {
-      m.put("bannerUrl", null);
+      m.put("bannerUrl", m.get("imageUrl"));
     }
 
     if (c.getCreatedBy() != null) {
@@ -2092,10 +2101,21 @@ public class CommunityService implements ICommunityService {
     m.put("communityId", c.getId());
     m.put("name", c.getName());
     m.put("description", c.getDescription());
-    m.put("bannerUrl", generatePresignedSafely(c.getBannerUrl()));
-    m.put("bannerKey", c.getBannerUrl());
-    m.put("imageUrl", generatePresignedSafely(c.getImageUrl()));
-    m.put("imageKey", c.getImageUrl());
+
+    String mainKey = c.getImageUrl() != null && !c.getImageUrl().isBlank() ? c.getImageUrl() : c.getAvatarUrl();
+    if (mainKey == null || mainKey.isBlank()) {
+      mainKey = c.getBannerUrl();
+    }
+    String bannerKey = c.getBannerUrl() != null && !c.getBannerUrl().isBlank() ? c.getBannerUrl() : mainKey;
+
+    String resolvedImg = generatePresignedSafely(mainKey);
+    String resolvedBanner = generatePresignedSafely(bannerKey);
+
+    m.put("imageUrl", resolvedImg);
+    m.put("avatarUrl", resolvedImg);
+    m.put("imageKey", mainKey);
+    m.put("bannerUrl", resolvedBanner != null ? resolvedBanner : resolvedImg);
+    m.put("bannerKey", bannerKey);
     m.put("createdBy", getCreatorEmail(c));
     m.put("createdAt", c.getCreatedAt());
 

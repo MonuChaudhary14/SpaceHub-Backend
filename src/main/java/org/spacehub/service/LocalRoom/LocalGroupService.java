@@ -225,11 +225,15 @@ public class LocalGroupService implements ILocalGroupService {
 
     String key = g.getImageUrl();
     if (key != null && !key.isBlank()) {
-      try {
-        String presigned = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1));
-        r.setImageUrl(presigned);
-      } catch (Exception ignored) {
-        r.setImageUrl(null);
+      if (key.startsWith("http://") || key.startsWith("https://")) {
+        r.setImageUrl(key);
+      } else {
+        try {
+          String presigned = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1));
+          r.setImageUrl(presigned);
+        } catch (Exception ignored) {
+          r.setImageUrl(null);
+        }
       }
       r.setImageKey(key);
     } else {
@@ -481,6 +485,10 @@ public class LocalGroupService implements ILocalGroupService {
 
   private void setPresignedUrl(LocalGroupResponse resp, String key) {
     if (key != null && !key.isBlank()) {
+      if (key.startsWith("http://") || key.startsWith("https://")) {
+        resp.setImageUrl(key);
+        return;
+      }
       try {
         resp.setImageUrl(s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1)));
       } catch (Exception ignored) {}

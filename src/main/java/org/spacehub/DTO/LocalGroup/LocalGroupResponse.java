@@ -19,4 +19,12 @@ public class LocalGroupResponse {
   private String chatRoomCode;
   private String imageKey;
   private UUID chatRoomId;
+
+  public String getAvatarUrl() {
+    return imageUrl;
+  }
+
+  public String getBannerUrl() {
+    return imageUrl;
+  }
 }
