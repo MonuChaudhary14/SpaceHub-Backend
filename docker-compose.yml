@@ -67,7 +67,7 @@ services:
       - "7881:7881"
       - "7882:7882/udp"
     environment:
-      - LIVEKIT_KEYS=devkey: secret123456789012345678901234567890
+      LIVEKIT_KEYS: "devkey: secret123456789012345678901234567890"
     networks:
       - spacehub-net
 
