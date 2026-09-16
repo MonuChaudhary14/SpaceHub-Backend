@@ -61,8 +61,10 @@ public class DataInitializer implements CommandLineRunner {
     try {
       jdbcTemplate.execute("ALTER TABLE community_user DROP CONSTRAINT IF EXISTS community_user_role_check");
       jdbcTemplate.execute("ALTER TABLE chat_room_user DROP CONSTRAINT IF EXISTS chat_room_user_role_check");
+      jdbcTemplate.execute("UPDATE community_user SET role = 'OWNER' WHERE role IN ('WORKSPACE_OWNER', 'COMMUNITY_OWNER')");
+      jdbcTemplate.execute("UPDATE chat_room_user SET role = 'OWNER' WHERE role IN ('WORKSPACE_OWNER', 'COMMUNITY_OWNER')");
     } catch (Exception e) {
-      log.warn("Could not drop legacy role check constraints: {}", e.getMessage());
+      log.warn("Could not migrate legacy roles or drop constraints: {}", e.getMessage());
     }
   }
 
