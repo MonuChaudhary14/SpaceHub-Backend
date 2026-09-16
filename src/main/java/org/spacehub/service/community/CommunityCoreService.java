@@ -537,11 +537,16 @@ public class CommunityCoreService {
         m.put("name", c.getName());
         m.put("description", c.getDescription());
         m.put("role", isCreator ? "ADMIN" : "MEMBER");
-        String presigned = communityMediaService.generatePresignedSafely(c.getImageUrl());
+        String mainKey = c.getImageUrl() != null && !c.getImageUrl().isBlank() ? c.getImageUrl() : c.getAvatarUrl();
+        if (mainKey == null || mainKey.isBlank()) {
+          mainKey = c.getBannerUrl();
+        }
+        String presigned = communityMediaService.generatePresignedSafely(mainKey);
         m.put("imageUrl", presigned);
-        m.put("imageKey", c.getImageUrl());
+        m.put("imageKey", mainKey);
+        m.put("avatarUrl", presigned);
         m.put("bannerUrl", presigned);
-        m.put("bannerKey", c.getImageUrl());
+        m.put("bannerKey", mainKey);
         out.add(m);
       }
     }
