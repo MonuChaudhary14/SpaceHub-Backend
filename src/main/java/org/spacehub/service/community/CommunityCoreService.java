@@ -332,28 +332,14 @@ public class CommunityCoreService {
     if (mainKey == null || mainKey.isBlank()) {
       mainKey = c.getBannerUrl();
     }
-    String bannerKey = c.getBannerUrl() != null && !c.getBannerUrl().isBlank() ? c.getBannerUrl() : mainKey;
 
     try {
       Map<String, Object> img = s3UrlHelper.generatePresignedUrl(mainKey, Duration.ofHours(1));
       m.put("imageUrl", img.get("url"));
       m.put("imageKey", img.get("key"));
-      m.put("avatarUrl", img.get("url"));
     } catch (Exception e) {
       m.put("imageUrl", null);
       m.put("imageKey", null);
-      m.put("avatarUrl", null);
-    }
-
-    if (bannerKey != null && !bannerKey.isBlank()) {
-      try {
-        Map<String, Object> banner = s3UrlHelper.generatePresignedUrl(bannerKey, Duration.ofHours(1));
-        m.put("bannerUrl", banner.get("url") != null ? banner.get("url") : m.get("imageUrl"));
-      } catch (Exception e) {
-        m.put("bannerUrl", m.get("imageUrl"));
-      }
-    } else {
-      m.put("bannerUrl", m.get("imageUrl"));
     }
 
     if (c.getCreatedBy() != null) {
@@ -380,16 +366,11 @@ public class CommunityCoreService {
     if (mainKey == null || mainKey.isBlank()) {
       mainKey = c.getBannerUrl();
     }
-    String bannerKey = c.getBannerUrl() != null && !c.getBannerUrl().isBlank() ? c.getBannerUrl() : mainKey;
 
     String resolvedImg = communityMediaService.generatePresignedSafely(mainKey);
-    String resolvedBanner = communityMediaService.generatePresignedSafely(bannerKey);
 
     m.put("imageUrl", resolvedImg);
-    m.put("avatarUrl", resolvedImg);
     m.put("imageKey", mainKey);
-    m.put("bannerUrl", resolvedBanner != null ? resolvedBanner : resolvedImg);
-    m.put("bannerKey", bannerKey);
     m.put("createdBy", c.getCreatedBy() != null ? c.getCreatedBy().getEmail() : null);
     m.put("createdAt", c.getCreatedAt());
 
@@ -544,9 +525,6 @@ public class CommunityCoreService {
         String presigned = communityMediaService.generatePresignedSafely(mainKey);
         m.put("imageUrl", presigned);
         m.put("imageKey", mainKey);
-        m.put("avatarUrl", presigned);
-        m.put("bannerUrl", presigned);
-        m.put("bannerKey", mainKey);
         out.add(m);
       }
     }
