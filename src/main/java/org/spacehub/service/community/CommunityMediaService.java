@@ -228,7 +228,7 @@ public class CommunityMediaService {
       return true;
     }
     return communityUserRepository.findByCommunityAndUser(community, requester)
-      .map(cu -> cu.getRole() != null && cu.getRole().name().equalsIgnoreCase("ADMIN"))
+      .map(cu -> cu.getRole() != null && "ADMIN".equalsIgnoreCase(cu.getRole().name()))
       .orElse(false);
   }
 

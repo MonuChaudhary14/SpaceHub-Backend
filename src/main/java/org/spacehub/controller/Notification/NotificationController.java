@@ -29,9 +29,9 @@ public class NotificationController {
 
   @GetMapping
   public ResponseEntity<ApiResponse<List<NotificationResponseDTO>>> getNotifications(
-      @RequestParam(value = "scope", defaultValue = "global") String scope,
-      @RequestParam(value = "page", defaultValue = "0") int page,
-      @RequestParam(value = "size", defaultValue = "20") int size) {
+    @RequestParam(value = "scope", required = false) String scope,
+    @RequestParam(value = "page", defaultValue = "0") int page,
+    @RequestParam(value = "size", defaultValue = "50") int size) {
     List<NotificationResponseDTO> notifications =
       notificationService.getUserNotifications(scope, page, size);
     return ResponseEntity.ok(new ApiResponse<>(200, "Notifications fetched successfully", notifications));
@@ -86,7 +86,7 @@ public class NotificationController {
 
   @DeleteMapping("/delete/{publicId}")
   public ResponseEntity<ApiResponse<String>> deleteByPublicId(
-          @PathVariable UUID publicId) {
+    @PathVariable UUID publicId) {
 
     notificationService.deleteByPublicId(publicId);
 

@@ -9,6 +9,8 @@ import org.spacehub.entities.Community.Community;
 import org.spacehub.entities.Community.CommunityUser;
 import org.spacehub.entities.Community.Role;
 import org.spacehub.entities.User.User;
+import org.spacehub.entities.ChatRoom.NewChatRoom;
+import org.spacehub.repository.ChatRoom.NewChatRoomRepository;
 import org.spacehub.repository.ChatRoom.ChatRoomRepository;
 import org.spacehub.repository.User.UserRepository;
 import org.spacehub.repository.community.CommunityRepository;
@@ -26,6 +28,9 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.spacehub.repository.voiceRoom.VoiceRoomRepository;
+import org.spacehub.entities.VoiceRoom.VoiceRoom;
+
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -34,6 +39,8 @@ public class CommunityRoomService {
   private final CommunityRepository communityRepository;
   private final UserRepository userRepository;
   private final ChatRoomRepository chatRoomRepository;
+  private final NewChatRoomRepository newChatRoomRepository;
+  private final VoiceRoomRepository voiceRoomRepository;
   private final CommunityUserRepository communityUserRepository;
 
   public ResponseEntity<?> createRoomInCommunity(CreateRoomRequest request) {
@@ -95,7 +102,27 @@ public class CommunityRoomService {
         return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Community not found", null));
       }
 
-      List<ChatRoom> rooms = chatRoomRepository.findByCommunityId(communityId);
+      List<ChatRoom> rooms = new ArrayList<>(chatRoomRepository.findByCommunityId(communityId));
+      boolean hasAnnouncement = rooms.stream()
+        .anyMatch(r -> "announcement".equalsIgnoreCase(r.getName()) || "general".equalsIgnoreCase(r.getName()));
+
+      if (!hasAnnouncement) {
+        ChatRoom announcementRoom = new ChatRoom();
+        announcementRoom.setName("announcement");
+        announcementRoom.setCommunity(optionalCommunity.get());
+        announcementRoom.setRoomCode(UUID.randomUUID());
+        ChatRoom saved = chatRoomRepository.save(announcementRoom);
+
+        NewChatRoom defaultChat = NewChatRoom.builder()
+          .name("general")
+          .roomCode(UUID.randomUUID())
+          .createdAt(System.currentTimeMillis())
+          .chatRoom(saved)
+          .build();
+        newChatRoomRepository.save(defaultChat);
+
+        rooms.add(0, saved);
+      }
 
       List<Map<String, Object>> out = rooms.stream()
         .map(r -> {
@@ -103,6 +130,30 @@ public class CommunityRoomService {
           m.put("id", r.getId());
           m.put("name", r.getName());
           m.put("roomCode", r.getRoomCode());
+
+          List<NewChatRoom> ncrs = newChatRoomRepository.findByChatRoom(r);
+          List<String> chatRooms = ncrs != null
+            ? ncrs.stream().map(NewChatRoom::getName).collect(Collectors.toList())
+            : List.of();
+
+          List<VoiceRoom> vrs = voiceRoomRepository.findByChatRoom(r);
+          List<String> voiceRooms = vrs != null
+            ? vrs.stream()
+                .filter(vr -> !"VIDEO".equalsIgnoreCase(vr.getRoomType()))
+                .map(VoiceRoom::getName)
+                .collect(Collectors.toList())
+            : List.of();
+
+          List<String> videoRooms = vrs != null
+            ? vrs.stream()
+                .filter(vr -> "VIDEO".equalsIgnoreCase(vr.getRoomType()))
+                .map(VoiceRoom::getName)
+                .collect(Collectors.toList())
+            : List.of();
+
+          m.put("chatRooms", chatRooms);
+          m.put("voiceRooms", voiceRooms);
+          m.put("videoRooms", videoRooms);
           return m;
         }).collect(Collectors.toList());
 

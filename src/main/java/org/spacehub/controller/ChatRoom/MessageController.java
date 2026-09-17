@@ -31,8 +31,8 @@ public class MessageController {
 
   @DeleteMapping("/{id}")
   public ResponseEntity<?> deleteMessage(
-          @PathVariable Long id,
-          @RequestParam(value = "forEveryone", required = false, defaultValue = "false") boolean forEveryone
+    @PathVariable Long id,
+    @RequestParam(value = "forEveryone", required = false, defaultValue = "false") boolean forEveryone
   ) {
     return messageService.handleDeleteRequest(id, forEveryone);
   }

@@ -16,7 +16,6 @@ public class WebSocketNotification implements WebSocketConfigurer {
 
   @Override
   public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-    registry.addHandler(notificationWebSocketHandler, "/notifications").setAllowedOrigins("*");
+    // Handled in NotificationWebSocketConfig to avoid duplicate mapping conflicts
   }
-
 }

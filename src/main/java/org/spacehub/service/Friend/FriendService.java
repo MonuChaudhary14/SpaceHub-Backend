@@ -74,7 +74,7 @@ public class FriendService implements IFriendService {
     UUID notifRef = UUID.randomUUID();
     request.setNotificationReference(notifRef);
     friendsRepository.save(request);
-    notificationService.sendFriendRequestNotification(user, friend);
+    notificationService.sendFriendRequestNotification(user, friend, notifRef);
 
     return "Friend request sent successfully.";
   }
@@ -107,7 +107,7 @@ public class FriendService implements IFriendService {
       notificationService.deleteActionableByReference(ref);
     }
 
-    if (!"pending".equals(request.getStatus())) {
+    if (!"pending".equalsIgnoreCase(request.getStatus())) {
       return "This request is no longer pending.";
     }
 
@@ -160,8 +160,8 @@ public class FriendService implements IFriendService {
 
     User user = userRepository.findByEmail(userEmail).orElseThrow(() -> new RuntimeException("User not found"));
 
-    List<Friends> sent = friendsRepository.findByUserAndStatus(user, "accepted");
-    List<Friends> received = friendsRepository.findByFriendAndStatus(user, "accepted");
+    List<Friends> sent = friendsRepository.findByUserAndStatusIgnoreCase(user, "accepted");
+    List<Friends> received = friendsRepository.findByFriendAndStatusIgnoreCase(user, "accepted");
 
     List<UserOutput> friendsList = sent.stream()
       .map(friend -> {
@@ -233,7 +233,7 @@ public class FriendService implements IFriendService {
     User user = userRepository.findByEmail(userEmail)
       .orElseThrow(() -> new RuntimeException("User not found"));
 
-    List<Friends> pendingRequests = friendsRepository.findByFriendAndStatus(user, "pending");
+    List<Friends> pendingRequests = friendsRepository.findByFriendAndStatusIgnoreCase(user, "pending");
 
     return pendingRequests.stream()
       .map(f -> new UserOutput(
@@ -256,7 +256,7 @@ public class FriendService implements IFriendService {
     User user = userRepository.findByEmail(userEmail)
       .orElseThrow(() -> new RuntimeException("User not found"));
 
-    List<Friends> sentRequests = friendsRepository.findByUserAndStatus(user, "pending");
+    List<Friends> sentRequests = friendsRepository.findByUserAndStatusIgnoreCase(user, "pending");
 
     return sentRequests.stream()
       .map(f -> new UserOutput(

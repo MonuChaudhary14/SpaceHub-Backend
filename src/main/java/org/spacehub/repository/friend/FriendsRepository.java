@@ -17,8 +17,14 @@ public interface FriendsRepository extends JpaRepository<Friends, UUID> {
 
   List<Friends> findByFriendAndStatus(User friend, String status);
 
+  List<Friends> findByUserAndStatusIgnoreCase(User user, String status);
+
+  List<Friends> findByFriendAndStatusIgnoreCase(User friend, String status);
+
   Optional<Friends> findByUserAndFriend(User user, User friend);
 
   Optional<Friends> findByUserAndFriendAndStatus(User user, User friend, String status);
+
+  Optional<Friends> findByUserAndFriendAndStatusIgnoreCase(User user, User friend, String status);
 
 }

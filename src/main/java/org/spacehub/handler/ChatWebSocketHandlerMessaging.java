@@ -46,11 +46,11 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
   private final Map<String, String> usernameCache = new ConcurrentHashMap<>();
 
   public ChatWebSocketHandlerMessaging(
-          MessageQueueService messageQueueService,
-          IMessageService messageService,
-          S3Service s3Service,
-          UserRepository userRepository,
-          FriendService friendService) {
+    MessageQueueService messageQueueService,
+    IMessageService messageService,
+    S3Service s3Service,
+    UserRepository userRepository,
+    FriendService friendService) {
     this.messageQueueService = messageQueueService;
     this.messageService = messageService;
     this.s3Service = s3Service;

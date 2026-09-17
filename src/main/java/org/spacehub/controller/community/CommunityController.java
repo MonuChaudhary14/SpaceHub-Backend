@@ -33,9 +33,9 @@ public class CommunityController {
 
   @PostMapping("/create")
   public ResponseEntity<ApiResponse<Map<String, Object>>> createCommunity(
-          @RequestParam("name") String name,
-          @RequestParam("description") String description,
-          @RequestParam("imageFile") MultipartFile imageFile) {
+    @RequestParam("name") String name,
+    @RequestParam("description") String description,
+    @RequestParam("imageFile") MultipartFile imageFile) {
     return communityService.createCommunity(name, description, imageFile);
   }
 
@@ -168,12 +168,12 @@ public class CommunityController {
 
   @PostMapping("/{id}/upload-banner")
   public ResponseEntity<?> uploadCommunityBanner(
-          @PathVariable("id") UUID communityId,
-          @RequestParam(value = "imageFile", required = false) MultipartFile bannerFile,
-          @RequestParam(value = "avatarFile", required = false) MultipartFile communityAvatarFile,
-          @RequestParam(value = "userAvatarFile", required = false) MultipartFile userAvatarFile,
-          @RequestParam(value = "name", required = false) String name,
-          @RequestParam(value = "description", required = false) String description
+    @PathVariable("id") UUID communityId,
+    @RequestParam(value = "imageFile", required = false) MultipartFile bannerFile,
+    @RequestParam(value = "avatarFile", required = false) MultipartFile communityAvatarFile,
+    @RequestParam(value = "userAvatarFile", required = false) MultipartFile userAvatarFile,
+    @RequestParam(value = "name", required = false) String name,
+    @RequestParam(value = "description", required = false) String description
   ) {
     return communityService.uploadCommunityBanner(
       communityId, bannerFile, communityAvatarFile, userAvatarFile, name, description

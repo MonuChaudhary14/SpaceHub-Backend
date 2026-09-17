@@ -83,18 +83,27 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         return;
       }
 
-      UUID roomUUID = UUID.fromString(roomCodeStr);
-      Optional<NewChatRoom> optRoom = newChatRoomService.getEntityByCode(roomUUID);
+      UUID roomUUID = null;
+      try {
+        roomUUID = UUID.fromString(roomCodeStr);
+      } catch (IllegalArgumentException e) {
+        logger.warn("Non-UUID roomCodeStr received: {}", roomCodeStr);
+      }
+
+      Optional<NewChatRoom> optRoom = roomUUID != null ? newChatRoomService.getEntityByCode(roomUUID) : Optional.empty();
       if (optRoom.isEmpty()) {
         session.close(new CloseStatus(4041, "Chat room not found"));
         return;
       }
 
-      addSessionToRoom(session, roomUUID.toString(), email);
-      sendExistingMessages(session, optRoom.get());
-      broadcastSystemMessage(roomUUID.toString(), email + " joined the chat");
+      NewChatRoom actualRoom = optRoom.get();
+      String resolvedRoomKey = actualRoom.getRoomCode().toString();
 
-      logger.info("Connected: {} -> {}", email, roomUUID);
+      addSessionToRoom(session, resolvedRoomKey, email);
+      sendExistingMessages(session, actualRoom);
+      broadcastSystemMessage(resolvedRoomKey, email + " joined the chat");
+
+      logger.info("Connected: {} -> {}", email, resolvedRoomKey);
     }
     catch (Exception e) {
       logger.error("Error establishing WebSocket connection", e);

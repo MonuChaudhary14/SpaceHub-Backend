@@ -47,12 +47,12 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
   void deleteExpired();
 
   @Query("""
-           SELECT n FROM Notification n
-           LEFT JOIN FETCH n.sender
-           LEFT JOIN FETCH n.community
-           WHERE n.recipient.email = :email
-           ORDER BY n.createdAt DESC
-           """)
+    SELECT n FROM Notification n
+    LEFT JOIN FETCH n.sender
+    LEFT JOIN FETCH n.community
+    WHERE n.recipient.email = :email
+    ORDER BY n.createdAt DESC
+    """)
   List<Notification> findAllByRecipientWithDetails(@Param("email") String email);
 
   @Modifying

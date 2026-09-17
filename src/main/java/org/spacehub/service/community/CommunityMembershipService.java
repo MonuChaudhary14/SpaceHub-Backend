@@ -102,7 +102,7 @@ public class CommunityMembershipService {
       community.getPendingRequests().remove(user);
       communityRepository.save(community);
 
-       community.getCommunityUsers().stream()
+      community.getCommunityUsers().stream()
         .filter(cu -> cu.getRole() == Role.OWNER || cu.getRole() == Role.ADMIN || cu.getRole() == Role.MODERATOR)
         .forEach(adminCU -> {
           User admin = adminCU.getUser();
@@ -130,14 +130,14 @@ public class CommunityMembershipService {
   }
 
   public ResponseEntity<ApiResponse<?>> acceptRequest(AcceptRequest acceptRequest) {
-    if (acceptRequest == null || isBlank(acceptRequest.getUserEmail()) || isBlank(acceptRequest.getCommunityName())) {
+    if (acceptRequest == null || isBlank(acceptRequest.getUserEmail()) || (isBlank(acceptRequest.getCommunityName()) && acceptRequest.getCommunityId() == null)) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Check the fields", null));
     }
 
     try {
       String creatorEmail = SecurityUtils.getCurrentUserEmail();
       String userEmail = acceptRequest.getUserEmail().trim().toLowerCase();
-      String communityName = acceptRequest.getCommunityName().trim();
+      String communityName = acceptRequest.getCommunityName() != null ? acceptRequest.getCommunityName().trim() : null;
 
       Community community = findCommunityByNameOrId(communityName, acceptRequest.getCommunityId());
       User creator = userRepository.findByEmail(creatorEmail).orElseThrow(() -> new RuntimeException("Creator not found"));
@@ -179,9 +179,8 @@ public class CommunityMembershipService {
           .senderEmail(creator.getEmail())
           .type(NotificationType.COMMUNITY_REQUEST_ACCEPTED)
           .title("Join Request Accepted")
-          .message("Your request to join " + community.getName() + " has been approved.")
-          .scope("community-request")
-          .actionable(false)
+          .message("You have been accepted into the community " + community.getName())
+          .scope("community")
           .communityId(community.getId())
           .referenceId(community.getId())
           .build()
@@ -196,7 +195,7 @@ public class CommunityMembershipService {
   }
 
   public ResponseEntity<?> leaveCommunity(LeaveCommunity leaveCommunity) {
-    if (leaveCommunity == null || isBlank(leaveCommunity.getCommunityName())) {
+    if (leaveCommunity == null || (isBlank(leaveCommunity.getCommunityName()) && leaveCommunity.getCommunityId() == null)) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Check the fields", null));
     }
 
@@ -239,14 +238,14 @@ public class CommunityMembershipService {
   }
 
   public ResponseEntity<?> rejectRequest(RejectRequest rejectRequest) {
-    if (rejectRequest == null || isBlank(rejectRequest.getCommunityName()) || isBlank(rejectRequest.getUserEmail())) {
+    if (rejectRequest == null || (isBlank(rejectRequest.getCommunityName()) && rejectRequest.getCommunityId() == null) || isBlank(rejectRequest.getUserEmail())) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Check the fields", null));
     }
 
     try {
       String creatorEmail = SecurityUtils.getCurrentUserEmail();
       String userEmail = rejectRequest.getUserEmail().trim().toLowerCase();
-      String communityName = rejectRequest.getCommunityName().trim();
+      String communityName = rejectRequest.getCommunityName() != null ? rejectRequest.getCommunityName().trim() : null;
 
       Community community = findCommunityByNameOrId(communityName, rejectRequest.getCommunityId());
       User creator = userRepository.findByEmail(creatorEmail).orElseThrow(() -> new RuntimeException("Creator not found"));

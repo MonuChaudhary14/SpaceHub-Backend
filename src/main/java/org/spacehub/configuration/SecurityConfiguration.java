@@ -76,7 +76,16 @@ public class SecurityConfiguration {
           "/swagger-ui/**",
           "/v3/api-docs",
           "/v3/api-docs/**",
-          "/v3/api-docs.yaml"
+          "/v3/api-docs.yaml",
+          "/actuator/**",
+          "/notification",
+          "/notification/**",
+          "/notifications",
+          "/notifications/**",
+          "/chat",
+          "/chat/**",
+          "/ws",
+          "/ws/**"
         ).permitAll()
         .requestMatchers(
           "/api/v1/login",

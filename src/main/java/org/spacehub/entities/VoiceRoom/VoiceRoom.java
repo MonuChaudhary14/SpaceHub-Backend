@@ -42,4 +42,12 @@ public class VoiceRoom implements Serializable {
 
   @Column(name = "room_code", nullable = false)
   private String roomCode;
+
+  @Builder.Default
+  @Column(name = "room_type")
+  private String roomType = "VOICE";
+
+  @Builder.Default
+  @Column(name = "janus_room_id")
+  private Long janusRoomId = null;
 }

@@ -78,13 +78,13 @@ public class DashboardController {
       }
 
       String fixedMessage = """
-                              Hey there! 👋
-                              
-                              Welcome to SpaceHub — we're excited to have you here!
-                              
-                              You're now part of a growing community of creators, learners, and explorers.
-                              Stay tuned for upcoming updates, community stories, new features, and exciting product enhancements! 🚀
-                              """;
+        Hey there! 👋
+        
+        Welcome to SpaceHub — we're excited to have you here!
+        
+        You're now part of a growing community of creators, learners, and explorers.
+        Stay tuned for upcoming updates, community stories, new features, and exciting product enhancements! 🚀
+        """;
 
       emailService.sendCustomEmail(to, request.getSubject(), fixedMessage);
 

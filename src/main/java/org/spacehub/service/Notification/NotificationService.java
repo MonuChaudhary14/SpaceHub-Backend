@@ -130,7 +130,7 @@ public class NotificationService implements INotificationService {
     String email = SecurityUtils.getCurrentUserEmail();
     List<Notification> list = notificationRepository.findAllByRecipientWithDetails(email);
 
-    if (scope != null && !scope.isBlank()) {
+    if (scope != null && !scope.isBlank() && !"all".equalsIgnoreCase(scope) && !"global".equalsIgnoreCase(scope)) {
       list = list.stream()
         .filter(n -> scope.equalsIgnoreCase(n.getScope()))
         .toList();
@@ -240,6 +240,7 @@ public class NotificationService implements INotificationService {
     sendFriendRequestNotification(sender, recipient, UUID.randomUUID());
   }
 
+  @Override
   public void sendFriendRequestNotification(User sender, User recipient, UUID referenceId) {
     NotificationRequestDTO request = NotificationRequestDTO.builder()
       .senderEmail(sender.getEmail())

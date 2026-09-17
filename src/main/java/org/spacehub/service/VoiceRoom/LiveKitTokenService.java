@@ -35,12 +35,19 @@ public class LiveKitTokenService {
     Date now = new Date(nowMillis);
     Date expiry = new Date(nowMillis + (tokenTtlSeconds * 1000));
 
+    boolean isVideo = roomName != null && roomName.startsWith("vid_");
+
     Map<String, Object> videoGrant = new HashMap<>();
     videoGrant.put("room", roomName);
     videoGrant.put("roomJoin", true);
     videoGrant.put("canPublish", true);
     videoGrant.put("canSubscribe", true);
     videoGrant.put("canPublishData", true);
+    if (!isVideo) {
+      videoGrant.put("canPublishSources", java.util.List.of("microphone", "screen_share", "screen_share_audio"));
+    } else {
+      videoGrant.put("canPublishSources", java.util.List.of("camera", "microphone", "screen_share", "screen_share_audio"));
+    }
 
     byte[] secretBytes = apiSecret.getBytes(StandardCharsets.UTF_8);
     SecretKey key = Keys.hmacShaKeyFor(secretBytes);

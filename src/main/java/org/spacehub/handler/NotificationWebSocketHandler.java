@@ -74,10 +74,13 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
     }
   }
 
-//  @Override
-//  public void handleTextMessage(@NonNull WebSocketSession session, TextMessage message) {
-//    System.out.println("Message from client: " + message.getPayload());
-//  }
+  @Override
+  public void handleTextMessage(@NonNull WebSocketSession session, TextMessage message) {
+    String email = getEmailFromSession(session);
+    if (email != null) {
+      sendPreviousNotifications(email.toLowerCase());
+    }
+  }
 
   @Override
   public void afterConnectionClosed(@NonNull WebSocketSession session, @NonNull CloseStatus status) {

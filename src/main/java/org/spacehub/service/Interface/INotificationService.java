@@ -25,6 +25,8 @@ public interface INotificationService {
 
   void sendFriendRequestNotification(User sender, User recipient);
 
+  void sendFriendRequestNotification(User sender, User recipient, UUID referenceId);
+
   void sendLocalGroupJoinNotification(User newMember, User inviter, UUID groupId);
 
   void deleteActionableByReference(UUID referenceId);

@@ -43,7 +43,7 @@ public class FilesController {
 
   @PostMapping("/presigned/chat-upload")
   public ResponseEntity<ApiResponse<Map<String, String>>> getChatFilePresignedUrl(
-          @RequestParam("filename") String filename) {
+    @RequestParam("filename") String filename) {
 
     String key = s3Service.generateFileKey(filename);
     String uploadUrl = s3Service.generatePresignedUploadUrl(key, Duration.ofMinutes(10));
@@ -76,7 +76,7 @@ public class FilesController {
 
   @PostMapping("/upload-and-get-url")
   public ResponseEntity<ApiResponse<Map<String, String>>> uploadFileAndGetUrl(
-          @RequestParam("file") MultipartFile file) throws IOException {
+    @RequestParam("file") MultipartFile file) throws IOException {
 
     String key = s3Service.generateFileKey(file.getOriginalFilename());
     s3Service.uploadFile(key, file.getInputStream(), file.getSize());

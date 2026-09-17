@@ -63,6 +63,9 @@ public class DataInitializer implements CommandLineRunner {
       jdbcTemplate.execute("ALTER TABLE chat_room_user DROP CONSTRAINT IF EXISTS chat_room_user_role_check");
       jdbcTemplate.execute("UPDATE community_user SET role = 'OWNER' WHERE role IN ('WORKSPACE_OWNER', 'COMMUNITY_OWNER')");
       jdbcTemplate.execute("UPDATE chat_room_user SET role = 'OWNER' WHERE role IN ('WORKSPACE_OWNER', 'COMMUNITY_OWNER')");
+      jdbcTemplate.execute("ALTER TABLE voice_room DROP CONSTRAINT IF EXISTS uk88mh4q2ke232n32n2dxs91tqm");
+      jdbcTemplate.execute("ALTER TABLE voice_room DROP CONSTRAINT IF EXISTS voice_room_janus_room_id_key");
+      jdbcTemplate.execute("ALTER TABLE voice_room ALTER COLUMN janus_room_id DROP NOT NULL");
     } catch (Exception e) {
       log.warn("Could not migrate legacy roles or drop constraints: {}", e.getMessage());
     }
@@ -515,7 +518,7 @@ public class DataInitializer implements CommandLineRunner {
       .sender(sarah)
       .title("New Community Room")
       .message("Sarah Jenkins created room #design-critique in UI/UX & Design Lab.")
-      .type(NotificationType.COMMUNITY_JOINED)
+      .type(NotificationType.COMMUNITY)
       .scope("community")
       .read(false)
       .actionable(false)

@@ -9,6 +9,8 @@ public interface IVoiceRoomService {
 
   VoiceRoom createVoiceRoom(ChatRoom chatRoom, String name);
 
+  VoiceRoom createVoiceRoom(ChatRoom chatRoom, String name, String roomType);
+
   List<VoiceRoom> getVoiceRoomsForChatRoom(ChatRoom chatRoom);
 
   void deleteVoiceRoom(ChatRoom chatRoom, String roomName);

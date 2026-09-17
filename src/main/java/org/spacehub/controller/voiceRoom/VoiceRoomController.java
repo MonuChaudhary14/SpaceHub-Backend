@@ -27,6 +27,57 @@ public class VoiceRoomController {
   private final IVoiceRoomService voiceRoomService;
   private final ChatRoomRepository chatRoomRepository;
 
+  @PostMapping("/create")
+  public ResponseEntity<?> createVoiceRoom(
+    @RequestParam(value = "chatRoomId", required = false) UUID chatRoomIdParam,
+    @RequestParam(value = "roomName", required = false) String roomNameParam,
+    @RequestParam(value = "roomType", required = false) String roomTypeParam,
+    @RequestBody(required = false) Map<String, Object> body) {
+
+    try {
+      UUID chatRoomId = chatRoomIdParam;
+      String roomName = roomNameParam;
+      String roomType = roomTypeParam;
+
+      if (body != null) {
+        if (chatRoomId == null && body.get("chatRoomId") != null) {
+          chatRoomId = UUID.fromString(body.get("chatRoomId").toString());
+        }
+        if (roomName == null && body.get("roomName") != null) {
+          roomName = body.get("roomName").toString();
+        }
+        if (roomType == null && body.get("roomType") != null) {
+          roomType = body.get("roomType").toString();
+        }
+      }
+
+      if (chatRoomId == null) {
+        return ResponseEntity.badRequest().body(Map.of("error", "chatRoomId is required"));
+      }
+      if (roomName == null || roomName.isBlank()) {
+        return ResponseEntity.badRequest().body(Map.of("error", "roomName is required"));
+      }
+
+      final UUID targetChatRoomId = chatRoomId;
+      ChatRoom chatRoom = chatRoomRepository.findById(targetChatRoomId)
+        .orElseGet(() -> chatRoomRepository.findByRoomCode(targetChatRoomId)
+          .orElseThrow(() -> new RuntimeException("ChatRoom not found with ID: " + targetChatRoomId)));
+
+      VoiceRoom createdRoom = voiceRoomService.createVoiceRoom(chatRoom, roomName.trim(), roomType);
+
+      return ResponseEntity.status(201).body(Map.of(
+        "message", "Room created successfully",
+        "voiceRoom", new VoiceRoomDTO(createdRoom),
+        "data", createdRoom
+      ));
+    } catch (IllegalStateException e) {
+      return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+    } catch (Exception e) {
+      logger.error("Error creating voice/video room: {}", e.getMessage(), e);
+      return ResponseEntity.status(500).body(Map.of("error", "Failed to create room", "message", e.getMessage()));
+    }
+  }
+
   @PostMapping("/token")
   public ResponseEntity<?> getLiveKitToken(
     @RequestParam String roomCode,

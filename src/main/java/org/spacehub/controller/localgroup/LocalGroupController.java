@@ -23,9 +23,9 @@ public class LocalGroupController {
 
   @PostMapping("/create")
   public ResponseEntity<ApiResponse<LocalGroupResponse>> createLocalGroup(
-          @RequestParam("name") String name,
-          @RequestParam("description") String description,
-          @RequestParam("imageFile") MultipartFile imageFile) {
+    @RequestParam("name") String name,
+    @RequestParam("description") String description,
+    @RequestParam("imageFile") MultipartFile imageFile) {
     return localGroupService.createLocalGroup(name, description, imageFile);
   }
 
@@ -51,15 +51,15 @@ public class LocalGroupController {
 
   @GetMapping("/search")
   public ResponseEntity<?> searchLocalGroups(
-          @RequestParam("q") String q,
-          @RequestParam(value = "page", defaultValue = "0") int page,
-          @RequestParam(value = "size", defaultValue = "20") int size) {
+    @RequestParam("q") String q,
+    @RequestParam(value = "page", defaultValue = "0") int page,
+    @RequestParam(value = "size", defaultValue = "20") int size) {
     return localGroupService.searchLocalGroups(q, page, size);
   }
 
   @PostMapping("/{id}/enter")
   public ResponseEntity<?> enterLocalGroup(
-          @PathVariable("id") UUID groupId) {
+    @PathVariable("id") UUID groupId) {
     return localGroupService.enterOrJoinLocalGroup(groupId);
   }
 

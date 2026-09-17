@@ -36,8 +36,8 @@ public class UserController {
 
   @PostMapping("/login")
   public ResponseEntity<ApiResponse<TokenResponse>> login(
-      HttpServletRequest httpRequest,
-      @RequestBody LoginRequest request) {
+    HttpServletRequest httpRequest,
+    @RequestBody LoginRequest request) {
     ApiResponse<TokenResponse> resp = accountService.login(request);
     if (resp.getStatus() == 200 && resp.getData() != null) {
       ResponseCookie cookie = buildAccessTokenCookie(httpRequest, resp.getData().getAccessToken(), 24 * 60 * 60);
@@ -80,8 +80,8 @@ public class UserController {
 
   @PostMapping("/logout")
   public ResponseEntity<ApiResponse<String>> logout(
-      HttpServletRequest httpRequest,
-      @RequestBody(required = false) RefreshRequest request) {
+    HttpServletRequest httpRequest,
+    @RequestBody(required = false) RefreshRequest request) {
     ApiResponse<String> resp = accountService.logout(request);
     if (resp.getStatus() == 200) {
       ResponseCookie cookie = buildAccessTokenCookie(httpRequest, "", 0);
@@ -141,8 +141,8 @@ public class UserController {
 
   @GetMapping("/search")
   public ResponseEntity<ApiResponse<Page<UserSearchDTO>>> searchUsers(
-      @RequestParam("query") String query,
-      Pageable pageable) {
+    @RequestParam("query") String query,
+    Pageable pageable) {
     return userService.searchUsers(query, pageable);
   }
 

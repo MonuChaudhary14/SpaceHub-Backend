@@ -1,0 +1,9 @@
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: CheckstyleAutoFix
+displayName: Checkstyle Auto Fix
+description: Automatically fix Checkstyle violations
+recipeList:
+  - org.checkstyle.autofix.CheckstyleAutoFix:
+      violationReportPath: "target/checkstyle-result.xml"
+      configurationPath: "config/checkstyle/checkstyle.xml"

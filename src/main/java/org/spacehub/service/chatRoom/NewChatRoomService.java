@@ -83,7 +83,51 @@ public class NewChatRoomService implements INewChatRoomService {
   }
 
   public Optional<NewChatRoom> getEntityByCode(UUID roomCode) {
-    return newChatRoomRepository.findByRoomCode(roomCode);
+    if (roomCode == null) {
+      return Optional.empty();
+    }
+    Optional<NewChatRoom> directRoom = newChatRoomRepository.findByRoomCode(roomCode);
+    if (directRoom.isPresent()) {
+      return directRoom;
+    }
+
+    Optional<ChatRoom> parentGroup = chatRoomRepository.findByRoomCode(roomCode);
+    if (parentGroup.isEmpty()) {
+      parentGroup = chatRoomRepository.findById(roomCode);
+    }
+
+    if (parentGroup.isPresent()) {
+      List<NewChatRoom> existing = newChatRoomRepository.findByChatRoom(parentGroup.get());
+      if (!existing.isEmpty()) {
+        return Optional.of(existing.get(0));
+      }
+      NewChatRoom defaultRoom = NewChatRoom.builder()
+        .name("general")
+        .roomCode(UUID.randomUUID())
+        .createdAt(System.currentTimeMillis())
+        .chatRoom(parentGroup.get())
+        .build();
+      return Optional.of(newChatRoomRepository.save(defaultRoom));
+    }
+
+    List<ChatRoom> communityRooms = chatRoomRepository.findByCommunityId(roomCode);
+    if (!communityRooms.isEmpty()) {
+      for (ChatRoom cr : communityRooms) {
+        List<NewChatRoom> existing = newChatRoomRepository.findByChatRoom(cr);
+        if (!existing.isEmpty()) {
+          return Optional.of(existing.get(0));
+        }
+      }
+      NewChatRoom defaultRoom = NewChatRoom.builder()
+        .name("general")
+        .roomCode(UUID.randomUUID())
+        .createdAt(System.currentTimeMillis())
+        .chatRoom(communityRooms.get(0))
+        .build();
+      return Optional.of(newChatRoomRepository.save(defaultRoom));
+    }
+
+    return Optional.empty();
   }
 
   public ApiResponse<List<Map<String, Object>>> getAllNewChatRoomsSummary(String roomCode) {

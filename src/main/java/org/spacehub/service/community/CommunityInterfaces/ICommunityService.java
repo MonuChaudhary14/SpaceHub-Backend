@@ -49,7 +49,7 @@ public interface ICommunityService {
   ResponseEntity<ApiResponse<Map<String, List<Map<String, Object>>>>> listAllCommunities();
 
   ResponseEntity<ApiResponse<Map<String, Object>>> getCommunityDetailsWithAdminFlag(
-          UUID communityId
+    UUID communityId
   );
 
   ResponseEntity<?> createRoomInCommunity(CreateRoomRequest request);
@@ -65,12 +65,12 @@ public interface ICommunityService {
   ResponseEntity<?> uploadCommunityAvatar(UUID communityId, MultipartFile imageFile);
 
   ResponseEntity<?> uploadCommunityBanner(
-          UUID communityId,
-          MultipartFile bannerFile,
-          MultipartFile communityAvatarFile,
-          MultipartFile userAvatarFile,
-          String newName,
-          String newDescription
+    UUID communityId,
+    MultipartFile bannerFile,
+    MultipartFile communityAvatarFile,
+    MultipartFile userAvatarFile,
+    String newName,
+    String newDescription
   );
 
   ResponseEntity<?> renameRoomInCommunity(UUID communityId, UUID roomId, RenameRoomRequest req);

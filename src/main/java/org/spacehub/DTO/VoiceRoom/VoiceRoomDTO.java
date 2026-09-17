@@ -10,11 +10,13 @@ public class VoiceRoomDTO {
   private String roomCode;
   private String name;
   private String createdBy;
+  private String roomType;
 
   public VoiceRoomDTO(VoiceRoom entity) {
     this.id = entity.getId();
     this.roomCode = entity.getRoomCode();
     this.name = entity.getName();
     this.createdBy = entity.getCreatedBy();
+    this.roomType = entity.getRoomType();
   }
 }
