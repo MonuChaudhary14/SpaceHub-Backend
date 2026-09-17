@@ -163,31 +163,33 @@ public class FriendService implements IFriendService {
     List<Friends> sent = friendsRepository.findByUserAndStatusIgnoreCase(user, "accepted");
     List<Friends> received = friendsRepository.findByFriendAndStatusIgnoreCase(user, "accepted");
 
-    List<UserOutput> friendsList = sent.stream()
-      .map(friend -> {
-        User f = friend.getFriend();
-        String preview = buildPresignedUrlSafely(f.getAvatarUrl());
-        return new UserOutput(
+    Map<UUID, UserOutput> distinctFriends = new LinkedHashMap<>();
+
+    for (Friends friendRel : sent) {
+      User f = friendRel.getFriend();
+      if (f != null && !f.getId().equals(user.getId())) {
+        distinctFriends.putIfAbsent(f.getId(), new UserOutput(
           f.getId(),
           f.getUsername(),
           f.getEmail(),
-          preview
-        );
-      }).collect(Collectors.toList());
+          buildPresignedUrlSafely(f.getAvatarUrl())
+        ));
+      }
+    }
 
-    friendsList.addAll(received.stream()
-      .map(friend -> {
-        User f = friend.getUser();
-        String preview = buildPresignedUrlSafely(f.getAvatarUrl());
-        return new UserOutput(
+    for (Friends friendRel : received) {
+      User f = friendRel.getUser();
+      if (f != null && !f.getId().equals(user.getId())) {
+        distinctFriends.putIfAbsent(f.getId(), new UserOutput(
           f.getId(),
           f.getUsername(),
           f.getEmail(),
-          preview
-        );
-      }).toList());
+          buildPresignedUrlSafely(f.getAvatarUrl())
+        ));
+      }
+    }
 
-    return friendsList;
+    return new ArrayList<>(distinctFriends.values());
   }
 
   public String blockFriend(String friendEmail) {

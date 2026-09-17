@@ -250,22 +250,17 @@ public class DataInitializer implements CommandLineRunner {
 
   private void createFriendship(User u1, User u2) {
     Optional<Friends> f1 = friendsRepository.findByUserAndFriend(u1, u2);
-    if (f1.isEmpty()) {
-      Friends rel1 = new Friends();
-      rel1.setUser(u1);
-      rel1.setFriend(u2);
-      rel1.setStatus("ACCEPTED");
-      rel1.setCreatedAt(LocalDateTime.now().minusDays(10));
-      friendsRepository.save(rel1);
-    }
     Optional<Friends> f2 = friendsRepository.findByUserAndFriend(u2, u1);
-    if (f2.isEmpty()) {
-      Friends rel2 = new Friends();
-      rel2.setUser(u2);
-      rel2.setFriend(u1);
-      rel2.setStatus("ACCEPTED");
-      rel2.setCreatedAt(LocalDateTime.now().minusDays(10));
-      friendsRepository.save(rel2);
+
+    if (f1.isEmpty() && f2.isEmpty()) {
+      Friends rel = new Friends();
+      rel.setUser(u1);
+      rel.setFriend(u2);
+      rel.setStatus("ACCEPTED");
+      rel.setCreatedAt(LocalDateTime.now().minusDays(10));
+      friendsRepository.save(rel);
+    } else if (f1.isPresent() && f2.isPresent()) {
+      friendsRepository.delete(f2.get());
     }
   }
 
