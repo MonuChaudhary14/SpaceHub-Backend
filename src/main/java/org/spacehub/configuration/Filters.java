@@ -33,6 +33,9 @@ public class Filters extends OncePerRequestFilter {
 
   @Override
   protected boolean shouldNotFilter(HttpServletRequest request) {
+    if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+      return true;
+    }
     String path = request.getRequestURI();
     return path.startsWith("/swagger-ui") ||
            path.startsWith("/v3/api-docs") ||

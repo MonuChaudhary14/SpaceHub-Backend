@@ -16,7 +16,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.List;
-import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 public class SecurityConfiguration {
@@ -36,20 +35,7 @@ public class SecurityConfiguration {
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration config = new CorsConfiguration();
-
-    config.setAllowedOriginPatterns(List.of(
-      "https://*.vercel.app",
-      "https://*.monu14.me",
-      "https://*.spacehubx.me",
-      "https://spacehub.monu14.me",
-      "https://space-hub-frontend-two.vercel.app",
-      "https://space-hub-frontend.vercel.app",
-      "https://www.spacehubx.me",
-      "https://*.github.io",
-      "https://somiljain2006.github.io*",
-      "http://localhost:*",
-      "http://127.0.0.1:*"
-    ));
+    config.setAllowedOriginPatterns(List.of("*"));
     config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"));
     config.setAllowedHeaders(List.of("*"));
     config.setExposedHeaders(List.of("Authorization", "Set-Cookie"));
@@ -61,9 +47,14 @@ public class SecurityConfiguration {
   }
 
   @Bean
+  public org.springframework.web.filter.CorsFilter corsFilter() {
+    return new org.springframework.web.filter.CorsFilter(corsConfigurationSource());
+  }
+
+  @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http
-      .cors(withDefaults())
+      .cors(cors -> cors.configurationSource(corsConfigurationSource()))
       .csrf(AbstractHttpConfigurer::disable)
       .authorizeHttpRequests(auth -> auth
         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
