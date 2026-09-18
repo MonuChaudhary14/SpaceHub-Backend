@@ -37,25 +37,22 @@ public class SecurityConfiguration {
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration config = new CorsConfiguration();
 
-    // config.setAllowedOriginPatterns(List.of("*"));
-
-    config.setAllowedOrigins(List.of(
-      "http://localhost",
-      "http://127.0.0.1:5500",
-      "http://localhost:5500",
-      "http://localhost:5173",
-      "http://localhost:8080",
+    config.setAllowedOriginPatterns(List.of(
+      "https://*.vercel.app",
+      "https://*.monu14.me",
+      "https://*.spacehubx.me",
       "https://spacehub.monu14.me",
+      "https://space-hub-frontend-two.vercel.app",
       "https://space-hub-frontend.vercel.app",
       "https://www.spacehubx.me",
-      "https://audio-room-tawny.vercel.app",
-      "https://somiljain2006.github.io/Audio-room",
-      "https://somiljain2006.github.io",
-      "https://direct-message-wheat.vercel.app",
-      "https://audio-room-nine.vercel.app"));
-    config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+      "https://*.github.io",
+      "https://somiljain2006.github.io*",
+      "http://localhost:*",
+      "http://127.0.0.1:*"
+    ));
+    config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"));
     config.setAllowedHeaders(List.of("*"));
-    config.setExposedHeaders(List.of("Authorization"));
+    config.setExposedHeaders(List.of("Authorization", "Set-Cookie"));
     config.setAllowCredentials(true);
     config.setMaxAge(3600L);
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
