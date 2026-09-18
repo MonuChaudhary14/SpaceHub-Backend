@@ -1,109 +1,116 @@
 package org.spacehub.service.chatRoom;
 
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.spacehub.entities.ChatRoom.ChatMessage;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.ChatRoom.NewChatRoom;
-import org.spacehub.handler.ChatWebSocketHandler;
 import org.spacehub.service.chatRoom.chatroomInterfaces.IChatMessageQueue;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class ChatMessageQueue implements IChatMessageQueue {
 
-  private final Map<String, List<ChatMessage>> pendingByRoom = new ConcurrentHashMap<>();
+  private static final Logger logger = LoggerFactory.getLogger(ChatMessageQueue.class);
+  private static final int FLUSH_BATCH_SIZE = 50;
 
   private final ChatMessageService chatMessageService;
-  private ChatWebSocketHandler chatWebSocketHandler;
+  private WriteBehindBuffer<ChatMessage> writeBehindBuffer;
 
-  private static final int FLUSH_BATCH_SIZE = 10;
-
-  @Autowired
-  @Lazy
-  public void setChatWebSocketHandler(ChatWebSocketHandler handler) {
-    this.chatWebSocketHandler = handler;
+  @PostConstruct
+  public void init() {
+    this.writeBehindBuffer = new WriteBehindBuffer<>(
+      "CommunityChat",
+      FLUSH_BATCH_SIZE,
+      chatMessageService::saveAll
+    );
   }
 
-  public synchronized void enqueue(ChatMessage message) {
-    pendingByRoom.computeIfAbsent(message.getRoomCode(), k -> Collections.synchronizedList(new ArrayList<>()))
-      .add(message);
-
-    List<ChatMessage> list = pendingByRoom.get(message.getRoomCode());
-    if (list != null && list.size() >= FLUSH_BATCH_SIZE) {
-      flushRoom(message.getRoomCode());
-    }
-  }
-
-  @Scheduled(fixedRate = 10000)
-  public synchronized void flushQueue() {
-    Set<String> rooms = new HashSet<>(pendingByRoom.keySet());
-    for (String roomCode : rooms) {
-      flushRoom(roomCode);
-    }
-  }
-
-  private synchronized void flushRoom(String roomCode) {
-    List<ChatMessage> pending = pendingByRoom.getOrDefault(roomCode, Collections.emptyList());
-    if (pending.isEmpty()) {
+  @Override
+  public void enqueue(ChatMessage message) {
+    if (message == null) {
       return;
     }
-
-    List<ChatMessage> batch = new ArrayList<>(pending);
-    pending.clear();
-    pendingByRoom.remove(roomCode);
-
-    try {
-      chatMessageService.saveAll(batch);
+    if (message.getTimestamp() == null) {
+      message.setTimestamp(System.currentTimeMillis());
     }
-    catch (Exception e) {
-      pendingByRoom.computeIfAbsent(roomCode, k -> Collections.synchronizedList(new ArrayList<>())).addAll(batch);
+    writeBehindBuffer.enqueue(message);
+  }
+
+  @Scheduled(fixedRate = 1000)
+  public void flushQueue() {
+    if (writeBehindBuffer != null && !writeBehindBuffer.isEmpty()) {
+      writeBehindBuffer.flushBatch();
     }
   }
 
-  public synchronized boolean deleteMessageByUuid(String messageUuid) {
-    boolean removedFromMemory = pendingByRoom.values().stream()
-      .anyMatch(list -> list.removeIf(m -> Objects.equals(m.getMessageUuid(), messageUuid)));
+  @Override
+  public boolean deleteMessageByUuid(String messageUuid) {
+    if (messageUuid == null || writeBehindBuffer == null) {
+      return false;
+    }
 
+    boolean removedFromBuffer = writeBehindBuffer.removeIf(
+      m -> Objects.equals(m.getMessageUuid(), messageUuid)
+    );
     boolean removedFromDb = chatMessageService.deleteMessageByUuid(messageUuid);
 
-    return removedFromMemory || removedFromDb;
+    return removedFromBuffer || removedFromDb;
   }
 
+  @Override
   public List<ChatMessage> getMessagesForRoom(ChatRoom room) {
     return chatMessageService.getMessagesForRoom(room);
   }
 
+  @Override
   public List<ChatMessage> getMessagesForNewChatRoom(NewChatRoom newChatRoom) {
     List<ChatMessage> dbMessages = chatMessageService.getMessagesForNewChatRoom(newChatRoom);
+    if (newChatRoom == null || newChatRoom.getRoomCode() == null || writeBehindBuffer == null) {
+      return dbMessages;
+    }
 
     String roomCode = newChatRoom.getRoomCode().toString();
-    List<ChatMessage> pending = pendingByRoom.getOrDefault(roomCode, Collections.emptyList());
+    List<ChatMessage> pending = writeBehindBuffer.getPendingSnapshot().stream()
+      .filter(m -> Objects.equals(m.getRoomCode(), roomCode))
+      .collect(Collectors.toList());
 
-    List<ChatMessage> combined = new ArrayList<>();
+    if (pending.isEmpty()) {
+      return dbMessages;
+    }
+
+    List<ChatMessage> combined = new ArrayList<>(dbMessages.size() + pending.size());
     combined.addAll(dbMessages);
-    combined.addAll(new ArrayList<>(pending));
-
+    combined.addAll(pending);
     combined.sort(Comparator.comparingLong(ChatMessage::getTimestamp));
     return combined;
   }
 
+  @Override
   public boolean isPending(String messageUuid) {
-    return pendingByRoom.values().stream().anyMatch(list -> list.stream()
-      .anyMatch(m -> Objects.equals(m.getMessageUuid(), messageUuid)));
+    if (messageUuid == null || writeBehindBuffer == null) {
+      return false;
+    }
+    return writeBehindBuffer.getPendingSnapshot().stream()
+      .anyMatch(m -> Objects.equals(m.getMessageUuid(), messageUuid));
   }
 
+  @PreDestroy
+  public void shutdown() {
+    if (writeBehindBuffer != null) {
+      logger.info("Gracefully flushing pending Community Chat messages before shutdown...");
+      writeBehindBuffer.shutdown();
+    }
+  }
 }

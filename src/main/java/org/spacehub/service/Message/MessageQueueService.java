@@ -1,32 +1,34 @@
 package org.spacehub.service.Message;
 
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.spacehub.entities.DirectMessaging.Message;
 import org.spacehub.handler.ChatWebSocketHandlerMessaging;
 import org.spacehub.service.Interface.IMessageService;
+import org.spacehub.service.chatRoom.WriteBehindBuffer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Locale;
 import java.util.Objects;
-import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class MessageQueueService {
 
-  private final Map<String, List<Message>> pendingByChat = new ConcurrentHashMap<>();
+  private static final Logger logger = LoggerFactory.getLogger(MessageQueueService.class);
+  private static final int FLUSH_BATCH_SIZE = 50;
+
   private final IMessageService messageService;
   private ChatWebSocketHandlerMessaging messagingHandler;
-  private static final int FLUSH_BATCH_SIZE = 10;
+  private WriteBehindBuffer<Message> writeBehindBuffer;
 
   @Autowired
   @Lazy
@@ -34,38 +36,16 @@ public class MessageQueueService {
     this.messagingHandler = handler;
   }
 
-  public synchronized void enqueue(Message message) {
-    if (message.getTimestamp() == null) {
-      message.setTimestamp(java.time.Instant.now().toEpochMilli());
-    }
-    if (message.getSenderEmail() != null) {
-      message.setSenderEmail(message.getSenderEmail().trim().toLowerCase());
-    }
-    if (message.getReceiverEmail() != null) {
-      message.setReceiverEmail(message.getReceiverEmail().trim().toLowerCase());
-    }
-    String chatKey = buildChatKey(message.getSenderEmail(), message.getReceiverEmail());
-    pendingByChat.computeIfAbsent(chatKey, k -> Collections.synchronizedList(new ArrayList<>())).add(message);
-    List<Message> list = pendingByChat.get(chatKey);
-    if (list != null && list.size() >= FLUSH_BATCH_SIZE) {
-      flushRoom(chatKey);
-    }
+  @PostConstruct
+  public void init() {
+    this.writeBehindBuffer = new WriteBehindBuffer<>(
+      "DirectMessaging",
+      FLUSH_BATCH_SIZE,
+      this::persistAndBroadcastBatch
+    );
   }
 
-  @Scheduled(fixedRate = 5000)
-  public synchronized void flushQueue() {
-    Set<String> chats = new HashSet<>(pendingByChat.keySet());
-    for (String chatKey : chats) flushRoom(chatKey);
-  }
-
-  private synchronized void flushRoom(String chatKey) {
-    List<Message> pending = pendingByChat.getOrDefault(chatKey, Collections.emptyList());
-    if (pending.isEmpty()) {
-      return;
-    }
-    List<Message> batch = new ArrayList<>(pending);
-    pending.clear();
-    pendingByChat.remove(chatKey);
+  private void persistAndBroadcastBatch(List<Message> batch) {
     try {
       List<Message> persisted = messageService.saveMessageBatch(batch);
       if (messagingHandler != null && persisted != null) {
@@ -77,35 +57,80 @@ public class MessageQueueService {
         }
       }
     } catch (Exception e) {
-      e.printStackTrace();
-      pendingByChat.computeIfAbsent(chatKey, k -> Collections.synchronizedList(new ArrayList<>())).addAll(batch);
+      logger.error("Error persisting direct message batch: {}", e.getMessage(), e);
+      throw e;
     }
   }
 
-  public synchronized boolean deleteMessageByUuid(String messageUuid) {
-    boolean removedFromMemory = pendingByChat.values().stream()
-      .anyMatch(list -> list.removeIf(m -> Objects.equals(m.getMessageUuid(), messageUuid)));
-    boolean removedFromDb = messageService.deleteMessageByUuid(messageUuid);
+  public void enqueue(Message message) {
+    if (message == null) {
+      return;
+    }
+    if (message.getTimestamp() == null) {
+      message.setTimestamp(System.currentTimeMillis());
+    }
+    if (message.getSenderEmail() != null) {
+      message.setSenderEmail(message.getSenderEmail().trim().toLowerCase(Locale.ROOT));
+    }
+    if (message.getReceiverEmail() != null) {
+      message.setReceiverEmail(message.getReceiverEmail().trim().toLowerCase(Locale.ROOT));
+    }
+    writeBehindBuffer.enqueue(message);
+  }
+
+  @Scheduled(fixedRate = 1000)
+  public void flushQueue() {
+    if (writeBehindBuffer != null && !writeBehindBuffer.isEmpty()) {
+      writeBehindBuffer.flushBatch();
+    }
+  }
+
+  public boolean deleteMessageByUuid(String messageUuid) {
+    if (messageUuid == null || writeBehindBuffer == null) {
+      return false;
+    }
+    boolean removedFromMemory = writeBehindBuffer.removeIf(
+      m -> Objects.equals(m.getMessageUuid(), messageUuid)
+    );
+    boolean removedFromDb = messageService.deleteMessageForUserByUuid(messageUuid, "") != null;
     return removedFromMemory || removedFromDb;
   }
 
   public List<Message> getPendingForChat(String userA, String userB) {
+    if (writeBehindBuffer == null) {
+      return List.of();
+    }
     String chatKey = buildChatKey(userA, userB);
-    List<Message> pending = pendingByChat.getOrDefault(chatKey, Collections.emptyList());
-    return new ArrayList<>(pending);
+    return writeBehindBuffer.getPendingSnapshot().stream()
+      .filter(m -> {
+        String key = buildChatKey(m.getSenderEmail(), m.getReceiverEmail());
+        return Objects.equals(key, chatKey);
+      })
+      .collect(Collectors.toList());
   }
 
   public boolean isPending(String messageUuid) {
-    return pendingByChat.values().stream().flatMap(Collection::stream).anyMatch(m -> Objects.equals(m.getMessageUuid(), messageUuid));
+    if (messageUuid == null || writeBehindBuffer == null) {
+      return false;
+    }
+    return writeBehindBuffer.getPendingSnapshot().stream()
+      .anyMatch(m -> Objects.equals(m.getMessageUuid(), messageUuid));
   }
 
   public String buildChatKey(String a, String b) {
-    String aa = a == null ? "" : a.trim().toLowerCase();
-    String bb = b == null ? "" : b.trim().toLowerCase();
+    String aa = a == null ? "" : a.trim().toLowerCase(Locale.ROOT);
+    String bb = b == null ? "" : b.trim().toLowerCase(Locale.ROOT);
     if (aa.compareTo(bb) <= 0) {
       return aa + "::" + bb;
     }
     return bb + "::" + aa;
   }
 
+  @PreDestroy
+  public void shutdown() {
+    if (writeBehindBuffer != null) {
+      logger.info("Gracefully flushing pending Direct Messages before shutdown...");
+      writeBehindBuffer.shutdown();
+    }
+  }
 }

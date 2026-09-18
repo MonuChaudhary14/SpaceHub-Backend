@@ -217,7 +217,9 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
       return;
     }
 
-    String messageUuid = UUID.randomUUID().toString();
+    String messageUuid = payload.get("messageUuid") != null
+      ? payload.get("messageUuid").toString()
+      : UUID.randomUUID().toString();
     ChatMessage message = ChatMessage.builder()
       .messageUuid(messageUuid)
       .senderEmail(senderEmail)
@@ -243,7 +245,9 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
       return;
     }
 
-    String messageUuid = UUID.randomUUID().toString();
+    String messageUuid = payload.get("messageUuid") != null
+      ? payload.get("messageUuid").toString()
+      : UUID.randomUUID().toString();
     String fileKey = (String) payload.get("fileKey");
     String fileName = (String) payload.get("fileName");
     String contentType = (String) payload.get("contentType");

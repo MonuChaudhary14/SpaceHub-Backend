@@ -12,7 +12,11 @@ public interface IChatMessageQueue {
 
   void flushQueue();
 
+  boolean deleteMessageByUuid(String messageUuid);
+
   List<ChatMessage> getMessagesForRoom(ChatRoom room);
 
   List<ChatMessage> getMessagesForNewChatRoom(NewChatRoom newChatRoom);
+
+  boolean isPending(String messageUuid);
 }
