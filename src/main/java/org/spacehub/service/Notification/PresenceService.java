@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 import org.spacehub.DTO.presence.OnlineUsersDTO;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.ConcurrentHashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
