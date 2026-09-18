@@ -104,7 +104,6 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
       addSessionToRoom(session, resolvedRoomKey, email);
       sendExistingMessages(session, actualRoom);
-      broadcastSystemMessage(resolvedRoomKey, email + " joined the chat");
 
       logger.info("Connected: {} -> {}", email, resolvedRoomKey);
     }
@@ -143,12 +142,6 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     return map;
   }
 
-  private void broadcastSystemMessage(String roomCode, String text) {
-    Map<String, Object> system = Map.of("type", "SYSTEM", "message", text, "timestamp",
-      Instant.now().toEpochMilli());
-    broadcastEvent(roomCode, system);
-  }
-
   private void addSessionToRoom(WebSocketSession session, String roomCode, String email) {
     rooms.computeIfAbsent(roomCode, k -> ConcurrentHashMap.newKeySet()).add(session);
     sessionRoom.put(session, roomCode);
@@ -181,14 +174,13 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
   @Override
   public void afterConnectionClosed(@NonNull WebSocketSession session, @NonNull CloseStatus status) {
     String roomCode = sessionRoom.remove(session);
-    String email = userSessions.remove(session);
+    userSessions.remove(session);
     if (roomCode != null) {
       Set<WebSocketSession> set = rooms.getOrDefault(roomCode, ConcurrentHashMap.newKeySet());
       set.remove(session);
       if (set.isEmpty()) {
         rooms.remove(roomCode);
       }
-      broadcastSystemMessage(roomCode, email + " left the chat");
     }
   }
 
