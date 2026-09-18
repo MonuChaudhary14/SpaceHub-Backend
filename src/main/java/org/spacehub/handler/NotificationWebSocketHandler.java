@@ -10,7 +10,9 @@ import org.spacehub.mapper.NotificationMapper;
 import org.spacehub.repository.Notification.NotificationRepository;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
-import org.springframework.web.socket.*;
+import org.springframework.web.socket.CloseStatus;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.io.IOException;
@@ -111,13 +113,25 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
   }
 
   public void sendNotification(String email, Object notificationData) {
-    email = email.toLowerCase();
-    WebSocketSession session = userSessions.get(email);
+    if (email == null) {
+      return;
+    }
+    try {
+      String json = notificationData instanceof String s ? s : objectMapper.writeValueAsString(notificationData);
+      sendNotificationToLocalSession(email, json);
+    } catch (Exception e) {
+      System.err.println("Failed to serialize real-time notification: " + e.getMessage());
+    }
+  }
 
+  public void sendNotificationToLocalSession(String email, String payloadJson) {
+    if (email == null) {
+      return;
+    }
+    WebSocketSession session = userSessions.get(email.toLowerCase());
     if (session != null && session.isOpen()) {
       try {
-        String json = objectMapper.writeValueAsString(notificationData);
-        session.sendMessage(new TextMessage(json));
+        session.sendMessage(new TextMessage(payloadJson));
       }
       catch (IOException e) {
         System.err.println("Failed to send real-time notification: " + e.getMessage());

@@ -191,7 +191,8 @@ public class CommunityCoreService {
         community.put("memberCount", memberCount);
       }
 
-      return ResponseEntity.ok(new ApiResponse<>(200, "User's communities fetched with member counts", Map.of("communities", userCommunities)));
+      return ResponseEntity.ok(new ApiResponse<>(200, "User's communities fetched with member counts",
+        Map.of("communities", userCommunities)));
     } catch (Exception e) {
       return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
     }
@@ -210,12 +211,8 @@ public class CommunityCoreService {
       }
 
       Community community = optionalCommunity.get();
-      Optional<User> optionalUser = userRepository.findByEmail(requesterEmail.trim().toLowerCase());
-      if (optionalUser.isEmpty()) {
-        return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Requester not found", null));
-      }
-      User requester = optionalUser.get();
-
+      User requester = userRepository.findByEmail(requesterEmail.trim().toLowerCase())
+        .orElseThrow(() -> new RuntimeException("Requester not found"));
       Optional<CommunityUser> cuOpt = community.getCommunityUsers().stream()
         .filter(cu -> cu.getUser().getId().equals(requester.getId()))
         .findFirst();
@@ -286,7 +283,8 @@ public class CommunityCoreService {
         boolean isMember = c.getMembers().stream().anyMatch(u -> u.getId().equals(finalRequester.getId())) ||
           c.getCommunityUsers().stream().anyMatch(cu -> cu.getUser().getId().equals(finalRequester.getId()));
         boolean isRequested = c.getPendingRequests().stream().anyMatch(u -> u.getId().equals(finalRequester.getId()));
-        boolean isBlocked = c.getCommunityUsers().stream().anyMatch(cu -> cu.getUser().getId().equals(finalRequester.getId()) && cu.isBlocked());
+        boolean isBlocked = c.getCommunityUsers().stream()
+          .anyMatch(cu -> cu.getUser().getId().equals(finalRequester.getId()) && cu.isBlocked());
 
         m.put("isMember", isMember);
         m.put("isRequested", isRequested);
@@ -310,7 +308,11 @@ public class CommunityCoreService {
         .map(c -> buildCommunityDiscoverDTO(c, currentUser))
         .collect(Collectors.toList());
 
-      return ResponseEntity.ok(new ApiResponse<>(200, "Discover communities fetched successfully", buildPagedResponse(communityPage, communities)));
+      return ResponseEntity.ok(new ApiResponse<>(
+        200,
+        "Discover communities fetched successfully",
+        buildPagedResponse(communityPage, communities)
+      ));
     } catch (Exception e) {
       return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
     }

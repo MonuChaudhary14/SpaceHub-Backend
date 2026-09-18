@@ -7,7 +7,15 @@ import org.spacehub.DTO.Notification.NotificationUserRequest;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.service.Interface.INotificationService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.UUID;
@@ -38,7 +46,8 @@ public class NotificationController {
   }
 
   @PostMapping("/list")
-  public ResponseEntity<ApiResponse<List<NotificationResponseDTO>>> getUserNotifications(@RequestBody(required = false) NotificationUserRequest request) {
+  public ResponseEntity<ApiResponse<List<NotificationResponseDTO>>> getUserNotifications(
+      @RequestBody(required = false) NotificationUserRequest request) {
     String scope = request != null && request.getScope() != null ? request.getScope() : "global";
     int page = request != null ? request.getPage() : 0;
     int size = request != null && request.getSize() > 0 ? request.getSize() : 20;
@@ -63,7 +72,8 @@ public class NotificationController {
   }
 
   @PostMapping("/inbox")
-  public ResponseEntity<ApiResponse<List<NotificationResponseDTO>>> openInbox(@RequestBody(required = false) NotificationUserRequest request) {
+  public ResponseEntity<ApiResponse<List<NotificationResponseDTO>>> openInbox(
+      @RequestBody(required = false) NotificationUserRequest request) {
     int page = request != null ? request.getPage() : 0;
     int size = request != null && request.getSize() > 0 ? request.getSize() : 20;
 
@@ -95,7 +105,8 @@ public class NotificationController {
   }
 
   @PostMapping("/unread-count")
-  public ResponseEntity<ApiResponse<Long>> getUnreadCount(@RequestBody(required = false) NotificationUserRequest request) {
+  public ResponseEntity<ApiResponse<Long>> getUnreadCount(
+      @RequestBody(required = false) NotificationUserRequest request) {
 
     long count = notificationService.countUnreadNotifications();
 

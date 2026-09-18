@@ -1,6 +1,11 @@
 package org.spacehub.service.serviceAuth.authInterfaces;
 
-import org.spacehub.DTO.DTO_auth.*;
+import org.spacehub.DTO.DTO_auth.LoginRequest;
+import org.spacehub.DTO.DTO_auth.OTPRequest;
+import org.spacehub.DTO.DTO_auth.RefreshRequest;
+import org.spacehub.DTO.DTO_auth.ResetPasswordRequest;
+import org.spacehub.DTO.DTO_auth.TokenResponse;
+import org.spacehub.DTO.DTO_auth.ValidateForgotOtpRequest;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.Auth.RegistrationRequest;
 

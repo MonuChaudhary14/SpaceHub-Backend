@@ -2,8 +2,16 @@ package org.spacehub.service.community.CommunityInterfaces;
 
 import org.spacehub.DTO.Community.AcceptRequest;
 import org.spacehub.DTO.Community.CancelJoinRequest;
-import org.spacehub.DTO.Community.*;
+import org.spacehub.DTO.Community.CommunityBlockRequest;
+import org.spacehub.DTO.Community.CommunityChangeRoleRequest;
+import org.spacehub.DTO.Community.CommunityMemberRequest;
+import org.spacehub.DTO.Community.CreateRoomRequest;
+import org.spacehub.DTO.Community.DeleteCommunityDTO;
+import org.spacehub.DTO.Community.JoinCommunity;
+import org.spacehub.DTO.Community.LeaveCommunity;
 import org.spacehub.DTO.Community.RejectRequest;
+import org.spacehub.DTO.Community.RenameRoomRequest;
+import org.spacehub.DTO.Community.UpdateCommunityDTO;
 import org.spacehub.entities.ApiResponse.ApiResponse;
 import org.spacehub.entities.Community.Community;
 import org.springframework.http.ResponseEntity;
@@ -88,4 +96,3 @@ public interface ICommunityService {
   ResponseEntity<?> checkCommunityNameExists(String name);
 
 }
-

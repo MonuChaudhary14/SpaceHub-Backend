@@ -70,7 +70,7 @@ public class CommunityInviteService implements ICommunityInviteService {
     }
 
     Role role = membership != null ? membership.getRole() : Role.MEMBER;
-    boolean hasPermission = isCreator || (role == Role.OWNER || role == Role.ADMIN || role == Role.MODERATOR);
+    boolean hasPermission = isCreator || role == Role.OWNER || role == Role.ADMIN || role == Role.MODERATOR;
 
     if (!hasPermission) {
       return new ApiResponse<>(403, "Only community owners, admins, or moderators can create invites", null);

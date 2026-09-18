@@ -9,7 +9,15 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.ConcurrentHashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -76,7 +84,8 @@ public class MessageQueueService {
   }
 
   public synchronized boolean deleteMessageByUuid(String messageUuid) {
-    boolean removedFromMemory = pendingByChat.values().stream().anyMatch(list -> list.removeIf(m -> Objects.equals(m.getMessageUuid(), messageUuid)));
+    boolean removedFromMemory = pendingByChat.values().stream()
+      .anyMatch(list -> list.removeIf(m -> Objects.equals(m.getMessageUuid(), messageUuid)));
     boolean removedFromDb = messageService.deleteMessageByUuid(messageUuid);
     return removedFromMemory || removedFromDb;
   }

@@ -139,16 +139,16 @@ public class CommunityRoomService {
           List<VoiceRoom> vrs = voiceRoomRepository.findByChatRoom(r);
           List<String> voiceRooms = vrs != null
             ? vrs.stream()
-                .filter(vr -> !"VIDEO".equalsIgnoreCase(vr.getRoomType()))
-                .map(VoiceRoom::getName)
-                .collect(Collectors.toList())
+            .filter(vr -> !"VIDEO".equalsIgnoreCase(vr.getRoomType()))
+            .map(VoiceRoom::getName)
+            .collect(Collectors.toList())
             : List.of();
 
           List<String> videoRooms = vrs != null
             ? vrs.stream()
-                .filter(vr -> "VIDEO".equalsIgnoreCase(vr.getRoomType()))
-                .map(VoiceRoom::getName)
-                .collect(Collectors.toList())
+            .filter(vr -> "VIDEO".equalsIgnoreCase(vr.getRoomType()))
+            .map(VoiceRoom::getName)
+            .collect(Collectors.toList())
             : List.of();
 
           m.put("chatRooms", chatRooms);
@@ -227,7 +227,7 @@ public class CommunityRoomService {
 
       Role role = communityUser.getRole();
       boolean canDelete = role == Role.ADMIN || role == Role.OWNER
-        || (community.getCreatedBy() != null && community.getCreatedBy().getId().equals(requester.getId()));
+        || community.getCreatedBy() != null && community.getCreatedBy().getId().equals(requester.getId());
       if (!canDelete) {
         return forbidden("Only owners or admins can delete rooms");
       }
@@ -296,8 +296,8 @@ public class CommunityRoomService {
   }
 
   private boolean canCreateRoom(Community community, User requester, Role role) {
-    return role == Role.ADMIN || role == Role.OWNER ||
-      (community.getCreatedBy() != null && community.getCreatedBy().getId().equals(requester.getId()));
+    return role == Role.ADMIN || role == Role.OWNER
+      || community.getCreatedBy() != null && community.getCreatedBy().getId().equals(requester.getId());
   }
 
   private ResponseEntity<ApiResponse<Object>> badRequest(String message) {

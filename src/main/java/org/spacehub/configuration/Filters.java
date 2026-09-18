@@ -38,11 +38,11 @@ public class Filters extends OncePerRequestFilter {
     }
     String path = request.getRequestURI();
     return path.startsWith("/swagger-ui") ||
-           path.startsWith("/v3/api-docs") ||
-           path.startsWith("/notification") ||
-           path.startsWith("/notifications") ||
-           path.startsWith("/chat") ||
-           path.startsWith("/ws");
+      path.startsWith("/v3/api-docs") ||
+      path.startsWith("/notification") ||
+      path.startsWith("/notifications") ||
+      path.startsWith("/chat") ||
+      path.startsWith("/ws");
   }
 
   @Override

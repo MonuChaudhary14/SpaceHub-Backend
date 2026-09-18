@@ -52,16 +52,19 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
   private final ChatMessageQueue chatMessageQueue;
   private final S3Service s3Service;
   private final UserRepository userRepository;
+  private final org.spacehub.service.WebSocket.WsRedisPublisher wsRedisPublisher;
   private final ObjectMapper objectMapper;
 
   public ChatWebSocketHandler(NewChatRoomService newChatRoomService,
                               ChatMessageQueue chatMessageQueue,
                               S3Service s3Service,
-                              UserRepository userRepository) {
+                              UserRepository userRepository,
+                              org.spacehub.service.WebSocket.WsRedisPublisher wsRedisPublisher) {
     this.newChatRoomService = newChatRoomService;
     this.chatMessageQueue = chatMessageQueue;
     this.s3Service = s3Service;
     this.userRepository = userRepository;
+    this.wsRedisPublisher = wsRedisPublisher;
     this.objectMapper = new ObjectMapper()
       .registerModule(new JavaTimeModule())
       .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
@@ -143,12 +146,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
   private void broadcastSystemMessage(String roomCode, String text) {
     Map<String, Object> system = Map.of("type", "SYSTEM", "message", text, "timestamp",
       Instant.now().toEpochMilli());
-    try {
-      broadcastToRoom(roomCode, system);
-    }
-    catch (IOException ignored) {
-
-    }
+    broadcastEvent(roomCode, system);
   }
 
   private void addSessionToRoom(WebSocketSession session, String roomCode, String email) {
@@ -242,7 +240,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     Map<String, Object> messagePayload = buildMessagePayload(message);
     messagePayload.put("optimistic", true);
-    broadcastToRoom(roomCode, messagePayload);
+    broadcastEvent(roomCode, messagePayload);
   }
 
   private void handleFileMessage(String roomCode, String senderEmail, Map<String, Object> payload,
@@ -277,7 +275,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     Map<String, Object> messagePayload = buildMessagePayload(message);
     messagePayload.put("optimistic", true);
-    broadcastToRoom(roomCode, messagePayload);
+    broadcastEvent(roomCode, messagePayload);
   }
 
   private void handleDeleteMessage(String roomCode, String senderEmail, Map<String, Object> payload)
@@ -301,7 +299,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
       "messageUuid", messageUuid,
       "deletedBy", senderEmail,
       "timestamp", Instant.now().toEpochMilli());
-    broadcastToRoom(roomCode, deletePayload);
+    broadcastEvent(roomCode, deletePayload);
   }
 
   private WebSocketSession findSessionFor(String roomCode, String email) {
@@ -332,13 +330,35 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     return payload;
   }
 
-  private void broadcastToRoom(String roomCode, Map<String, Object> payload) throws IOException {
+  private void broadcastEvent(String roomCode, Map<String, Object> payload) {
+    boolean published = wsRedisPublisher.publishCommunityChat(roomCode, payload);
+    if (!published) {
+      broadcastToLocalRoom(roomCode, payload);
+    }
+  }
+
+  public void broadcastToLocalRoom(String roomCode, String payloadJson) {
     Set<WebSocketSession> sessions = rooms.getOrDefault(roomCode, Collections.emptySet());
-    String json = objectMapper.writeValueAsString(payload);
+    if (sessions.isEmpty()) {
+      return;
+    }
+    TextMessage textMessage = new TextMessage(payloadJson);
     for (WebSocketSession s : sessions) {
       if (s != null && s.isOpen()) {
-        s.sendMessage(new TextMessage(json));
+        try {
+          s.sendMessage(textMessage);
+        } catch (IOException e) {
+          logger.warn("Failed to send WebSocket frame to local session: {}", e.getMessage());
+        }
       }
+    }
+  }
+
+  public void broadcastToLocalRoom(String roomCode, Map<String, Object> payload) {
+    try {
+      broadcastToLocalRoom(roomCode, objectMapper.writeValueAsString(payload));
+    } catch (Exception e) {
+      logger.error("Error serializing payload for local room broadcast: {}", e.getMessage());
     }
   }
 

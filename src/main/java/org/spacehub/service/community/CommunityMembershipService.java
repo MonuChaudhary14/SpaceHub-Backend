@@ -47,7 +47,8 @@ public class CommunityMembershipService {
 
   public ResponseEntity<ApiResponse<?>> requestToJoinCommunity(JoinCommunity joinCommunity) {
     try {
-      if (joinCommunity == null || (joinCommunity.getCommunityId() == null && (joinCommunity.getCommunityName() == null || joinCommunity.getCommunityName().trim().isEmpty()))) {
+      if (joinCommunity == null || joinCommunity.getCommunityId() == null
+          && (joinCommunity.getCommunityName() == null || joinCommunity.getCommunityName().trim().isEmpty())) {
         return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Community name or ID is required", null));
       }
 
@@ -95,8 +96,11 @@ public class CommunityMembershipService {
         );
       }
 
-      if (community.getCommunityUsers().stream().anyMatch(cu -> cu.getUser().getId().equals(user.getId()) && (cu.isBanned() || cu.isBlocked()))) {
-        return ResponseEntity.status(403).body(new ApiResponse<>(403, "You are not allowed to cancel requests in this community", null));
+      if (community.getCommunityUsers().stream().anyMatch(cu -> cu.getUser().getId().equals(user.getId())
+          && (cu.isBanned() || cu.isBlocked()))) {
+        return ResponseEntity.status(403).body(
+          new ApiResponse<>(403, "You are not allowed to cancel requests in this community", null)
+        );
       }
 
       community.getPendingRequests().remove(user);
@@ -112,9 +116,8 @@ public class CommunityMembershipService {
               .senderEmail(user.getEmail())
               .type(NotificationType.COMMUNITY_INVITE_REVOKED)
               .title("Join Request Cancelled")
-              .message(user.getUsername() + " cancelled their join request")
-              .scope("community-request")
-              .actionable(false)
+              .message("User " + user.getUsername() + " cancelled their request to join " + community.getName())
+              .scope("community")
               .communityId(community.getId())
               .referenceId(community.getId())
               .build()
@@ -130,7 +133,8 @@ public class CommunityMembershipService {
   }
 
   public ResponseEntity<ApiResponse<?>> acceptRequest(AcceptRequest acceptRequest) {
-    if (acceptRequest == null || isBlank(acceptRequest.getUserEmail()) || (isBlank(acceptRequest.getCommunityName()) && acceptRequest.getCommunityId() == null)) {
+    if (acceptRequest == null || isBlank(acceptRequest.getUserEmail())
+        || isBlank(acceptRequest.getCommunityName()) && acceptRequest.getCommunityId() == null) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Check the fields", null));
     }
 
@@ -144,7 +148,9 @@ public class CommunityMembershipService {
       User user = userRepository.findByEmail(userEmail).orElseThrow(() -> new RuntimeException("User not found"));
 
       if (!hasPermissionToAccept(community, creator)) {
-        return ResponseEntity.status(403).body(new ApiResponse<>(403, "Only community owners, admins, or moderators can accept requests", null));
+        return ResponseEntity.status(403).body(
+          new ApiResponse<>(403, "Only community owners, admins, or moderators can accept requests", null)
+        );
       }
 
       if (!hasPendingRequest(community, user)) {
@@ -195,7 +201,7 @@ public class CommunityMembershipService {
   }
 
   public ResponseEntity<?> leaveCommunity(LeaveCommunity leaveCommunity) {
-    if (leaveCommunity == null || (isBlank(leaveCommunity.getCommunityName()) && leaveCommunity.getCommunityId() == null)) {
+    if (leaveCommunity == null || isBlank(leaveCommunity.getCommunityName()) && leaveCommunity.getCommunityId() == null) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Check the fields", null));
     }
 
@@ -221,13 +227,14 @@ public class CommunityMembershipService {
       communityUserRepository.delete(communityUser);
       if (community.getCommunityUsers() != null) {
         community.getCommunityUsers().removeIf(cu ->
-          (cu.getId() != null && cu.getId().equals(communityUser.getId())) ||
-            (cu.getUser() != null && cu.getUser().getId().equals(user.getId()))
+          cu.getId() != null && cu.getId().equals(communityUser.getId()) ||
+            cu.getUser() != null && cu.getUser().getId().equals(user.getId())
         );
       }
       communityRepository.save(community);
 
-      notifyAdmins(community, user, "Member Left", "User '" + user.getUsername() + "' has left your community '" + community.getName() + "'.");
+      notifyAdmins(community, user, "Member Left",
+        "User '" + user.getUsername() + "' has left your community '" + community.getName() + "'.");
 
       return ResponseEntity.ok(new ApiResponse<>(200, "You have left the community successfully", null));
     } catch (RuntimeException ex) {
@@ -238,7 +245,8 @@ public class CommunityMembershipService {
   }
 
   public ResponseEntity<?> rejectRequest(RejectRequest rejectRequest) {
-    if (rejectRequest == null || (isBlank(rejectRequest.getCommunityName()) && rejectRequest.getCommunityId() == null) || isBlank(rejectRequest.getUserEmail())) {
+    if (rejectRequest == null || isBlank(rejectRequest.getCommunityName()) && rejectRequest.getCommunityId() == null
+        || isBlank(rejectRequest.getUserEmail())) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Check the fields", null));
     }
 
@@ -262,7 +270,9 @@ public class CommunityMembershipService {
             (cu.getRole() == Role.OWNER || cu.getRole() == Role.ADMIN || cu.getRole() == Role.MODERATOR));
 
       if (!isStaff && !isCreator) {
-        return ResponseEntity.status(403).body(new ApiResponse<>(403, "Only community owners, admins, or moderators can reject requests", null));
+        return ResponseEntity.status(403).body(
+          new ApiResponse<>(403, "Only community owners, admins, or moderators can reject requests", null)
+        );
       }
 
       if (!hasPendingRequest(community, user)) {
@@ -287,15 +297,17 @@ public class CommunityMembershipService {
       );
 
       return ResponseEntity.ok(new ApiResponse<>(200, "Join request rejected successfully", null));
+    } catch (RuntimeException e) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
     } catch (Exception e) {
-      return ResponseEntity.status(500).body(new ApiResponse<>(500, "Failed to reject request: " + e.getMessage(), null));
+      return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
     }
   }
 
   public ResponseEntity<?> enterOrRequestCommunity(UUID communityId) {
     String requesterEmail = SecurityUtils.getCurrentUserEmail();
-    if (requesterEmail == null || requesterEmail.isBlank()) {
-      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "requesterEmail is required", null));
+    if (communityId == null || requesterEmail == null || requesterEmail.isBlank()) {
+      return ResponseEntity.badRequest().body(new ApiResponse<>(400, "communityId and requesterEmail are required", null));
     }
 
     try {
@@ -307,7 +319,9 @@ public class CommunityMembershipService {
       boolean isBanned = community.getCommunityUsers().stream()
         .anyMatch(cu -> cu.getUser().getId().equals(user.getId()) && cu.isBanned());
       if (isBanned) {
-        return ResponseEntity.status(403).body(new ApiResponse<>(403, "You are banned from this community", Map.of("accessDenied", true)));
+        return ResponseEntity.status(403).body(
+          new ApiResponse<>(403, "You are banned from this community", Map.of("accessDenied", true))
+        );
       }
 
       boolean isMember = community.getCommunityUsers().stream()
@@ -349,17 +363,20 @@ public class CommunityMembershipService {
       User requester = userRepository.findByEmail(requesterEmail.trim().toLowerCase())
         .orElseThrow(() -> new RuntimeException("Requester not found with email: " + requesterEmail));
 
-      Optional<CommunityUser> communityUserOpt = communityUserRepository.findByCommunityIdAndUserId(community.getId(), requester.getId());
+      Optional<CommunityUser> communityUserOpt =
+        communityUserRepository.findByCommunityIdAndUserId(community.getId(), requester.getId());
       if (communityUserOpt.isEmpty()) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ApiResponse<>(403, "You are not a member of this community", null));
       }
 
       Role requesterRole = communityUserOpt.get().getRole();
       boolean canViewRequests = requesterRole == Role.OWNER || requesterRole == Role.ADMIN || requesterRole == Role.MODERATOR
-        || (community.getCreatedBy() != null && community.getCreatedBy().getId().equals(requester.getId()));
+        || community.getCreatedBy() != null && community.getCreatedBy().getId().equals(requester.getId());
 
       if (!canViewRequests) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ApiResponse<>(403, "Only owners, admins, or moderators can view pending requests", null));
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+          new ApiResponse<>(403, "Only owners, admins, or moderators can view pending requests", null)
+        );
       }
 
       List<PendingRequestUserDTO> pendingRequests = community.getPendingRequests().stream()

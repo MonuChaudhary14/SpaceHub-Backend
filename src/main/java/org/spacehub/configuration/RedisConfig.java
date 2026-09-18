@@ -40,4 +40,20 @@ public class RedisConfig {
     return template;
   }
 
+  @Bean
+  public org.springframework.data.redis.listener.RedisMessageListenerContainer redisMessageListenerContainer(
+    LettuceConnectionFactory connectionFactory,
+    org.spacehub.service.WebSocket.WsRedisMessageSubscriber subscriber) {
+    org.springframework.data.redis.listener.RedisMessageListenerContainer container =
+      new org.springframework.data.redis.listener.RedisMessageListenerContainer();
+    container.setConnectionFactory(connectionFactory);
+    container.addMessageListener(subscriber,
+      new org.springframework.data.redis.listener.ChannelTopic(org.spacehub.service.WebSocket.WsRedisPublisher.TOPIC_COMMUNITY_CHAT));
+    container.addMessageListener(subscriber,
+      new org.springframework.data.redis.listener.ChannelTopic(org.spacehub.service.WebSocket.WsRedisPublisher.TOPIC_DIRECT_CHAT));
+    container.addMessageListener(subscriber,
+      new org.springframework.data.redis.listener.ChannelTopic(org.spacehub.service.WebSocket.WsRedisPublisher.TOPIC_NOTIFICATION));
+    return container;
+  }
+
 }

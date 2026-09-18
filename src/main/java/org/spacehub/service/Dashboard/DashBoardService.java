@@ -291,8 +291,8 @@ public class DashBoardService implements IDashBoardService {
 
   private ApiResponse<Map<String, Object>> processPasswordUpdate(User user, String oldPassword, String newPassword,
                                                                  Map<String, Object> result) {
-    boolean wantsPasswordChange = (oldPassword != null && !oldPassword.isBlank())
-      || (newPassword != null && !newPassword.isBlank());
+    boolean wantsPasswordChange = oldPassword != null && !oldPassword.isBlank()
+      || newPassword != null && !newPassword.isBlank();
 
     if (!wantsPasswordChange) {
       return null;

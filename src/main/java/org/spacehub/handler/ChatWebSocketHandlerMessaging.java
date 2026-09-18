@@ -15,7 +15,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
-import org.springframework.web.socket.*;
+import org.springframework.web.socket.CloseStatus;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.io.IOException;
@@ -23,7 +25,18 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.ConcurrentHashMap;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
@@ -44,18 +57,21 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
   private final Map<String, Set<WebSocketSession>> activeUsers = new ConcurrentHashMap<>();
   private final Map<WebSocketSession, Map<String, String>> sessionMetadata = new ConcurrentHashMap<>();
   private final Map<String, String> usernameCache = new ConcurrentHashMap<>();
+  private final org.spacehub.service.WebSocket.WsRedisPublisher wsRedisPublisher;
 
   public ChatWebSocketHandlerMessaging(
     MessageQueueService messageQueueService,
     IMessageService messageService,
     S3Service s3Service,
     UserRepository userRepository,
-    FriendService friendService) {
+    FriendService friendService,
+    org.spacehub.service.WebSocket.WsRedisPublisher wsRedisPublisher) {
     this.messageQueueService = messageQueueService;
     this.messageService = messageService;
     this.s3Service = s3Service;
     this.userRepository = userRepository;
     this.friendService = friendService;
+    this.wsRedisPublisher = wsRedisPublisher;
     this.objectMapper = new ObjectMapper()
       .registerModule(new JavaTimeModule())
       .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
@@ -383,7 +399,12 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
       return;
     }
     String receiverEmail = deriveOtherFromChatKey(chatKey, senderEmail);
-    Map<String, Object> resp = Map.of("type", "DELETE", "messageUuid", messageUuid, "deletedBy", senderEmail, "timestamp", Instant.now().toEpochMilli());
+    Map<String, Object> resp = Map.of(
+      "type", "DELETE",
+      "messageUuid", messageUuid,
+      "deletedBy", senderEmail,
+      "timestamp", Instant.now().toEpochMilli()
+    );
     if (receiverEmail != null) {
       sendToUsers(Set.of(senderEmail, receiverEmail), resp);
     } else {
@@ -410,7 +431,37 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
     if (emails == null || emails.isEmpty()) {
       return;
     }
+    String senderEmail = (String) payload.get("senderEmail");
+    String receiverEmail = (String) payload.get("receiverEmail");
+    if (senderEmail == null && emails.size() == 1) {
+      senderEmail = emails.iterator().next();
+    }
+    boolean published = wsRedisPublisher.publishDirectChat(null, senderEmail, receiverEmail, payload);
+    if (!published) {
+      sendToLocalUsers(emails, payload);
+    }
+  }
+
+  public void broadcastToLocal(String chatKey, String senderEmail, String receiverEmail, String payloadJson) {
+    Set<String> targetEmails = new LinkedHashSet<>();
+    if (senderEmail != null) {
+      targetEmails.add(senderEmail.toLowerCase(Locale.ROOT));
+    }
+    if (receiverEmail != null) {
+      targetEmails.add(receiverEmail.toLowerCase(Locale.ROOT));
+    }
+    sendToLocalUsersJson(targetEmails, payloadJson);
+  }
+
+  private void sendToLocalUsers(Set<String> emails, Map<String, Object> payload) throws IOException {
     String json = objectMapper.writeValueAsString(payload);
+    sendToLocalUsersJson(emails, json);
+  }
+
+  private void sendToLocalUsersJson(Set<String> emails, String json) {
+    if (emails == null || emails.isEmpty()) {
+      return;
+    }
     Set<WebSocketSession> targets = new LinkedHashSet<>();
     for (String email : emails) {
       Set<WebSocketSession> sessions = activeUsers.get(email.toLowerCase(Locale.ROOT));
@@ -418,9 +469,14 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
         targets.addAll(sessions);
       }
     }
+    TextMessage textMessage = new TextMessage(json);
     for (WebSocketSession session : targets) {
       if (session != null && session.isOpen()) {
-        session.sendMessage(new TextMessage(json));
+        try {
+          session.sendMessage(textMessage);
+        } catch (IOException e) {
+          logger.warn("Failed to send direct message frame to local session: {}", e.getMessage());
+        }
       }
     }
   }
@@ -557,7 +613,13 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
       Map<String, Object> payload = buildPayload(message);
       payload.put("optimistic", false);
       addPreviewIfFileQuiet(payload, message.getType(), message.getFileKey());
-      Map<String, Object> confirm = Map.of("type", "CONFIRM", "messageUuid", message.getMessageUuid(), "messageId", message.getId(), "timestamp", message.getTimestamp(), "message", payload);
+      Map<String, Object> confirm = Map.of(
+        "type", "CONFIRM",
+        "messageUuid", message.getMessageUuid(),
+        "messageId", message.getId(),
+        "timestamp", message.getTimestamp(),
+        "message", payload
+      );
       try {
         sendToUsers(Set.of(message.getSenderEmail(), message.getReceiverEmail()), confirm);
       } catch (IOException ignored) {

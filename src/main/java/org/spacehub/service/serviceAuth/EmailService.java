@@ -30,11 +30,14 @@ public class EmailService implements IEmailService {
       helper.setSubject("Your OTP Code");
 
       String htmlContent = """
-        <div style="font-family: Arial, sans-serif; max-width: 500px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+        <div style="font-family: Arial, sans-serif; max-width: 500px; margin: auto; padding: 20px; border: 1px solid #eee;
+                    border-radius: 10px;">
           <h2 style="color: #4A90E2; text-align: center;"> SpaceHub OTP Verification</h2>
-          <p style="font-size: 15px;">Use the following One-Time Password (OTP) to verify your account. The OTP will expire in <b>5 minutes</b>.</p>
+          <p style="font-size: 15px;">Use the following One-Time Password (OTP) to verify your account.
+             The OTP will expire in <b>5 minutes</b>.</p>
           <div style="text-align: center; margin: 30px 0;">
-            <span style="font-size: 28px; letter-spacing: 4px; background: #f3f4f6; padding: 10px 20px; border-radius: 8px; display: inline-block; color: #333; font-weight: bold;">
+            <span style="font-size: 28px; letter-spacing: 4px; background: #f3f4f6; padding: 10px 20px;
+                         border-radius: 8px; display: inline-block; color: #333; font-weight: bold;">
               %s
             </span>
           </div>

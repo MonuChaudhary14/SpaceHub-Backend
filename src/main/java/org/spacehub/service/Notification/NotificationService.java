@@ -18,7 +18,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -31,6 +35,7 @@ public class NotificationService implements INotificationService {
   private final CommunityRepository communityRepository;
   private final NotificationWebSocketHandler notificationWebSocketHandler;
   private final NotificationMapper notificationMapper;
+  private final org.spacehub.service.WebSocket.WsRedisPublisher wsRedisPublisher;
 
   @Override
   public void createNotification(NotificationRequestDTO request) {
@@ -87,7 +92,10 @@ public class NotificationService implements INotificationService {
 
     NotificationResponseDTO dto = notificationMapper.mapToDTO(notification);
     try {
-      notificationWebSocketHandler.sendNotification(request.getEmail(), dto);
+      boolean published = wsRedisPublisher.publishNotification(request.getEmail(), dto);
+      if (!published) {
+        notificationWebSocketHandler.sendNotification(request.getEmail(), dto);
+      }
     } catch (Exception ignored) {
     }
   }

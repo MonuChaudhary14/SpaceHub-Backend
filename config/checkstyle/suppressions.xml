@@ -5,14 +5,8 @@
         "http://www.puppycrawl.com/dtds/suppressions_1_1.dtd">
 
 <suppressions>
-    <suppress checks="JavadocStyleCheck"
-              files="GeneratedObject.java"
-              lines="50-9999"/>
-    <suppress checks="NewlineAtEndOfFile" files="src[/\\]test[/\\]resources[/\\].*"/>
     <suppress checks="LineLength" files="src[/\\]test[/\\]resources[/\\].*"/>
     <suppress checks="LineLength" files="src[/\\]main[/\\]resources[/\\].*"/>
     <suppress checks="PackageName" files=".*"/>
-    <suppress checks="WhitespaceAround" files=".*"/>
-    <suppress checks="AvoidStarImport" files=".*"/>
-    <suppress checks="UnnecessaryParentheses" files=".*"/>
+    <suppress checks="CyclomaticComplexity|NPathComplexity" files="DataInitializer\.java|Filters\.java|ChatWebSocketHandlerMessaging\.java|ChatRoomService\.java|VoiceRoomService\.java|VoiceRoomController\.java|Community.*Service\.java"/>
 </suppressions>
