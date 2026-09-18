@@ -118,10 +118,6 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
       sessionRoom.put(session, chatKey);
     }
     try {
-      sendSystemMessage(session, "Connected as " + senderEmailRaw);
-    } catch (IOException ignored) {
-    }
-    try {
       processUnreadMessages(session, senderEmail);
     } catch (Exception e) {
       logger.warn("Unable to load unread messages", e);
