@@ -68,8 +68,8 @@ services:
       - "${LIVEKIT_UDP_PORT:-7882}:7882/udp"
     environment:
       LIVEKIT_KEYS: "${LIVEKIT_API_KEY}: ${LIVEKIT_API_SECRET}"
-      LIVEKIT_RTC_USE_EXTERNAL_IP: "false"
-      LIVEKIT_RTC_NODE_IP: "127.0.0.1"
+      LIVEKIT_RTC_USE_EXTERNAL_IP: "${LIVEKIT_RTC_USE_EXTERNAL_IP:-true}"
+      LIVEKIT_RTC_NODE_IP: "${LIVEKIT_RTC_NODE_IP:-}"
     networks:
       - spacehub-net
 
