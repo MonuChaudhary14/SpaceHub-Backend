@@ -19,7 +19,8 @@ public final class S3PreviewHelper {
     }
     try {
       return s3Service.generatePresignedDownloadUrl(fileKey, ttl);
-    } catch (Exception ignored) {
+    }
+    catch (Exception ignored) {
       return null;
     }
   }

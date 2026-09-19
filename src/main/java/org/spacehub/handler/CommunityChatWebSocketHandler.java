@@ -90,7 +90,8 @@ public class CommunityChatWebSocketHandler extends TextWebSocketHandler {
       UUID roomUUID = null;
       try {
         roomUUID = UUID.fromString(roomCodeStr);
-      } catch (IllegalArgumentException e) {
+      }
+      catch (IllegalArgumentException e) {
         logger.warn("Non-UUID roomCodeStr received: {}", roomCodeStr);
       }
 
@@ -107,11 +108,13 @@ public class CommunityChatWebSocketHandler extends TextWebSocketHandler {
       sendExistingMessages(session, actualRoom);
 
       logger.info("Connected: {} -> {}", email, resolvedRoomKey);
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       logger.error("Error establishing WebSocket connection", e);
       try {
         session.close(CloseStatus.SERVER_ERROR.withReason("Internal server error"));
-      } catch (IOException ignored) {
+      }
+      catch (IOException ignored) {
       }
     }
   }
@@ -154,7 +157,8 @@ public class CommunityChatWebSocketHandler extends TextWebSocketHandler {
         "roomCode", newChatRoom.getRoomCode(),
         "messages", formatted);
       session.sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
-    } catch (IOException e) {
+    }
+    catch (IOException e) {
       logger.error("Error sending chat history", e);
     }
   }
@@ -191,7 +195,8 @@ public class CommunityChatWebSocketHandler extends TextWebSocketHandler {
         case "DELETE" -> handleDeleteMessage(roomCode, senderEmail, clientPayload);
         default -> handleTextMessage(roomCode, senderEmail, clientPayload, session);
       }
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       logger.error("Error handling WebSocket message", e);
     }
   }
@@ -306,7 +311,8 @@ public class CommunityChatWebSocketHandler extends TextWebSocketHandler {
     try {
       Optional<User> sUser = userRepository.findByEmail(message.getSenderEmail());
       payload.put("senderUsername", sUser.map(User::getUsername).orElse(null));
-    } catch (Exception ignored) {
+    }
+    catch (Exception ignored) {
       payload.put("senderUsername", null);
     }
     return payload;
@@ -329,7 +335,8 @@ public class CommunityChatWebSocketHandler extends TextWebSocketHandler {
       if (s != null && s.isOpen()) {
         try {
           s.sendMessage(textMessage);
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
           logger.warn("Failed to send WebSocket frame to local session: {}", e.getMessage());
         }
       }
@@ -339,7 +346,8 @@ public class CommunityChatWebSocketHandler extends TextWebSocketHandler {
   public void broadcastToLocalRoom(String roomCode, Map<String, Object> payload) {
     try {
       broadcastToLocalRoom(roomCode, objectMapper.writeValueAsString(payload));
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       logger.error("Error serializing payload for local room broadcast: {}", e.getMessage());
     }
   }

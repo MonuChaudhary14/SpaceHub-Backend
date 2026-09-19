@@ -55,11 +55,13 @@ public class MessageQueueService {
         for (Message persistedMessage : persisted) {
           try {
             messagingHandler.confirmAndBroadcast(persistedMessage);
-          } catch (Exception ignored) {
+          }
+          catch (Exception ignored) {
           }
         }
       }
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       logger.error("Error persisting direct message batch: {}", e.getMessage(), e);
       throw e;
     }
@@ -98,7 +100,8 @@ public class MessageQueueService {
         writeBehindBuffer.enqueue(message);
         return null;
       });
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       logger.warn("Kafka unavailable, routing direct message directly to local write-behind buffer: {}", e.getMessage());
       writeBehindBuffer.enqueue(message);
     }

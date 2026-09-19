@@ -78,12 +78,15 @@ public class CommunityCoreService {
 
       return ResponseEntity.status(201)
         .body(new ApiResponse<>(201, "Community created successfully", responseData));
-    } catch (IllegalArgumentException e) {
+    }
+    catch (IllegalArgumentException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
-    } catch (IOException e) {
+    }
+    catch (IOException e) {
       return ResponseEntity.internalServerError()
         .body(new ApiResponse<>(500, "Error uploading image: " + e.getMessage(), null));
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return ResponseEntity.internalServerError()
         .body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
     }
@@ -112,9 +115,12 @@ public class CommunityCoreService {
 
       return ResponseEntity.ok(new ApiResponse<>(200, "Community deleted successfully", null));
 
-    } catch (IllegalArgumentException e) {
+    }
+
+    catch (IllegalArgumentException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return ResponseEntity.internalServerError().body(new ApiResponse<>(500, e.getMessage(), null));
     }
   }
@@ -193,7 +199,8 @@ public class CommunityCoreService {
 
       return ResponseEntity.ok(new ApiResponse<>(200, "User's communities fetched with member counts",
         Map.of("communities", userCommunities)));
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
     }
   }
@@ -256,7 +263,8 @@ public class CommunityCoreService {
       response.put("isCreator", isCreator);
 
       return ResponseEntity.ok(new ApiResponse<>(200, "Community details fetched successfully", response));
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
     }
   }
@@ -313,7 +321,8 @@ public class CommunityCoreService {
         "Discover communities fetched successfully",
         buildPagedResponse(communityPage, communities)
       ));
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
     }
   }
@@ -341,7 +350,8 @@ public class CommunityCoreService {
       Map<String, Object> img = s3UrlHelper.generatePresignedUrl(mainKey, Duration.ofHours(1));
       m.put("imageUrl", img.get("url"));
       m.put("imageKey", img.get("key"));
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       m.put("imageUrl", null);
       m.put("imageKey", null);
     }
@@ -353,7 +363,8 @@ public class CommunityCoreService {
     if (c.getCommunityUsers() != null) {
       long memberCount = c.getCommunityUsers().stream().filter(u -> !u.isBanned()).count();
       m.put("totalMembers", memberCount);
-    } else {
+    }
+    else {
       m.put("totalMembers", 0);
     }
 
@@ -385,12 +396,14 @@ public class CommunityCoreService {
         m.put("joined", true);
         m.put("role", cu.getRole() != null ? cu.getRole().name() : null);
         m.put("isBanned", cu.isBanned());
-      } else {
+      }
+      else {
         m.put("joined", false);
         m.put("role", null);
         m.put("isBanned", false);
       }
-    } else {
+    }
+    else {
       m.put("joined", false);
       m.put("role", null);
       m.put("isBanned", false);

@@ -45,7 +45,8 @@ public class NewChatRoomService implements INewChatRoomService {
       newChatRoomRepository.save(newChatRoom);
 
       return new ApiResponse<>(200, "New chat room created successfully", newChatRoom);
-    } catch (IllegalArgumentException e) {
+    }
+    catch (IllegalArgumentException e) {
       return new ApiResponse<>(400, "Invalid UUID format for roomCode", null);
     }
   }
@@ -62,7 +63,8 @@ public class NewChatRoomService implements INewChatRoomService {
 
       List<NewChatRoom> list = newChatRoomRepository.findByChatRoom(optionalChatRoom.get());
       return new ApiResponse<>(200, "Fetched new chat rooms", list);
-    } catch (IllegalArgumentException e) {
+    }
+    catch (IllegalArgumentException e) {
       return new ApiResponse<>(400, "Invalid UUID format for roomCode", null);
     }
   }
@@ -75,9 +77,12 @@ public class NewChatRoomService implements INewChatRoomService {
         room))
         .orElseGet(() -> new ApiResponse<>(404, "NewChatRoom not found", null));
 
-    } catch (IllegalArgumentException e) {
+    }
+
+    catch (IllegalArgumentException e) {
       return new ApiResponse<>(400, "Invalid UUID format for newChatRoomCode", null);
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null);
     }
   }
@@ -147,9 +152,11 @@ public class NewChatRoomService implements INewChatRoomService {
       }).collect(Collectors.toList());
 
       return new ApiResponse<>(200, "Fetched new chat rooms summary", out);
-    } catch (IllegalArgumentException e) {
+    }
+    catch (IllegalArgumentException e) {
       return new ApiResponse<>(400, "Invalid roomCode", null);
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null);
     }
   }
@@ -179,6 +186,7 @@ public class NewChatRoomService implements INewChatRoomService {
       return new ApiResponse<>(200, "NewChatRoom deleted successfully", null);
 
     }
+
     catch (IllegalArgumentException e) {
       return new ApiResponse<>(400, "Invalid UUID format", null);
     }

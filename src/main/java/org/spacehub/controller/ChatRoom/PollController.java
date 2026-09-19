@@ -30,7 +30,8 @@ public class PollController {
       ApiResponse<List<ChatPoll>> response = new ApiResponse<>(200,
         "Polls fetched successfully", polls);
       return ResponseEntity.ok(response);
-    } catch (RuntimeException e) {
+    }
+    catch (RuntimeException e) {
       ApiResponse<List<ChatPoll>> response = new ApiResponse<>(400, e.getMessage(), null);
       return ResponseEntity.badRequest().body(response);
     }

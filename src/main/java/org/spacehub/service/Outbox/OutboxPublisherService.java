@@ -40,7 +40,8 @@ public class OutboxPublisherService {
         .build();
 
       return outboxRepository.save(outbox);
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       logger.error("Failed to record outbox event for aggregate {}: {}", aggregateId, e.getMessage(), e);
       throw new RuntimeException("Could not persist outbox event", e);
     }
@@ -71,12 +72,14 @@ public class OutboxPublisherService {
           if (ex != null) {
             logger.error("Outbox relay failed for event ID {}: {}", outbox.getId(), ex.getMessage());
             outboxRepository.updateStatusWithError(outbox.getId(), OutboxStatus.FAILED, ex.getMessage(), Instant.now());
-          } else {
+          }
+          else {
             logger.debug("Outbox event ID {} successfully relayed to Kafka", outbox.getId());
             outboxRepository.updateStatus(outbox.getId(), OutboxStatus.PUBLISHED, Instant.now());
           }
         });
-      } catch (Exception e) {
+      }
+      catch (Exception e) {
         logger.error("Exception triggering outbox send for ID {}: {}", outbox.getId(), e.getMessage());
         outboxRepository.updateStatusWithError(outbox.getId(), OutboxStatus.FAILED, e.getMessage(), Instant.now());
       }

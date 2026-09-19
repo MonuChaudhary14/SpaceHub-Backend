@@ -134,7 +134,8 @@ public class FriendService implements IFriendService {
       sendFriendListUpdate(requester, user);
 
       return "Friend request accepted";
-    } else {
+    }
+    else {
       friendsRepository.delete(request);
 
       NotificationRequestDTO notification = NotificationRequestDTO.builder()
@@ -297,7 +298,8 @@ public class FriendService implements IFriendService {
     if (blocked.isPresent()) {
       friendsRepository.delete(blocked.get());
       return "User unblocked successfully.";
-    } else {
+    }
+    else {
       return "No blocked user found.";
     }
   }
@@ -349,7 +351,8 @@ public class FriendService implements IFriendService {
     }
     try {
       return s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(2));
-    } catch (Exception ignored) {
+    }
+    catch (Exception ignored) {
       return null;
     }
   }

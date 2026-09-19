@@ -115,6 +115,7 @@ public class FilesController {
         .body(resource);
 
     }
+
     catch (Exception e) {
       return ResponseEntity.status(404).body(new ApiResponse<>(404, "File not found or error streaming file", key));
     }

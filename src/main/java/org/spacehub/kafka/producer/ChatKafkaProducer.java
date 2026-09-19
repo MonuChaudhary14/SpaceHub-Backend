@@ -33,12 +33,14 @@ public class ChatKafkaProducer {
           if (ex != null) {
             logger.error("Failed to send community chat message [UUID: {}] to Kafka: {}",
               event.getMessageUuid(), ex.getMessage());
-          } else {
+          }
+          else {
             logger.debug("Successfully published community message [UUID: {}] to partition {}",
               event.getMessageUuid(), result.getRecordMetadata().partition());
           }
         });
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       logger.error("Serialization error publishing community chat message [UUID: {}]: {}",
         event.getMessageUuid(), e.getMessage(), e);
       CompletableFuture<SendResult<String, String>> failed = new CompletableFuture<>();
@@ -56,12 +58,14 @@ public class ChatKafkaProducer {
           if (ex != null) {
             logger.error("Failed to send direct chat message [UUID: {}] to Kafka: {}",
               event.getMessageUuid(), ex.getMessage());
-          } else {
+          }
+          else {
             logger.debug("Successfully published direct message [UUID: {}] to partition {}",
               event.getMessageUuid(), result.getRecordMetadata().partition());
           }
         });
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       logger.error("Serialization error publishing direct chat message [UUID: {}]: {}",
         event.getMessageUuid(), e.getMessage(), e);
       CompletableFuture<SendResult<String, String>> failed = new CompletableFuture<>();
@@ -79,12 +83,14 @@ public class ChatKafkaProducer {
           if (ex != null) {
             logger.error("Failed to send outbox event [ID: {}] to Kafka: {}",
               event.getId(), ex.getMessage());
-          } else {
+          }
+          else {
             logger.debug("Successfully published outbox event [ID: {}] to partition {}",
               event.getId(), result.getRecordMetadata().partition());
           }
         });
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       logger.error("Serialization error publishing outbox event [ID: {}]: {}",
         event.getId(), e.getMessage(), e);
       CompletableFuture<SendResult<String, String>> failed = new CompletableFuture<>();
@@ -94,8 +100,12 @@ public class ChatKafkaProducer {
   }
 
   public static String computeDirectChatKey(String email1, String email2) {
-    if (email1 == null) email1 = "";
-    if (email2 == null) email2 = "";
+    if (email1 == null) {
+      email1 = "";
+    }
+    if (email2 == null) {
+      email2 = "";
+    }
     email1 = email1.trim().toLowerCase(Locale.ROOT);
     email2 = email2.trim().toLowerCase(Locale.ROOT);
     return email1.compareTo(email2) < 0 ? email1 + ":" + email2 : email2 + ":" + email1;

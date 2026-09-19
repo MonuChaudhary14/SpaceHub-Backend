@@ -47,7 +47,8 @@ public class WsRedisMessageSubscriber implements MessageListener {
       if (envelope != null && envelope.getEventType() != null) {
         dispatchEnvelope(envelope);
       }
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       logger.error("Error processing Redis WebSocket message: {}", e.getMessage(), e);
     }
   }

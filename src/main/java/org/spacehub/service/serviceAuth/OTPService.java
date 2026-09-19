@@ -54,7 +54,8 @@ public class OTPService implements IOTPService {
     if (emailValidator.isEmail(identifier)) {
       String message = "Your OTP is: " + otp + ". It will expire in 5 minutes.";
       emailService.sendEmail(identifier, message);
-    } else {
+    }
+    else {
       throw new RuntimeException("Invalid email for sending OTP.");
     }
   }
@@ -112,7 +113,8 @@ public class OTPService implements IOTPService {
         return null;
       }
       return objectMapper.readValue(json, RegistrationRequest.class);
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return null;
     }
   }
@@ -150,7 +152,8 @@ public class OTPService implements IOTPService {
     String identifier;
     if (user.getEmail() != null && !user.getEmail().isBlank()) {
       identifier = user.getEmail();
-    } else {
+    }
+    else {
       throw new RuntimeException("User has no email to send OTP to.");
     }
 

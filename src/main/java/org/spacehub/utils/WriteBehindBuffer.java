@@ -72,9 +72,11 @@ public class WriteBehindBuffer<T> {
         logger.debug("[{}] Flushed batch of {} items to database in {}ms (Remaining: {})",
           bufferName, batch.size(), duration, currentSize.get());
       }
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       logger.error("[{}] Error persisting write-behind batch: {}", bufferName, e.getMessage(), e);
-    } finally {
+    }
+    finally {
       isFlushing.set(false);
       // If items accumulated while flushing, trigger another round
       if (currentSize.get() >= batchSize) {
@@ -96,7 +98,8 @@ public class WriteBehindBuffer<T> {
         try {
           batchConsumer.accept(batch);
           logger.info("[{}] Flushed remaining {} items during flushAll", bufferName, batch.size());
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
           logger.error("[{}] Error persisting final batch: {}", bufferName, e.getMessage(), e);
         }
       }
@@ -131,7 +134,8 @@ public class WriteBehindBuffer<T> {
       if (!workerExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
         workerExecutor.shutdownNow();
       }
-    } catch (InterruptedException e) {
+    }
+    catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       workerExecutor.shutdownNow();
     }

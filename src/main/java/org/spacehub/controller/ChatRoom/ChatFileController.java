@@ -27,11 +27,14 @@ public class ChatFileController {
     try {
       ChatMessage message = chatFileService.uploadChatFile(file, roomCode);
       return ResponseEntity.ok(message);
-    } catch (ResourceNotFoundException e) {
+    }
+    catch (ResourceNotFoundException e) {
       return ResponseEntity.status(404).body(e.getMessage());
-    } catch (IllegalArgumentException e) {
+    }
+    catch (IllegalArgumentException e) {
       return ResponseEntity.badRequest().body(e.getMessage());
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return ResponseEntity.internalServerError().body("File upload failed: " + e.getMessage());
     }
   }
@@ -41,9 +44,11 @@ public class ChatFileController {
     try {
       String presignedUrl = chatFileService.getDownloadLink(fileKey);
       return ResponseEntity.ok(presignedUrl);
-    } catch (IllegalArgumentException e) {
+    }
+    catch (IllegalArgumentException e) {
       return ResponseEntity.badRequest().body(e.getMessage());
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return ResponseEntity.internalServerError().body("Failed to generate download URL: " + e.getMessage());
     }
   }
@@ -53,9 +58,11 @@ public class ChatFileController {
     try {
       chatFileService.deleteFile(fileUrl);
       return ResponseEntity.ok("File deleted from S3");
-    } catch (IllegalArgumentException e) {
+    }
+    catch (IllegalArgumentException e) {
       return ResponseEntity.badRequest().body(e.getMessage());
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return ResponseEntity.internalServerError().body("Failed to delete file: " + e.getMessage());
     }
   }

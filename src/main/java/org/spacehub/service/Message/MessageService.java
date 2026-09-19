@@ -74,12 +74,14 @@ public class MessageService implements IMessageService {
         message.setSenderDeleted(true);
         changed = true;
       }
-    } else if (requesterEmail.equals(message.getReceiverEmail())) {
+    }
+    else if (requesterEmail.equals(message.getReceiverEmail())) {
       if (!Boolean.TRUE.equals(message.getReceiverDeleted())) {
         message.setReceiverDeleted(true);
         changed = true;
       }
-    } else {
+    }
+    else {
       throw new SecurityException("Not allowed to delete this message");
     }
     if (changed) {
@@ -191,16 +193,19 @@ public class MessageService implements IMessageService {
         mess.setReceiverDeleted(true);
         saveMessage(mess);
         return ResponseEntity.ok(mess);
-      } else {
+      }
+      else {
         Message updated = deleteMessageForUser(id, requesterEmail);
         if (updated == null) {
           return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(updated);
       }
-    } catch (SecurityException se) {
+    }
+    catch (SecurityException se) {
       return ResponseEntity.status(HttpStatus.FORBIDDEN).body(se.getMessage());
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
     }
   }

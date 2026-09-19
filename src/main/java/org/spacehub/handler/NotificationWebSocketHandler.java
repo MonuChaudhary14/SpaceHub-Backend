@@ -47,7 +47,8 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
       sendPreviousNotifications(email);
 
       System.out.println("Active sessions: " + userSessions.keySet());
-    } else {
+    }
+    else {
       System.out.println("WebSocket rejected: email missing");
       session.close(CloseStatus.BAD_DATA);
     }
@@ -72,6 +73,7 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
       System.out.println("Sent previous notifications to " + email);
 
     }
+
     catch (Exception ignored) {
     }
   }
@@ -119,7 +121,8 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
     try {
       String json = notificationData instanceof String s ? s : objectMapper.writeValueAsString(notificationData);
       sendNotificationToLocalSession(email, json);
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       System.err.println("Failed to serialize real-time notification: " + e.getMessage());
     }
   }

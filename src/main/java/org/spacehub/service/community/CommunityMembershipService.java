@@ -77,9 +77,11 @@ public class CommunityMembershipService {
       notifyCommunityAdmins(community, user);
 
       return ResponseEntity.ok().body(new ApiResponse<>(200, "Request sent to community"));
-    } catch (RuntimeException e) {
+    }
+    catch (RuntimeException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
     }
   }
@@ -125,9 +127,11 @@ public class CommunityMembershipService {
         });
 
       return ResponseEntity.ok(new ApiResponse<>(200, "Cancelled the join request successfully", null));
-    } catch (RuntimeException e) {
+    }
+    catch (RuntimeException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
     }
   }
@@ -193,9 +197,11 @@ public class CommunityMembershipService {
       );
 
       return ResponseEntity.ok(new ApiResponse<>(200, "User has been added to the community successfully", null));
-    } catch (RuntimeException e) {
+    }
+    catch (RuntimeException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
     }
   }
@@ -237,9 +243,11 @@ public class CommunityMembershipService {
         "User '" + user.getUsername() + "' has left your community '" + community.getName() + "'.");
 
       return ResponseEntity.ok(new ApiResponse<>(200, "You have left the community successfully", null));
-    } catch (RuntimeException ex) {
+    }
+    catch (RuntimeException ex) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, ex.getMessage(), null));
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
     }
   }
@@ -297,9 +305,11 @@ public class CommunityMembershipService {
       );
 
       return ResponseEntity.ok(new ApiResponse<>(200, "Join request rejected successfully", null));
-    } catch (RuntimeException e) {
+    }
+    catch (RuntimeException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
     }
   }
@@ -344,9 +354,11 @@ public class CommunityMembershipService {
 
       return ResponseEntity.ok(new ApiResponse<>(200, "Join request sent successfully",
         Map.of("requested", true, "message", "Join request sent successfully")));
-    } catch (RuntimeException e) {
+    }
+    catch (RuntimeException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
     }
   }
@@ -384,9 +396,11 @@ public class CommunityMembershipService {
         .collect(Collectors.toList());
 
       return ResponseEntity.ok(new ApiResponse<>(200, "Pending requests fetched successfully", pendingRequests));
-    } catch (RuntimeException ex) {
+    }
+    catch (RuntimeException ex) {
       return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse<>(404, ex.getMessage(), null));
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "An unexpected error occurred: " + e.getMessage(), null));
     }
   }
@@ -415,9 +429,11 @@ public class CommunityMembershipService {
       }
 
       return ResponseEntity.ok(new ApiResponse<>(200, "All pending requests fetched", allRequests));
-    } catch (RuntimeException ex) {
+    }
+    catch (RuntimeException ex) {
       return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse<>(404, ex.getMessage(), null));
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "An unexpected error occurred: " + e.getMessage(), null));
     }
   }
@@ -511,7 +527,8 @@ public class CommunityMembershipService {
         if (cById.isPresent()) {
           return cById.get();
         }
-      } catch (IllegalArgumentException ignored) {
+      }
+      catch (IllegalArgumentException ignored) {
       }
     }
     throw new RuntimeException("Community not found");

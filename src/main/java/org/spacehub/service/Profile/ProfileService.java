@@ -187,7 +187,9 @@ public class ProfileService implements IProfileService {
 
       userRepository.delete(user);
 
-    } catch (Exception e) {
+    }
+
+    catch (Exception e) {
       throw new RuntimeException("Account deletion failed, please try again later.");
     }
   }
@@ -260,7 +262,8 @@ public class ProfileService implements IProfileService {
     }
     try {
       s3Service.deleteFile(fileUrl);
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       log.error("Failed to delete S3 file: {}", fileUrl);
     }
   }

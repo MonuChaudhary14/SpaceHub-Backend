@@ -68,7 +68,8 @@ public class ChatMessageQueue implements IChatMessageQueue {
         writeBehindBuffer.enqueue(message);
         return null;
       });
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       logger.warn("Kafka unavailable, routing message directly to local write-behind buffer: {}", e.getMessage());
       writeBehindBuffer.enqueue(message);
     }

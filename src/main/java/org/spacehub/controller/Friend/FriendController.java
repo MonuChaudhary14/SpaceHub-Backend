@@ -118,7 +118,8 @@ public class FriendController {
     try {
       String response = friendService.removeFriend(request.getFriendEmail());
       return ResponseEntity.ok(new ApiResponse<>(200, response));
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, "Error: " + e.getMessage()));
     }
   }

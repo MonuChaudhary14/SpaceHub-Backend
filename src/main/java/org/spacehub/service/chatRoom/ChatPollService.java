@@ -83,7 +83,8 @@ public class ChatPollService implements IChatPollService {
     if (existingVote.isPresent()) {
       vote = existingVote.get();
       vote.setOptionIndex(optionIndex);
-    } else {
+    }
+    else {
       vote = ChatVote.builder().poll(poll).email(email).optionIndex(optionIndex).build();
     }
     voteRepository.save(vote);

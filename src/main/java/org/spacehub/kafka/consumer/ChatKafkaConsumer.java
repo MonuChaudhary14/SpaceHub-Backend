@@ -72,7 +72,8 @@ public class ChatKafkaConsumer {
         logger.info("Successfully persisted Kafka batch of {} community messages", messagesToSave.size());
       }
       ack.acknowledge();
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       logger.error("Failed to persist community chat batch into PostgreSQL: {}", e.getMessage(), e);
       throw e;
     }
@@ -97,11 +98,13 @@ public class ChatKafkaConsumer {
         try {
           Optional<NewChatRoom> roomOpt = newChatRoomRepository.findByRoomCode(UUID.fromString(event.getRoomCode()));
           roomOpt.ifPresent(message::setNewChatRoom);
-        } catch (Exception ignored) {
+        }
+        catch (Exception ignored) {
         }
       }
       return message;
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       logger.error("Error deserializing community chat event: {}", json, e);
       return null;
     }
@@ -135,7 +138,8 @@ public class ChatKafkaConsumer {
         notifyPersistedDirectMessages(persisted);
       }
       ack.acknowledge();
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       logger.error("Failed to persist direct chat batch into PostgreSQL: {}", e.getMessage(), e);
       throw e;
     }
@@ -156,7 +160,8 @@ public class ChatKafkaConsumer {
         .type(event.getType() != null ? event.getType() : "MESSAGE")
         .readStatus(event.getReadStatus() != null ? event.getReadStatus() : Boolean.FALSE)
         .build();
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       logger.error("Error deserializing direct chat event: {}", json, e);
       return null;
     }
@@ -169,7 +174,8 @@ public class ChatKafkaConsumer {
     for (Message msg : persisted) {
       try {
         messagingHandler.confirmAndBroadcast(msg);
-      } catch (Exception ignored) {
+      }
+      catch (Exception ignored) {
       }
     }
   }

@@ -28,11 +28,13 @@ public class S3UrlHelper {
         String presigned = s3Service.generatePresignedDownloadUrl(key, duration);
         result.put("url", presigned);
         result.put("key", key);
-      } catch (Exception e) {
+      }
+      catch (Exception e) {
         result.put("url", null);
         result.put("key", key);
       }
-    } else {
+    }
+    else {
       result.put("url", null);
     }
 

@@ -98,7 +98,8 @@ public class NotificationService implements INotificationService {
       if (!published) {
         notificationWebSocketHandler.sendNotification(request.getEmail(), dto);
       }
-    } catch (Exception ignored) {
+    }
+    catch (Exception ignored) {
     }
   }
 

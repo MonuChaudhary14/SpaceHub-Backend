@@ -56,7 +56,8 @@ public class DataInitializer implements CommandLineRunner {
       dropLegacyCheckConstraints();
       initMockData();
       log.info("Mock data initialization completed successfully.");
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       log.warn("Mock data seeding encountered an issue (continuing startup): {}", e.getMessage());
     }
   }
@@ -70,7 +71,8 @@ public class DataInitializer implements CommandLineRunner {
       jdbcTemplate.execute("ALTER TABLE voice_room DROP CONSTRAINT IF EXISTS uk88mh4q2ke232n32n2dxs91tqm");
       jdbcTemplate.execute("ALTER TABLE voice_room DROP CONSTRAINT IF EXISTS voice_room_janus_room_id_key");
       jdbcTemplate.execute("ALTER TABLE voice_room ALTER COLUMN janus_room_id DROP NOT NULL");
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       log.warn("Could not migrate legacy roles or drop constraints: {}", e.getMessage());
     }
   }
@@ -263,7 +265,8 @@ public class DataInitializer implements CommandLineRunner {
       rel.setStatus("ACCEPTED");
       rel.setCreatedAt(LocalDateTime.now().minusDays(10));
       friendsRepository.save(rel);
-    } else if (f1.isPresent() && f2.isPresent()) {
+    }
+    else if (f1.isPresent() && f2.isPresent()) {
       friendsRepository.delete(f2.get());
     }
   }
@@ -332,7 +335,8 @@ public class DataInitializer implements CommandLineRunner {
       community.setCreatedAt(LocalDateTime.now().minusDays(15));
       community.setUpdatedAt(LocalDateTime.now());
       community = communityRepository.save(community);
-    } else {
+    }
+    else {
       boolean updated = false;
       if (community.getImageUrl() == null || community.getImageUrl().isBlank()) {
         community.setImageUrl(imageUrl);
@@ -354,7 +358,8 @@ public class DataInitializer implements CommandLineRunner {
         cu.setBlocked(false);
         cu.setBanned(false);
         communityUserRepository.save(cu);
-      } else {
+      }
+      else {
         CommunityUser cu = cuOpt.get();
         if (cu.getRole() != mr.role()) {
           cu.setRole(mr.role());
@@ -421,7 +426,8 @@ public class DataInitializer implements CommandLineRunner {
       group.setUpdatedAt(LocalDateTime.now());
       group.setMembers(new HashSet<>(members));
       localGroupRepository.save(group);
-    } else {
+    }
+    else {
       LocalGroup g = existing.get();
       if (g.getImageUrl() == null || g.getImageUrl().isBlank()) {
         g.setImageUrl(imageUrl);

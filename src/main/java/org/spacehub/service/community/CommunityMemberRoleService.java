@@ -65,9 +65,11 @@ public class CommunityMemberRoleService {
       notifyRemovedUser(community, requester, target);
 
       return ResponseEntity.ok(new ApiResponse<>(200, "Member removed successfully", null));
-    } catch (RuntimeException ex) {
+    }
+    catch (RuntimeException ex) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, ex.getMessage(), null));
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return ResponseEntity.internalServerError()
         .body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
     }
@@ -119,11 +121,14 @@ public class CommunityMemberRoleService {
       communityUserRepository.save(communityUser);
 
       return ResponseEntity.ok(new ApiResponse<>(200, "Role of " + target.getEmail() + " changed to " + newRole, null));
-    } catch (IllegalArgumentException e) {
+    }
+    catch (IllegalArgumentException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
-    } catch (SecurityException e) {
+    }
+    catch (SecurityException e) {
       return ResponseEntity.status(403).body(new ApiResponse<>(403, e.getMessage(), null));
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
     }
   }
@@ -191,9 +196,11 @@ public class CommunityMemberRoleService {
 
       String blocked = request.isBlock() ? "blocked" : "unblocked";
       return ResponseEntity.ok(new ApiResponse<>(200, "User " + target.getEmail() + " has been " + blocked + " successfully", null));
-    } catch (RuntimeException e) {
+    }
+    catch (RuntimeException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
     }
   }
@@ -226,9 +233,11 @@ public class CommunityMemberRoleService {
       roleInfo.put("isCreator", isCreator);
 
       return ResponseEntity.ok(new ApiResponse<>(200, "Role details fetched successfully", roleInfo));
-    } catch (RuntimeException e) {
+    }
+    catch (RuntimeException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
     }
   }

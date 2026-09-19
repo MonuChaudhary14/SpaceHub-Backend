@@ -97,6 +97,7 @@ public class ReportService implements IReportService {
         .ifPresent(community -> notifyOwnersAndAdmins(report, community, reportId));
 
     }
+
     catch (IllegalArgumentException e) {
       System.err.println("Invalid communityCode UUID: " + report.getCommunityCode());
     }

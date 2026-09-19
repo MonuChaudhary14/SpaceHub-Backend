@@ -50,7 +50,9 @@ public class EmailService implements IEmailService {
       helper.setText(htmlContent, true);
       mailSender.send(message);
 
-    } catch (MessagingException e) {
+    }
+
+    catch (MessagingException e) {
       throw new RuntimeException("Failed to send OTP email: " + e.getMessage(), e);
     }
   }
@@ -110,7 +112,9 @@ public class EmailService implements IEmailService {
       helper.setText(htmlContent, true);
       mailSender.send(message);
 
-    } catch (MessagingException e) {
+    }
+
+    catch (MessagingException e) {
       throw new RuntimeException("Failed to send email: " + e.getMessage(), e);
     }
   }

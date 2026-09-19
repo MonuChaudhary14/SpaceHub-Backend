@@ -67,7 +67,8 @@ public class WsRedisPublisher {
       String envelopeJson = objectMapper.writeValueAsString(envelope);
       redisTemplate.convertAndSend(topic, envelopeJson);
       return true;
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       logger.warn("Failed to publish WebSocket event to Redis topic {}: {}", topic, e.getMessage());
       return false;
     }

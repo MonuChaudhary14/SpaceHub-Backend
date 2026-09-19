@@ -81,7 +81,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
     try {
       return usernameService.extractUsername(token);
-    } catch (Exception ignored) {
+    }
+    catch (Exception ignored) {
       SecurityContextHolder.clearContext();
       return null;
     }
@@ -98,7 +99,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authToken);
       }
-    } catch (Exception ignored) {
+    }
+    catch (Exception ignored) {
       SecurityContextHolder.clearContext();
     }
   }

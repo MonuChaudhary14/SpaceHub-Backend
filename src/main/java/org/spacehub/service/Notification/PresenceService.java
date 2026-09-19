@@ -104,7 +104,8 @@ public class PresenceService implements IPresenceService {
         .communityId(communityId)
         .build();
       redisTemplate.opsForValue().set(PRESENCE_STATUS_KEY_PREFIX + normalizedEmail, objectMapper.writeValueAsString(dto));
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       logger.warn("Redis unavailable for heartbeat, updating local fallback: {}", e.getMessage());
       localFallbackHeartbeats.put(normalizedEmail, now);
     }
@@ -123,7 +124,8 @@ public class PresenceService implements IPresenceService {
       if (score != null) {
         return (now - score.longValue()) < HEARTBEAT_TIMEOUT_MS;
       }
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       logger.warn("Redis unavailable checking online status: {}", e.getMessage());
     }
 
@@ -151,7 +153,8 @@ public class PresenceService implements IPresenceService {
         }
         return list;
       }
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       logger.warn("Redis unavailable fetching community online users: {}", e.getMessage());
     }
 
@@ -196,7 +199,8 @@ public class PresenceService implements IPresenceService {
         }
         return "OFFLINE";
       }
-    } catch (Exception ignored) {
+    }
+    catch (Exception ignored) {
     }
 
     Long localLast = localFallbackHeartbeats.get(normalizedEmail);
@@ -218,7 +222,8 @@ public class PresenceService implements IPresenceService {
       if (raw != null) {
         return objectMapper.readValue(String.valueOf(raw), UserPresenceDTO.class);
       }
-    } catch (Exception ignored) {
+    }
+    catch (Exception ignored) {
     }
 
     boolean online = isUserOnline(normalizedEmail);
@@ -250,7 +255,8 @@ public class PresenceService implements IPresenceService {
         .build();
       redisTemplate.opsForValue().set(PRESENCE_STATUS_KEY_PREFIX + normalizedEmail, objectMapper.writeValueAsString(dto));
       wsRedisPublisher.publishPresenceDelta(normalizedEmail, "OFFLINE", communityId, dto);
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       logger.warn("Redis error marking user offline: {}", e.getMessage());
     }
 
@@ -284,7 +290,8 @@ public class PresenceService implements IPresenceService {
           wsRedisPublisher.publishPresenceDelta(userEmail, "OFFLINE", null, dto);
         }
       }
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       logger.debug("Error during presence sweep: {}", e.getMessage());
     }
 

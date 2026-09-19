@@ -61,10 +61,13 @@ public class DashBoardService implements IDashBoardService {
       return new ApiResponse<>(HttpStatus.OK.value(),
         "Username updated successfully", username);
 
-    } catch (DataIntegrityViolationException e) {
+    }
+
+    catch (DataIntegrityViolationException e) {
       return new ApiResponse<>(HttpStatus.CONFLICT.value(),
         "Username already taken.", null);
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return new ApiResponse<>(500,
         "An unexpected error occurred: " + e.getMessage(), null);
     }
@@ -119,9 +122,12 @@ public class DashBoardService implements IDashBoardService {
 
       return new ApiResponse<>(200, "Profile image uploaded successfully", previewUrl);
 
-    } catch (RuntimeException e) {
+    }
+
+    catch (RuntimeException e) {
       return new ApiResponse<>(400, e.getMessage(), null);
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null);
     }
   }
@@ -152,7 +158,8 @@ public class DashBoardService implements IDashBoardService {
     try {
       s3Service.uploadFile(key, image.getInputStream(), image.getSize());
       return true;
-    } catch (IOException e) {
+    }
+    catch (IOException e) {
       return false;
     }
   }
@@ -160,7 +167,8 @@ public class DashBoardService implements IDashBoardService {
   private String generatePreviewUrlSafely(String key) {
     try {
       return s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(2));
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return null;
     }
   }
@@ -183,7 +191,8 @@ public class DashBoardService implements IDashBoardService {
       if (user.getAvatarUrl() != null && !user.getAvatarUrl().isBlank()) {
         try {
           presignedUrl = s3Service.generatePresignedDownloadUrl(user.getAvatarUrl(), Duration.ofHours(2));
-        } catch (Exception ignored) {
+        }
+        catch (Exception ignored) {
         }
       }
 
@@ -194,13 +203,16 @@ public class DashBoardService implements IDashBoardService {
       String phone = user.getPhoneNumber();
       if (phone != null && !phone.isBlank()) {
         data.put("phoneNumber", phone);
-      } else {
+      }
+      else {
         data.put("phoneNumber", null);
       }
 
       return new ApiResponse<>(200, "User profile fetched successfully", data);
 
-    } catch (Exception e) {
+    }
+
+    catch (Exception e) {
       return new ApiResponse<>(500, "An unexpected error occurred: " + e.getMessage(), null);
     }
   }
@@ -242,9 +254,12 @@ public class DashBoardService implements IDashBoardService {
 
       return ApiResponse.success(200, "Profile updated successfully", result);
 
-    } catch (RuntimeException e) {
+    }
+
+    catch (RuntimeException e) {
       return ApiResponse.error(400, e.getMessage());
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return ApiResponse.error(500, "Unexpected error: " + e.getMessage());
     }
   }
@@ -260,7 +275,8 @@ public class DashBoardService implements IDashBoardService {
         Duration.ofHours(2)
       );
       result.put("profileImage", previewUrl);
-    } catch (Exception ignored) {
+    }
+    catch (Exception ignored) {
     }
   }
 
@@ -345,7 +361,8 @@ public class DashBoardService implements IDashBoardService {
 
     try {
       ImageValidator.validate(image);
-    } catch (RuntimeException e) {
+    }
+    catch (RuntimeException e) {
       return new ApiResponse<>(400, e.getMessage(), null);
     }
 
@@ -360,7 +377,8 @@ public class DashBoardService implements IDashBoardService {
     String previewUrl = null;
     try {
       previewUrl = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(2));
-    } catch (Exception ignored) {
+    }
+    catch (Exception ignored) {
     }
 
     result.put("profileImage", previewUrl);

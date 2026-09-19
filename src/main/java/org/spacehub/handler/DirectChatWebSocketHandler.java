@@ -111,7 +111,8 @@ public class DirectChatWebSocketHandler extends TextWebSocketHandler {
         return false;
       }
       return true;
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       logger.error("Error validating sender", e);
       closeSessionSilently(session, CloseStatus.SERVER_ERROR, "Error validating sender — try again later.");
       return false;
@@ -133,7 +134,8 @@ public class DirectChatWebSocketHandler extends TextWebSocketHandler {
   private void loadUnreadMessages(WebSocketSession session, String senderEmail) {
     try {
       processUnreadMessages(session, senderEmail);
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       logger.warn("Unable to load unread messages", e);
       sendSystemMessageQuiet(session, "Unable to load unread messages right now.");
     }
@@ -143,12 +145,15 @@ public class DirectChatWebSocketHandler extends TextWebSocketHandler {
     try {
       if (userRepository.findByEmail(receiverEmail).isEmpty()) {
         sendSystemMessageQuiet(session, "Receiver not found.");
-      } else if (!friendService.areFriends(senderEmail, receiverEmail)) {
+      }
+      else if (!friendService.areFriends(senderEmail, receiverEmail)) {
         sendSystemMessageQuiet(session, "You can only chat with friends.");
-      } else {
+      }
+      else {
         processHistoryForReceiver(session, senderEmail, receiverEmail);
       }
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       logger.error("Error validating receiver", e);
       sendSystemMessageQuiet(session, "Unable to validate receiver at the moment.");
     }
@@ -158,14 +163,16 @@ public class DirectChatWebSocketHandler extends TextWebSocketHandler {
     try {
       sendSystemMessage(session, reason);
       session.close(status);
-    } catch (IOException ignored) {
+    }
+    catch (IOException ignored) {
     }
   }
 
   private void sendSystemMessageQuiet(WebSocketSession session, String message) {
     try {
       sendSystemMessage(session, message);
-    } catch (IOException ignored) {
+    }
+    catch (IOException ignored) {
     }
   }
 
@@ -251,7 +258,8 @@ public class DirectChatWebSocketHandler extends TextWebSocketHandler {
         payload.put("optimistic", e.optimistic);
         addPreviewIfFileQuiet(payload, e.msg.getType(), e.msg.getFileKey());
         formatted.add(payload);
-      } catch (Exception ignored) {
+      }
+      catch (Exception ignored) {
       }
     }
     return formatted;
@@ -285,7 +293,8 @@ public class DirectChatWebSocketHandler extends TextWebSocketHandler {
       try {
         String previewUrl = s3Service.generatePresignedDownloadUrl(fileKey, Duration.ofMinutes(10));
         payload.put("previewUrl", previewUrl);
-      } catch (Exception ignored) {
+      }
+      catch (Exception ignored) {
       }
     }
   }
@@ -311,7 +320,8 @@ public class DirectChatWebSocketHandler extends TextWebSocketHandler {
         Object cp = clientPayload.get("chatWith");
         if (cp instanceof String chatWith) {
           processHistoryForReceiver(session, senderEmail, chatWith.toLowerCase(Locale.ROOT));
-        } else {
+        }
+        else {
           sendSystemMessage(session, "Missing chatWith for HISTORY request.");
         }
       }
@@ -364,7 +374,8 @@ public class DirectChatWebSocketHandler extends TextWebSocketHandler {
     if (fileKey != null) {
       try {
         previewUrl = s3Service.generatePresignedDownloadUrl(fileKey, Duration.ofMinutes(15));
-      } catch (Exception ignored) {
+      }
+      catch (Exception ignored) {
       }
     }
     String messageUuid = UUID.randomUUID().toString();
@@ -395,7 +406,8 @@ public class DirectChatWebSocketHandler extends TextWebSocketHandler {
       for (Object id : list) {
         try {
           messageService.markAsReadByUuid(id.toString());
-        } catch (Exception ignored) {
+        }
+        catch (Exception ignored) {
         }
       }
     }
@@ -423,7 +435,8 @@ public class DirectChatWebSocketHandler extends TextWebSocketHandler {
     );
     if (receiverEmail != null) {
       sendToUsers(Set.of(senderEmail, receiverEmail), resp);
-    } else {
+    }
+    else {
       sendToUsers(Set.of(senderEmail), resp);
     }
   }
@@ -490,7 +503,8 @@ public class DirectChatWebSocketHandler extends TextWebSocketHandler {
       if (session != null && session.isOpen()) {
         try {
           session.sendMessage(textMessage);
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
           logger.warn("Failed to send direct message frame to local session: {}", e.getMessage());
         }
       }
@@ -638,13 +652,16 @@ public class DirectChatWebSocketHandler extends TextWebSocketHandler {
       );
       try {
         sendToUsers(Set.of(message.getSenderEmail(), message.getReceiverEmail()), confirm);
-      } catch (IOException ignored) {
+      }
+      catch (IOException ignored) {
       }
       try {
         sendToUsers(Set.of(message.getSenderEmail(), message.getReceiverEmail()), payload);
-      } catch (IOException ignored) {
       }
-    } catch (Exception e) {
+      catch (IOException ignored) {
+      }
+    }
+    catch (Exception e) {
       logger.error("Error in confirmAndBroadcast", e);
     }
   }
@@ -655,7 +672,8 @@ public class DirectChatWebSocketHandler extends TextWebSocketHandler {
       payload.put("optimistic", false);
       addPreviewIfFileQuiet(payload, message.getType(), message.getFileKey());
       sendToUsers(Set.of(message.getSenderEmail(), message.getReceiverEmail()), payload);
-    } catch (Exception ignored) {
+    }
+    catch (Exception ignored) {
     }
   }
 

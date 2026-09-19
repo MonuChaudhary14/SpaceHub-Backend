@@ -48,10 +48,12 @@ public class UserAccountService implements IUserAccountService {
       if (emailValidator.isEmail(rawIdentifier)) {
         normalizedIdentifier = emailValidator.normalize(rawIdentifier);
         user = userService.getUserByEmail(normalizedIdentifier);
-      } else {
+      }
+      else {
         return new ApiResponse<>(400, "Invalid identifier. Must be an email.", null);
       }
-    } catch (UsernameNotFoundException e) {
+    }
+    catch (UsernameNotFoundException e) {
       return new ApiResponse<>(404, "User not found", null);
     }
 
@@ -85,7 +87,8 @@ public class UserAccountService implements IUserAccountService {
   private TokenResponse generateTokensOrNull(User user) {
     try {
       return verificationService.generateTokens(user);
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return null;
     }
   }
@@ -104,7 +107,8 @@ public class UserAccountService implements IUserAccountService {
     String identifier;
     try {
       identifier = processIdentifier(request, tempRegistration);
-    } catch (IllegalArgumentException e) {
+    }
+    catch (IllegalArgumentException e) {
       return new ApiResponse<>(400, e.getMessage(), null);
     }
 
@@ -122,7 +126,8 @@ public class UserAccountService implements IUserAccountService {
 
       return new ApiResponse<>(200, "OTP sent. Complete registration by validating OTP.",
         sessionToken);
-    } catch (RuntimeException e) {
+    }
+    catch (RuntimeException e) {
       return new ApiResponse<>(500, "Registration failed: " + e.getMessage(), null);
     }
   }
@@ -162,7 +167,8 @@ public class UserAccountService implements IUserAccountService {
     String identifier;
     try {
       identifier = normalizeIdentifier(request);
-    } catch (IllegalArgumentException e) {
+    }
+    catch (IllegalArgumentException e) {
       return new ApiResponse<>(400, e.getMessage(), null);
     }
 
@@ -229,11 +235,13 @@ public class UserAccountService implements IUserAccountService {
       if (emailValidator.isEmail(identifier)) {
         normalizedIdentifier = emailValidator.normalize(identifier);
         user = userService.getUserByEmail(normalizedIdentifier);
-      } else {
+      }
+      else {
         return new ApiResponse<>(200, "OTP has been sent",
           null);
       }
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return new ApiResponse<>(200, "OTP has been sent",
         null);
     }
@@ -255,7 +263,8 @@ public class UserAccountService implements IUserAccountService {
 
     if (emailValidator.isEmail(identifier)) {
       normalizedIdentifier = emailValidator.normalize(identifier);
-    } else {
+    }
+    else {
       return new ApiResponse<>(400, "Invalid email.", null);
     }
 
@@ -271,7 +280,8 @@ public class UserAccountService implements IUserAccountService {
     User user;
     try {
       user = userService.getUserByEmail(normalizedIdentifier);
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return new ApiResponse<>(400, "User not found", null);
     }
 
@@ -279,7 +289,8 @@ public class UserAccountService implements IUserAccountService {
     int currentVersion;
     if (user.getPasswordVersion() != null) {
       currentVersion = user.getPasswordVersion();
-    } else {
+    }
+    else {
       currentVersion = 0;
     }
     user.setPasswordVersion(currentVersion + 1);
@@ -324,7 +335,9 @@ public class UserAccountService implements IUserAccountService {
 
       return new ApiResponse<>(200, "Registration verified successfully", null);
 
-    } catch (Exception e) {
+    }
+
+    catch (Exception e) {
       return new ApiResponse<>(500, "Registration verification failed: " + e.getMessage(),
         null);
     }
@@ -359,7 +372,8 @@ public class UserAccountService implements IUserAccountService {
     String normalizedIdentifier;
     if (emailValidator.isEmail(identifier)) {
       normalizedIdentifier = emailValidator.normalize(identifier);
-    } else {
+    }
+    else {
       return new ApiResponse<>(400, "Invalid email format.", null);
     }
 
@@ -390,7 +404,8 @@ public class UserAccountService implements IUserAccountService {
 
     if (emailValidator.isEmail(rawIdentifier)) {
       normalizedIdentifier = emailValidator.normalize(rawIdentifier);
-    } else {
+    }
+    else {
       return new ApiResponse<>(400, "Invalid email format.", null);
     }
 
@@ -421,7 +436,8 @@ public class UserAccountService implements IUserAccountService {
     User user;
     try {
       user = userService.getUserByEmail(normalizedIdentifier);
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return new ApiResponse<>(400, "User not found", null);
     }
 
@@ -448,14 +464,16 @@ public class UserAccountService implements IUserAccountService {
     User user;
     try {
       user = userService.getUserByEmail(identifier);
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return new ApiResponse<>(404, "User not found", null);
     }
 
     try {
       String newTempToken = sendForgotPasswordOtpAndCreateTempToken(identifier, user);
       return new ApiResponse<>(200, "OTP resent successfully.", newTempToken);
-    } catch (RuntimeException e) {
+    }
+    catch (RuntimeException e) {
       return new ApiResponse<>(429, e.getMessage(), null);
     }
   }
@@ -464,7 +482,8 @@ public class UserAccountService implements IUserAccountService {
     try {
       User existingUser = userService.getUserByEmail(identifier);
       return existingUser != null && Boolean.TRUE.equals(existingUser.getEnabled());
-    } catch (Exception ignored) {
+    }
+    catch (Exception ignored) {
       return false;
     }
   }
@@ -473,7 +492,8 @@ public class UserAccountService implements IUserAccountService {
     try {
       otpService.sendOTP(identifier, OtpType.REGISTRATION);
       return new ApiResponse<>(200, "OTP resent successfully.", null);
-    } catch (RuntimeException e) {
+    }
+    catch (RuntimeException e) {
       return new ApiResponse<>(429, e.getMessage(), null);
     }
   }

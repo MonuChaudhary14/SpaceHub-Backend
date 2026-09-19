@@ -45,7 +45,8 @@ public class LiveKitTokenService {
     videoGrant.put("canPublishData", true);
     if (!isVideo) {
       videoGrant.put("canPublishSources", java.util.List.of("microphone", "screen_share", "screen_share_audio"));
-    } else {
+    }
+    else {
       videoGrant.put("canPublishSources", java.util.List.of("camera", "microphone", "screen_share", "screen_share_audio"));
     }
 

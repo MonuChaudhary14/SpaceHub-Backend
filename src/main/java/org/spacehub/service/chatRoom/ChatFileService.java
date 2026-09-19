@@ -71,7 +71,8 @@ public class ChatFileService implements IChatFileService {
   private UUID parseRoomCode(String roomCode) {
     try {
       return UUID.fromString(roomCode);
-    } catch (IllegalArgumentException e) {
+    }
+    catch (IllegalArgumentException e) {
       throw new IllegalArgumentException("Invalid roomCode: not a UUID");
     }
   }
@@ -88,7 +89,8 @@ public class ChatFileService implements IChatFileService {
     try {
       s3Service.uploadFile(key, file.getInputStream(), file.getSize());
       return key;
-    } catch (IOException | RuntimeException e) {
+    }
+    catch (IOException | RuntimeException e) {
       throw new StorageException("Failed to upload file to S3", e);
     }
   }
@@ -96,10 +98,12 @@ public class ChatFileService implements IChatFileService {
   private String generateFileUrl(String fileKey) {
     try {
       return s3Service.generatePresignedDownloadUrl(fileKey, Duration.ofMinutes(15));
-    } catch (RuntimeException e) {
+    }
+    catch (RuntimeException e) {
       try {
         s3Service.deleteFile(fileKey);
-      } catch (Exception ignore) {
+      }
+      catch (Exception ignore) {
       }
       throw new StorageException("Failed to generate download URL", e);
     }
@@ -108,10 +112,12 @@ public class ChatFileService implements IChatFileService {
   private void enqueueMessage(ChatMessage message, String fileKey) {
     try {
       chatMessageQueue.enqueue(message);
-    } catch (RuntimeException e) {
+    }
+    catch (RuntimeException e) {
       try {
         s3Service.deleteFile(fileKey);
-      } catch (Exception ignore) {
+      }
+      catch (Exception ignore) {
       }
       throw new RuntimeException("Failed to enqueue chat message", e);
     }
@@ -137,7 +143,8 @@ public class ChatFileService implements IChatFileService {
       if (path != null && path.length() > 1) {
         return path.substring(1);
       }
-    } catch (Exception ignored) {
+    }
+    catch (Exception ignored) {
     }
     return fileUrlOrKey;
   }

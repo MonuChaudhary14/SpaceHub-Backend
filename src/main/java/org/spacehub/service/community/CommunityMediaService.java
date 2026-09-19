@@ -61,9 +61,11 @@ public class CommunityMediaService {
 
       String presigned = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(2));
       return ok(Map.of("presignedUrl", presigned, "key", key));
-    } catch (IOException e) {
+    }
+    catch (IOException e) {
       return serverError("Error uploading image: " + e.getMessage());
-    } catch (RuntimeException e) {
+    }
+    catch (RuntimeException e) {
       return badRequest(e.getMessage());
     }
   }
@@ -101,11 +103,14 @@ public class CommunityMediaService {
       body.put("createdAt", community.getCreatedAt());
 
       return ok(body);
-    } catch (RuntimeException re) {
+    }
+    catch (RuntimeException re) {
       return badRequest(re.getMessage());
-    } catch (IOException ioe) {
+    }
+    catch (IOException ioe) {
       return serverError("Error uploading image: " + ioe.getMessage());
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return serverError("Unexpected error: " + e.getMessage());
     }
   }
@@ -127,7 +132,8 @@ public class CommunityMediaService {
     }
     try {
       return s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(2));
-    } catch (Exception ignored) {
+    }
+    catch (Exception ignored) {
       return null;
     }
   }
@@ -200,7 +206,8 @@ public class CommunityMediaService {
     }
     try {
       return s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(2));
-    } catch (Exception ignored) {
+    }
+    catch (Exception ignored) {
       return null;
     }
   }

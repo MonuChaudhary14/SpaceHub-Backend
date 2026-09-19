@@ -150,7 +150,8 @@ public class LocalGroupInviteService implements ILocalGroupInviteService {
 
     if (invite.getUses() >= invite.getMaxUses()) {
       inviteRepository.delete(invite);
-    } else {
+    }
+    else {
       inviteRepository.save(invite);
     }
 

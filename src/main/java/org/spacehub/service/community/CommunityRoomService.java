@@ -84,9 +84,12 @@ public class CommunityRoomService {
       return ResponseEntity.status(201)
         .body(new ApiResponse<>(201, "Room created successfully", savedRoom));
 
-    } catch (RuntimeException e) {
+    }
+
+    catch (RuntimeException e) {
       return badRequest(e.getMessage());
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return serverError("An unexpected error occurred: " + e.getMessage());
     }
   }
@@ -158,7 +161,8 @@ public class CommunityRoomService {
         }).collect(Collectors.toList());
 
       return ResponseEntity.ok(new ApiResponse<>(200, "Rooms fetched successfully", out));
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
     }
   }
@@ -198,9 +202,11 @@ public class CommunityRoomService {
       response.put("members", members);
 
       return ResponseEntity.ok(new ApiResponse<>(200, "Community details fetched successfully", response));
-    } catch (RuntimeException e) {
+    }
+    catch (RuntimeException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error", null));
     }
   }
@@ -234,9 +240,11 @@ public class CommunityRoomService {
 
       chatRoomRepository.delete(room);
       return ResponseEntity.ok(new ApiResponse<>(200, "Room deleted successfully", "Room deleted successfully"));
-    } catch (RuntimeException e) {
+    }
+    catch (RuntimeException e) {
       return badRequest(e.getMessage());
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return serverError("Unexpected error: " + e.getMessage());
     }
   }
@@ -288,9 +296,11 @@ public class CommunityRoomService {
           "communityId", community.getId()
         ))
       );
-    } catch (RuntimeException e) {
+    }
+    catch (RuntimeException e) {
       return badRequest(e.getMessage());
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return serverError("Unexpected error: " + e.getMessage());
     }
   }

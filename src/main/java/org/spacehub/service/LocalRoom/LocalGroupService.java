@@ -105,12 +105,15 @@ public class LocalGroupService implements ILocalGroupService {
 
       return ResponseEntity.status(201).body(new ApiResponse<>(201,
         "Local group created successfully", resp));
-    } catch (IOException e) {
+    }
+    catch (IOException e) {
       return ResponseEntity.internalServerError().body(
         new ApiResponse<>(500, "Error uploading image: " + e.getMessage(), null));
-    } catch (RuntimeException e) {
+    }
+    catch (RuntimeException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return ResponseEntity.internalServerError().body(
         new ApiResponse<>(500, "Unexpected error: " + e.getMessage(), null));
     }
@@ -142,9 +145,12 @@ public class LocalGroupService implements ILocalGroupService {
       return ResponseEntity.ok(new ApiResponse<>(200, "Joined local group successfully",
         null));
 
-    } catch (ResourceNotFoundException e) {
+    }
+
+    catch (ResourceNotFoundException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return ResponseEntity.internalServerError().body(new ApiResponse<>(500, "Unexpected error: "
         + e.getMessage(), null));
     }
@@ -220,7 +226,8 @@ public class LocalGroupService implements ILocalGroupService {
     r.setUpdatedAt(g.getUpdatedAt());
     if (g.getMembers() != null) {
       r.setTotalMembers(g.getMembers().size());
-    } else {
+    }
+    else {
       r.setTotalMembers(0);
     }
     if (g.getChatRoom() != null) {
@@ -234,16 +241,19 @@ public class LocalGroupService implements ILocalGroupService {
     if (key != null && !key.isBlank()) {
       if (key.startsWith("http://") || key.startsWith("https://")) {
         r.setImageUrl(key);
-      } else {
+      }
+      else {
         try {
           String presigned = s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1));
           r.setImageUrl(presigned);
-        } catch (Exception ignored) {
+        }
+        catch (Exception ignored) {
           r.setImageUrl(null);
         }
       }
       r.setImageKey(key);
-    } else {
+    }
+    else {
       r.setImageUrl(null);
       r.setImageKey(null);
     }
@@ -323,11 +333,13 @@ public class LocalGroupService implements ILocalGroupService {
       if (key != null && !key.isBlank()) {
         try {
           resp.setImageUrl(s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1)));
-        } catch (Exception ignored) {
+        }
+        catch (Exception ignored) {
         }
       }
       return ResponseEntity.ok(new ApiResponse<>(200, "Local group fetched", resp));
-    } else {
+    }
+    else {
       boolean alreadyMember = group.getMembers().stream().anyMatch(u -> u.getId().equals(user.getId()));
       if (!alreadyMember) {
         group.getMembers().add(user);
@@ -366,10 +378,12 @@ public class LocalGroupService implements ILocalGroupService {
         try {
           dto.setAvatarPreviewUrl(s3Service.generatePresignedDownloadUrl(user.getAvatarUrl(),
             Duration.ofMinutes(60)));
-        } catch (Exception ignored) {
+        }
+        catch (Exception ignored) {
           dto.setAvatarPreviewUrl(null);
         }
-      } else {
+      }
+      else {
         dto.setAvatarPreviewUrl(null);
       }
       return dto;
@@ -401,11 +415,15 @@ public class LocalGroupService implements ILocalGroupService {
 
       return buildResponse(group, changed);
 
-    } catch (IOException ioe) {
+    }
+
+    catch (IOException ioe) {
       return serverError("Error uploading image: " + ioe.getMessage());
-    } catch (ResourceNotFoundException rnfe) {
+    }
+    catch (ResourceNotFoundException rnfe) {
       return badRequest(rnfe.getMessage());
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return serverError("Unexpected error: " + e.getMessage());
     }
   }
@@ -499,7 +517,8 @@ public class LocalGroupService implements ILocalGroupService {
       }
       try {
         resp.setImageUrl(s3Service.generatePresignedDownloadUrl(key, Duration.ofHours(1)));
-      } catch (Exception ignored) {
+      }
+      catch (Exception ignored) {
       }
     }
   }

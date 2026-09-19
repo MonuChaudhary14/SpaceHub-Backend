@@ -90,7 +90,9 @@ public class UserService implements UserDetailsService, IUserService {
       return ResponseEntity.ok(
         new ApiResponse<>(200, "Users retrieved successfully", dtoPage));
 
-    } catch (Exception e) {
+    }
+
+    catch (Exception e) {
       return ResponseEntity.internalServerError()
         .body(new ApiResponse<>(500, "An error occurred: " + e.getMessage(), null));
     }

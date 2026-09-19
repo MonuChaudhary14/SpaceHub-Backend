@@ -72,7 +72,9 @@ public class ChatRoomService implements IChatRoomService {
     try {
       optionalRoom = chatRoomRepository.findByRoomCode(UUID.fromString(roomCode));
 
-    } catch (IllegalArgumentException e) {
+    }
+
+    catch (IllegalArgumentException e) {
       return new ApiResponse<>(400, "Invalid room code format. Must be a valid UUID.", null);
     }
 

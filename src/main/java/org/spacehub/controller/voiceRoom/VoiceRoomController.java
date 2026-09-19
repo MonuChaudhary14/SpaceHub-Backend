@@ -78,9 +78,11 @@ public class VoiceRoomController {
         "voiceRoom", new VoiceRoomDTO(createdRoom),
         "data", createdRoom
       ));
-    } catch (IllegalStateException e) {
+    }
+    catch (IllegalStateException e) {
       return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       logger.error("Error creating voice/video room: {}", e.getMessage(), e);
       return ResponseEntity.status(500).body(Map.of("error", "Failed to create room", "message", e.getMessage()));
     }
@@ -106,7 +108,8 @@ public class VoiceRoomController {
         "identity", userEmail,
         "displayName", displayName != null ? displayName : userEmail
       ));
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       logger.error("Error generating LiveKit token: {}", e.getMessage(), e);
       return ResponseEntity.status(500)
         .body(Map.of("error", "Failed to generate LiveKit token", "message", e.getMessage()));
@@ -141,7 +144,8 @@ public class VoiceRoomController {
         "roomCode", roomCode,
         "identity", userEmail
       ));
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       logger.error("Error joining voice room: {}", e.getMessage(), e);
       return ResponseEntity.status(500)
         .body(Map.of("error", "Failed to join voice room", "message", e.getMessage()));
