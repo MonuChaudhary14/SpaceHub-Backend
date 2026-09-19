@@ -1,12 +1,11 @@
 package org.spacehub.controller.User;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.spacehub.DTO.DTO_auth.RefreshRequest;
 import org.spacehub.DTO.DTO_auth.TokenResponse;
 import org.spacehub.entities.ApiResponse.ApiResponse;
-import org.spacehub.entities.User.User;
-import org.spacehub.repository.User.RefreshTokenRepository;
-import org.spacehub.service.serviceAuth.UserNameService;
+import org.spacehub.service.serviceAuth.authInterfaces.IRefreshTokenService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -14,48 +13,40 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import jakarta.servlet.http.HttpServletRequest;
-import java.time.Instant;
 
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class TokenController {
 
-  private final RefreshTokenRepository refreshTokenRepository;
-  private final UserNameService userNameService;
+  private final IRefreshTokenService refreshTokenService;
 
   @PostMapping("/refresh")
-  public ResponseEntity<ApiResponse<TokenResponse>> refresh(HttpServletRequest httpRequest,
-                                                            @RequestBody RefreshRequest req) {
-    if (req == null || req.getRefreshToken() == null) {
-      return ResponseEntity.status(400).body(new ApiResponse<>(400, "Refresh token required",
-        null));
+  public ResponseEntity<ApiResponse<TokenResponse>> refresh(
+    HttpServletRequest httpRequest,
+    @RequestBody RefreshRequest req
+  ) {
+    if (req == null || req.getRefreshToken() == null || req.getRefreshToken().isBlank()) {
+      return ResponseEntity.status(400).body(new ApiResponse<>(400, "Refresh token required", null));
     }
 
-    var opt = refreshTokenRepository.findByToken(req.getRefreshToken());
-    if (opt.isEmpty()) {
-      return ResponseEntity.status(401).body(new ApiResponse<>(401, "Invalid refresh token",
-        null));
+    try {
+      TokenResponse tokens = refreshTokenService.rotateRefreshToken(req.getRefreshToken(), httpRequest);
+      ResponseCookie cookie = buildAccessTokenCookie(httpRequest, tokens.getAccessToken(), 24 * 60 * 60);
+
+      return ResponseEntity.ok()
+        .header(HttpHeaders.SET_COOKIE, cookie.toString())
+        .body(new ApiResponse<>(200, "Token refreshed successfully", tokens));
     }
-
-    var refreshToken = opt.get();
-    if (refreshToken.getExpiresAt().isBefore(Instant.now())) {
-      refreshTokenRepository.delete(refreshToken);
-      return ResponseEntity.status(401).body(new ApiResponse<>(401, "Refresh token expired",
-        null));
+    catch (SecurityException e) {
+      return ResponseEntity.status(401).body(new ApiResponse<>(401, e.getMessage(), null));
     }
-
-    User user = refreshToken.getUser();
-    String accessToken = userNameService.generateToken(user);
-    TokenResponse tokens = new TokenResponse(accessToken, refreshToken.getToken());
-    tokens.setEmail(user.getEmail());
-
-    ResponseCookie cookie = buildAccessTokenCookie(httpRequest, accessToken, 24 * 60 * 60);
-
-    return ResponseEntity.ok()
-      .header(HttpHeaders.SET_COOKIE, cookie.toString())
-      .body(new ApiResponse<>(200, "Token refreshed", tokens));
+    catch (IllegalArgumentException e) {
+      return ResponseEntity.status(400).body(new ApiResponse<>(400, e.getMessage(), null));
+    }
+    catch (Exception e) {
+      return ResponseEntity.status(500).body(new ApiResponse<>(500, "An error occurred while refreshing token", null));
+    }
   }
 
   private ResponseCookie buildAccessTokenCookie(HttpServletRequest request, String value, long maxAgeSeconds) {
