@@ -164,8 +164,7 @@ The platform automatically seeds development accounts on bootstrap with idempote
 
 | Email | Username | Password | Global Role | Purpose |
 |---|---|---|---|---|
-| `monuchaudharypoonia@gmail.com` | `monuchaudhary` | `@Monu1402` | `ADMIN` | SpaceHub Founder & Lead Architect |
-| `admin@spacehub.dev` | `admin` | `Password@123` | `ADMIN` | System Administrator |
+| `admin@spacehub.dev` | `admin` | `Password@123` | `ADMIN` | SpaceHub System Administrator & Lead Architect |
 | `alex.chen@spacehub.dev` | `alexchen` | `Password@123` | `USER` | Distributed Systems Engineer |
 | `sarah.jenkins@spacehub.dev` | `sarahj` | `Password@123` | `USER` | Lead Product Designer |
 | `dev.marcus@spacehub.dev` | `marcusdev` | `Password@123` | `USER` | WebRTC & Media Researcher |
@@ -204,9 +203,3 @@ Run checkstyle audit:
 ```bash
 ./mvnw checkstyle:check
 ```
-
----
-
-## 📄 License & Author
-Built with ❤️ by **Monu Chaudhary** as part of the **SpaceHub** ecosystem.
-Licensed under the [MIT License](LICENSE).

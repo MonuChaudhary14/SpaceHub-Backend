@@ -78,17 +78,17 @@ public class DataInitializer implements CommandLineRunner {
   }
 
   private void initMockData() {
-    User monu = createOrGetUser(
-      "monuchaudharypoonia@gmail.com",
-      "monuchaudhary",
-      "Monu",
-      "Chaudhary",
-      "@Monu1402",
+    User admin = createOrGetUser(
+      "admin@spacehub.dev",
+      "admin",
+      "Admin",
+      "SpaceHub",
+      "Password@123",
       UserRole.ADMIN,
-      "SpaceHub Architect & Developer | Distributed Systems",
-      "Bangalore, India",
+      "SpaceHub System Administrator & Lead Architect",
+      "San Francisco, USA",
       "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=300&q=80",
-      "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&w=1200&q=80"
+      "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=1200&q=80"
     );
 
     User alex = createOrGetUser(
@@ -143,28 +143,15 @@ public class DataInitializer implements CommandLineRunner {
       "https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1200&q=80"
     );
 
-    User admin = createOrGetUser(
-      "admin@spacehub.dev",
-      "admin",
-      "Admin",
-      "SpaceHub",
-      "Password@123",
-      UserRole.ADMIN,
-      "SpaceHub System Administrator",
-      "San Francisco, USA",
-      "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=300&q=80",
-      "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=1200&q=80"
-    );
+    initFriends(admin, alex, sarah, marcus);
 
-    initFriends(monu, alex, sarah, marcus);
+    initCommunities(admin, alex, sarah, marcus);
 
-    initCommunities(monu, alex, sarah, marcus);
+    initLocalGroups(admin, alex, sarah);
 
-    initLocalGroups(monu, alex, sarah);
+    initDirectMessages(admin, alex, sarah, marcus);
 
-    initDirectMessages(monu, alex, sarah, marcus);
-
-    initNotifications(monu, alex, sarah);
+    initNotifications(admin, alex, sarah);
   }
 
   private User createOrGetUser(
@@ -247,10 +234,10 @@ public class DataInitializer implements CommandLineRunner {
     return userRepository.save(user);
   }
 
-  private void initFriends(User monu, User alex, User sarah, User marcus) {
-    createFriendship(monu, alex);
-    createFriendship(monu, sarah);
-    createFriendship(monu, marcus);
+  private void initFriends(User admin, User alex, User sarah, User marcus) {
+    createFriendship(admin, alex);
+    createFriendship(admin, sarah);
+    createFriendship(admin, marcus);
     createFriendship(alex, sarah);
   }
 
@@ -271,14 +258,14 @@ public class DataInitializer implements CommandLineRunner {
     }
   }
 
-  private void initCommunities(User monu, User alex, User sarah, User marcus) {
+  private void initCommunities(User admin, User alex, User sarah, User marcus) {
     createOrGetCommunity(
       "SpaceHub Central",
       "The official SpaceHub community for distributed architecture, engineering discussions, and live collaboration.",
-      monu,
+      admin,
       "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80",
       List.of(
-        new MemberRole(monu, Role.OWNER),
+        new MemberRole(admin, Role.OWNER),
         new MemberRole(alex, Role.ADMIN),
         new MemberRole(sarah, Role.MODERATOR),
         new MemberRole(marcus, Role.MEMBER)
@@ -293,7 +280,7 @@ public class DataInitializer implements CommandLineRunner {
       "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=800&q=80",
       List.of(
         new MemberRole(alex, Role.OWNER),
-        new MemberRole(monu, Role.ADMIN),
+        new MemberRole(admin, Role.ADMIN),
         new MemberRole(marcus, Role.MODERATOR)
       ),
       List.of("kafka-streams", "webrtc-livekit", "system-design", "whitepapers")
@@ -306,7 +293,7 @@ public class DataInitializer implements CommandLineRunner {
       "https://images.unsplash.com/photo-1558655146-d09347e92766?auto=format&fit=crop&w=800&q=80",
       List.of(
         new MemberRole(sarah, Role.OWNER),
-        new MemberRole(monu, Role.ADMIN),
+        new MemberRole(admin, Role.ADMIN),
         new MemberRole(alex, Role.MODERATOR)
       ),
       List.of("design-critique", "prototypes", "theme-engine")
@@ -386,13 +373,13 @@ public class DataInitializer implements CommandLineRunner {
     return community;
   }
 
-  private void initLocalGroups(User monu, User alex, User sarah) {
+  private void initLocalGroups(User admin, User alex, User sarah) {
     createOrGetLocalGroup(
       "Bangalore Tech Connect",
       "Local tech meetups, hackathons, and coffee discussions for builders in Bangalore.",
-      monu,
+      admin,
       "https://images.unsplash.com/photo-1596176530529-78163a4f7af2?auto=format&fit=crop&w=800&q=80",
-      Set.of(monu, alex)
+      Set.of(admin, alex)
     );
 
     createOrGetLocalGroup(
@@ -400,7 +387,7 @@ public class DataInitializer implements CommandLineRunner {
       "Founders, builders, and engineers hacking on real-time web applications in the Bay Area.",
       alex,
       "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?auto=format&fit=crop&w=800&q=80",
-      Set.of(alex, sarah, monu)
+      Set.of(alex, sarah, admin)
     );
   }
 
@@ -436,7 +423,7 @@ public class DataInitializer implements CommandLineRunner {
     }
   }
 
-  private void initDirectMessages(User monu, User alex, User sarah, User marcus) {
+  private void initDirectMessages(User admin, User alex, User sarah, User marcus) {
     if (messageRepository.count() > 0) {
       return;
     }
@@ -446,31 +433,31 @@ public class DataInitializer implements CommandLineRunner {
 
     createDirectMessage(
       alex.getEmail(),
-      monu.getEmail(),
-      "Hey Monu! How is the distributed WebSocket fanout architecture coming along?",
+      admin.getEmail(),
+      "Hey Admin! How is the distributed WebSocket fanout architecture coming along?",
       now - 60 * minute
     );
     createDirectMessage(
-      monu.getEmail(),
+      admin.getEmail(),
       alex.getEmail(),
       "Hey Alex! Just configured Redis Pub/Sub message backplane and verified sub-50ms delivery latency.",
       now - 50 * minute
     );
     createDirectMessage(
       alex.getEmail(),
-      monu.getEmail(),
+      admin.getEmail(),
       "Awesome! That will easily scale across multiple Spring Boot container instances.",
       now - 45 * minute
     );
 
     createDirectMessage(
       sarah.getEmail(),
-      monu.getEmail(),
-      "Hi Monu, I updated the community dashboard UI and voice room layout design tokens.",
+      admin.getEmail(),
+      "Hi Admin, I updated the community dashboard UI and voice room layout design tokens.",
       now - 30 * minute
     );
     createDirectMessage(
-      monu.getEmail(),
+      admin.getEmail(),
       sarah.getEmail(),
       "Looks fantastic Sarah! The theme transitions and glassmorphism styling feel super premium.",
       now - 20 * minute
@@ -478,7 +465,7 @@ public class DataInitializer implements CommandLineRunner {
 
     createDirectMessage(
       marcus.getEmail(),
-      monu.getEmail(),
+      admin.getEmail(),
       "Hey! I'm testing the LiveKit WebRTC SFU audio/video room integration.",
       now - 10 * minute
     );
@@ -499,14 +486,14 @@ public class DataInitializer implements CommandLineRunner {
     messageRepository.save(message);
   }
 
-  private void initNotifications(User monu, User alex, User sarah) {
+  private void initNotifications(User admin, User alex, User sarah) {
     if (notificationRepository.count() > 0) {
       return;
     }
 
     Notification n1 = Notification.builder()
       .publicId(UUID.randomUUID())
-      .recipient(monu)
+      .recipient(admin)
       .sender(alex)
       .title("Welcome to SpaceHub")
       .message("Alex Chen joined your network on SpaceHub.")
@@ -519,7 +506,7 @@ public class DataInitializer implements CommandLineRunner {
 
     Notification n2 = Notification.builder()
       .publicId(UUID.randomUUID())
-      .recipient(monu)
+      .recipient(admin)
       .sender(sarah)
       .title("New Community Room")
       .message("Sarah Jenkins created room #design-critique in UI/UX & Design Lab.")
