@@ -13,6 +13,7 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:${POSTGRES_INTERNAL_PORT}/${POSTGRES_DB}
       - REDIS_HOST=redis
       - REDIS_PORT=${REDIS_INTERNAL_PORT}
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:${KAFKA_INTERNAL_PORT:-9092}
     depends_on:
       postgres:
         condition: service_healthy
@@ -57,6 +58,30 @@ services:
       timeout: 5s
       retries: 5
 
+  kafka:
+    image: apache/kafka:3.8.0
+    container_name: spacehub-kafka
+    restart: unless-stopped
+    ports:
+      - "${KAFKA_PORT}:${KAFKA_INTERNAL_PORT}"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:${KAFKA_INTERNAL_PORT:-9092},CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:${KAFKA_INTERNAL_PORT:-9092}
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 3
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    networks:
+      - spacehub-net
+
   livekit:
     image: livekit/livekit-server:latest
     container_name: spacehub-livekit
@@ -80,3 +105,4 @@ networks:
 volumes:
   postgres-data:
   redis-data:
+  kafka-data:

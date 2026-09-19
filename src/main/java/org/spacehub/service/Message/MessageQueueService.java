@@ -27,6 +27,7 @@ public class MessageQueueService {
   private static final int FLUSH_BATCH_SIZE = 50;
 
   private final IMessageService messageService;
+  private final org.spacehub.kafka.producer.ChatKafkaProducer chatKafkaProducer;
   private ChatWebSocketHandlerMessaging messagingHandler;
   private WriteBehindBuffer<Message> writeBehindBuffer;
 
@@ -75,7 +76,30 @@ public class MessageQueueService {
     if (message.getReceiverEmail() != null) {
       message.setReceiverEmail(message.getReceiverEmail().trim().toLowerCase(Locale.ROOT));
     }
-    writeBehindBuffer.enqueue(message);
+
+    try {
+      org.spacehub.kafka.event.DirectChatKafkaEvent event = org.spacehub.kafka.event.DirectChatKafkaEvent.builder()
+        .messageUuid(message.getMessageUuid())
+        .senderEmail(message.getSenderEmail())
+        .receiverEmail(message.getReceiverEmail())
+        .content(message.getContent())
+        .fileKey(message.getFileKey())
+        .fileName(message.getFileName())
+        .contentType(message.getContentType())
+        .timestamp(message.getTimestamp())
+        .type(message.getType())
+        .readStatus(message.getReadStatus())
+        .build();
+
+      chatKafkaProducer.sendDirectChatMessage(event).exceptionally(ex -> {
+        logger.warn("Kafka direct message publish failed, falling back to local write-behind buffer: {}", ex.getMessage());
+        writeBehindBuffer.enqueue(message);
+        return null;
+      });
+    } catch (Exception e) {
+      logger.warn("Kafka unavailable, routing direct message directly to local write-behind buffer: {}", e.getMessage());
+      writeBehindBuffer.enqueue(message);
+    }
   }
 
   @Scheduled(fixedRate = 1000)

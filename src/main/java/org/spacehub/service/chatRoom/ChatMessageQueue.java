@@ -26,6 +26,7 @@ public class ChatMessageQueue implements IChatMessageQueue {
   private static final int FLUSH_BATCH_SIZE = 50;
 
   private final ChatMessageService chatMessageService;
+  private final org.spacehub.kafka.producer.ChatKafkaProducer chatKafkaProducer;
   private WriteBehindBuffer<ChatMessage> writeBehindBuffer;
 
   @PostConstruct
@@ -45,7 +46,29 @@ public class ChatMessageQueue implements IChatMessageQueue {
     if (message.getTimestamp() == null) {
       message.setTimestamp(System.currentTimeMillis());
     }
-    writeBehindBuffer.enqueue(message);
+
+    try {
+      org.spacehub.kafka.event.CommunityChatKafkaEvent event = org.spacehub.kafka.event.CommunityChatKafkaEvent.builder()
+        .messageUuid(message.getMessageUuid())
+        .senderEmail(message.getSenderEmail())
+        .message(message.getMessage())
+        .timestamp(message.getTimestamp())
+        .fileName(message.getFileName())
+        .fileUrl(message.getFileUrl())
+        .contentType(message.getContentType())
+        .roomCode(message.getRoomCode())
+        .type(message.getType())
+        .build();
+
+      chatKafkaProducer.sendCommunityChatMessage(event).exceptionally(ex -> {
+        logger.warn("Kafka async publish failed, falling back to local write-behind buffer: {}", ex.getMessage());
+        writeBehindBuffer.enqueue(message);
+        return null;
+      });
+    } catch (Exception e) {
+      logger.warn("Kafka unavailable, routing message directly to local write-behind buffer: {}", e.getMessage());
+      writeBehindBuffer.enqueue(message);
+    }
   }
 
   @Scheduled(fixedRate = 1000)
