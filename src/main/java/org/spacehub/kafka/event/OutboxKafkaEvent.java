@@ -15,5 +15,8 @@ public class OutboxKafkaEvent {
   private String aggregateId;
   private String eventType;
   private String payload;
+  private String idempotencyKey;
+  private String partitionKey;
+  private String headers;
   private Long timestamp;
 }

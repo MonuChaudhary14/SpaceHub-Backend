@@ -26,6 +26,7 @@ services:
     image: postgres:15-alpine
     container_name: spacehub-postgres
     restart: unless-stopped
+    command: ["postgres", "-c", "wal_level=logical", "-c", "max_wal_senders=10", "-c", "max_replication_slots=10"]
     ports:
       - "${POSTGRES_PORT}:${POSTGRES_INTERNAL_PORT}"
     environment:
@@ -82,15 +83,40 @@ services:
     networks:
       - spacehub-net
 
+  debezium-connect:
+    image: debezium/connect:2.7.0.Final
+    container_name: spacehub-debezium
+    restart: unless-stopped
+    ports:
+      - "${DEBEZIUM_PORT}:${DEBEZIUM_INTERNAL_PORT}"
+    environment:
+      BOOTSTRAP_SERVERS: kafka:${KAFKA_INTERNAL_PORT:-9092}
+      GROUP_ID: 1
+      CONFIG_STORAGE_TOPIC: spacehub_connect_configs
+      OFFSET_STORAGE_TOPIC: spacehub_connect_offsets
+      STATUS_STORAGE_TOPIC: spacehub_connect_statuses
+      CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      STATUS_STORAGE_REPLICATION_FACTOR: 1
+      KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      INTERNAL_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      INTERNAL_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+    depends_on:
+      - postgres
+      - kafka
+    networks:
+      - spacehub-net
+
   livekit:
     image: livekit/livekit-server:latest
     container_name: spacehub-livekit
     restart: unless-stopped
     command: --dev --bind 0.0.0.0
     ports:
-      - "${LIVEKIT_PORT:-7880}:7880"
-      - "${LIVEKIT_TCP_PORT:-7881}:7881"
-      - "${LIVEKIT_UDP_PORT:-7882}:7882/udp"
+      - "${LIVEKIT_PORT}:${LIVEKIT_INTERNAL_PORT}"
+      - "${LIVEKIT_TCP_PORT}:${LIVEKIT_TCP_INTERNAL_PORT}"
+      - "${LIVEKIT_UDP_PORT}:${LIVEKIT_UDP_INTERNAL_PORT}/udp"
     environment:
       LIVEKIT_KEYS: "${LIVEKIT_API_KEY}: ${LIVEKIT_API_SECRET}"
       LIVEKIT_RTC_USE_EXTERNAL_IP: "${LIVEKIT_RTC_USE_EXTERNAL_IP:-true}"

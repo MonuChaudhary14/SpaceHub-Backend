@@ -14,7 +14,7 @@ import org.spacehub.repository.Notification.NotificationRepository;
 import org.spacehub.repository.User.UserRepository;
 import org.spacehub.repository.community.CommunityRepository;
 import org.spacehub.repository.community.CommunityUserRepository;
-import org.spacehub.service.File.S3Service;
+import org.spacehub.service.Outbox.OutboxPublisherService;
 import org.spacehub.utils.ImageValidator;
 import org.spacehub.utils.S3UrlHelper;
 import org.spacehub.utils.SecurityUtils;
@@ -51,9 +51,9 @@ public class CommunityCoreService {
   private final ChatRoomRepository chatRoomRepository;
   private final CommunityUserRepository communityUserRepository;
   private final NotificationRepository notificationRepository;
-  private final S3Service s3Service;
   private final S3UrlHelper s3UrlHelper;
   private final CommunityMediaService communityMediaService;
+  private final OutboxPublisherService outboxPublisherService;
 
   public ResponseEntity<ApiResponse<Map<String, Object>>> createCommunity(
     String name, String description, MultipartFile imageFile) {
@@ -70,6 +70,19 @@ public class CommunityCoreService {
 
       Community savedCommunity = saveCommunity(name, description, creator, imageKey);
       addAdminUser(savedCommunity, creator);
+
+      if (outboxPublisherService != null) {
+        outboxPublisherService.recordEvent(
+          "COMMUNITY",
+          String.valueOf(savedCommunity.getId()),
+          "COMMUNITY_CREATED",
+          Map.of(
+            "communityId", savedCommunity.getId(),
+            "name", savedCommunity.getName(),
+            "creatorEmail", createdByEmail
+          )
+        );
+      }
 
       Map<String, Object> responseData = new HashMap<>();
       responseData.put("communityId", savedCommunity.getId());

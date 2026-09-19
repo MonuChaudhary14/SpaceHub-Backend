@@ -16,6 +16,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Entity
 @Data
@@ -26,7 +27,8 @@ import java.time.Instant;
   name = "outbox_messages",
   indexes = {
     @Index(name = "idx_outbox_status_created", columnList = "status, createdAt"),
-    @Index(name = "idx_outbox_aggregate", columnList = "aggregateType, aggregateId")
+    @Index(name = "idx_outbox_aggregate", columnList = "aggregateType, aggregateId"),
+    @Index(name = "idx_outbox_idempotency", columnList = "idempotencyKey", unique = true)
   }
 )
 public class OutboxMessage {
@@ -47,10 +49,23 @@ public class OutboxMessage {
   @Column(nullable = false, columnDefinition = "TEXT")
   private String payload;
 
+  @Column(length = 100, unique = true, nullable = false)
+  private String idempotencyKey;
+
+  @Column(length = 100)
+  private String partitionKey;
+
+  @Column(columnDefinition = "TEXT")
+  private String headers;
+
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 20)
   @Builder.Default
   private OutboxStatus status = OutboxStatus.PENDING;
+
+  @Column(nullable = false)
+  @Builder.Default
+  private Integer retryCount = 0;
 
   @Column(nullable = false)
   private Instant createdAt;
@@ -67,6 +82,15 @@ public class OutboxMessage {
     }
     if (this.status == null) {
       this.status = OutboxStatus.PENDING;
+    }
+    if (this.retryCount == null) {
+      this.retryCount = 0;
+    }
+    if (this.idempotencyKey == null || this.idempotencyKey.isBlank()) {
+      this.idempotencyKey = UUID.randomUUID().toString();
+    }
+    if (this.partitionKey == null || this.partitionKey.isBlank()) {
+      this.partitionKey = this.aggregateId;
     }
   }
 }

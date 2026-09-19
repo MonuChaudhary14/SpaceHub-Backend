@@ -75,7 +75,9 @@ public class ChatKafkaProducer {
   }
 
   public CompletableFuture<SendResult<String, String>> sendOutboxEvent(OutboxKafkaEvent event) {
-    String key = event.getAggregateId() != null ? event.getAggregateId() : String.valueOf(event.getId());
+    String key = event.getPartitionKey() != null && !event.getPartitionKey().isBlank()
+      ? event.getPartitionKey()
+      : (event.getAggregateId() != null ? event.getAggregateId() : String.valueOf(event.getId()));
     try {
       String payload = objectMapper.writeValueAsString(event);
       return kafkaTemplate.send(KafkaTopicConfig.TOPIC_OUTBOX_EVENTS, key, payload)

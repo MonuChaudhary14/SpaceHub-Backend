@@ -1,0 +1,33 @@
+{
+  "name": "spacehub-postgres-outbox-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "tasks.max": "1",
+    "plugin.name": "pgoutput",
+    "database.hostname": "postgres",
+    "database.port": "5432",
+    "database.user": "postgres",
+    "database.password": "postgres",
+    "database.dbname": "spacehub",
+    "database.server.name": "spacehub-db",
+    "topic.prefix": "spacehub-cdc",
+    "table.include.list": "public.outbox_messages",
+    "tombstones.on.delete": "false",
+    "decimal.handling.mode": "double",
+    "time.precision.mode": "connect",
+    "snapshot.mode": "initial",
+    "slot.name": "debezium_outbox_slot",
+    "publication.name": "debezium_outbox_pub",
+    "publication.autocreate.mode": "all_tables",
+    
+    "transforms": "outbox",
+    "transforms.outbox.type": "io.debezium.transforms.outbox.EventRouter",
+    "transforms.outbox.table.fields.additional.placement": "aggregateType:header,eventType:header,idempotencyKey:header",
+    "transforms.outbox.route.by.field": "aggregateType",
+    "transforms.outbox.route.topic.replacement": "spacehub.outbox.events",
+    "transforms.outbox.table.field.event.id": "idempotencyKey",
+    "transforms.outbox.table.field.event.key": "partitionKey",
+    "transforms.outbox.table.field.event.payload": "payload",
+    "transforms.outbox.table.field.event.timestamp": "createdAt"
+  }
+}
