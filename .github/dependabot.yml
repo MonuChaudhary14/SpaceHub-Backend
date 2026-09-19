@@ -31,6 +31,10 @@ updates:
           - "org.apache.maven.plugins:maven-checkstyle-plugin"
           - "com.puppycrawl.tools:checkstyle"
           - "org.openrewrite.maven:*"
+      logging:
+        patterns:
+          - "ch.qos.logback:*"
+          - "org.slf4j:*"
 
   # 2. GitHub Actions Workflows (CI/CD)
   - package-ecosystem: "github-actions"
