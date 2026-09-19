@@ -1,0 +1,43 @@
+version: 2
+updates:
+  # 1. Spring Boot & Maven Dependencies
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "backend"
+    groups:
+      spring-framework:
+        patterns:
+          - "org.springframework.boot:*"
+          - "org.springframework:*"
+          - "org.springframework.security:*"
+      database-drivers:
+        patterns:
+          - "org.postgresql:postgresql"
+          - "org.hibernate.orm:*"
+          - "org.hibernate:*"
+      code-quality:
+        patterns:
+          - "org.apache.maven.plugins:maven-checkstyle-plugin"
+          - "com.puppycrawl.tools:checkstyle"
+          - "org.openrewrite.maven:*"
+
+  # 2. GitHub Actions Workflows (CI/CD)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "ci(actions)"
+    labels:
+      - "ci"
