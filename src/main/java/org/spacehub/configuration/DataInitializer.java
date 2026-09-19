@@ -71,6 +71,14 @@ public class DataInitializer implements CommandLineRunner {
       jdbcTemplate.execute("ALTER TABLE voice_room DROP CONSTRAINT IF EXISTS uk88mh4q2ke232n32n2dxs91tqm");
       jdbcTemplate.execute("ALTER TABLE voice_room DROP CONSTRAINT IF EXISTS voice_room_janus_room_id_key");
       jdbcTemplate.execute("ALTER TABLE voice_room ALTER COLUMN janus_room_id DROP NOT NULL");
+
+      jdbcTemplate.execute("ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS family_id VARCHAR(100)");
+      jdbcTemplate.execute("ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS is_revoked BOOLEAN DEFAULT FALSE");
+      jdbcTemplate.execute("ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS replaced_by_token VARCHAR(100)");
+      jdbcTemplate.execute("ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS ip_address VARCHAR(100)");
+      jdbcTemplate.execute("ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS user_agent VARCHAR(500)");
+      jdbcTemplate.execute("UPDATE refresh_tokens SET family_id = token WHERE family_id IS NULL");
+      jdbcTemplate.execute("UPDATE refresh_tokens SET is_revoked = false WHERE is_revoked IS NULL");
     }
     catch (Exception e) {
       log.warn("Could not migrate legacy roles or drop constraints: {}", e.getMessage());

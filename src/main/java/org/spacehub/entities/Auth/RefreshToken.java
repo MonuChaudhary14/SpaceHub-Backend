@@ -27,8 +27,8 @@ import java.util.UUID;
   name = "refresh_tokens",
   indexes = {
     @Index(name = "idx_refresh_token_value", columnList = "token", unique = true),
-    @Index(name = "idx_refresh_token_family", columnList = "familyId"),
-    @Index(name = "idx_refresh_token_user_revoked", columnList = "user_id, isRevoked")
+    @Index(name = "idx_refresh_token_family", columnList = "family_id"),
+    @Index(name = "idx_refresh_token_user_revoked", columnList = "user_id, is_revoked")
   }
 )
 public class RefreshToken {

@@ -23,8 +23,8 @@ import java.time.Instant;
 @Table(
   name = "processed_events",
   indexes = {
-    @Index(name = "idx_processed_event_key", columnList = "idempotencyKey", unique = true),
-    @Index(name = "idx_processed_event_created", columnList = "processedAt")
+    @Index(name = "idx_processed_event_key", columnList = "idempotency_key", unique = true),
+    @Index(name = "idx_processed_event_created", columnList = "processed_at")
   }
 )
 public class ProcessedEvent {

@@ -26,9 +26,9 @@ import java.util.UUID;
 @Table(
   name = "outbox_messages",
   indexes = {
-    @Index(name = "idx_outbox_status_created", columnList = "status, createdAt"),
-    @Index(name = "idx_outbox_aggregate", columnList = "aggregateType, aggregateId"),
-    @Index(name = "idx_outbox_idempotency", columnList = "idempotencyKey", unique = true)
+    @Index(name = "idx_outbox_status_created", columnList = "status, created_at"),
+    @Index(name = "idx_outbox_aggregate", columnList = "aggregate_type, aggregate_id"),
+    @Index(name = "idx_outbox_idempotency", columnList = "idempotency_key", unique = true)
   }
 )
 public class OutboxMessage {
