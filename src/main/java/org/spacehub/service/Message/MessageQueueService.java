@@ -6,11 +6,11 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spacehub.entities.DirectMessaging.Message;
-import org.spacehub.handler.ChatWebSocketHandlerMessaging;
+import org.spacehub.handler.DirectChatWebSocketHandler;
 import org.spacehub.kafka.event.DirectChatKafkaEvent;
 import org.spacehub.kafka.producer.ChatKafkaProducer;
 import org.spacehub.service.Interface.IMessageService;
-import org.spacehub.service.chatRoom.WriteBehindBuffer;
+import org.spacehub.utils.WriteBehindBuffer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -30,12 +30,12 @@ public class MessageQueueService {
 
   private final IMessageService messageService;
   private final ChatKafkaProducer chatKafkaProducer;
-  private ChatWebSocketHandlerMessaging messagingHandler;
+  private DirectChatWebSocketHandler messagingHandler;
   private WriteBehindBuffer<Message> writeBehindBuffer;
 
   @Autowired
   @Lazy
-  public void setMessagingHandler(ChatWebSocketHandlerMessaging handler) {
+  public void setMessagingHandler(DirectChatWebSocketHandler handler) {
     this.messagingHandler = handler;
   }
 

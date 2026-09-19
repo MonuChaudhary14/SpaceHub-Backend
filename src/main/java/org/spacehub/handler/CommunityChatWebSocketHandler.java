@@ -4,11 +4,14 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.spacehub.entities.ChatRoom.ChatMessage;
 import org.spacehub.entities.ChatRoom.NewChatRoom;
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.User.UserRepository;
 import org.spacehub.service.File.S3Service;
+import org.spacehub.service.WebSocket.WsRedisPublisher;
 import org.spacehub.service.chatRoom.ChatMessageQueue;
 import org.spacehub.service.chatRoom.NewChatRoomService;
 import org.spacehub.utils.S3PreviewHelper;
@@ -36,14 +39,11 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import org.spacehub.service.WebSocket.WsRedisPublisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Component
-public class ChatWebSocketHandler extends TextWebSocketHandler {
+public class CommunityChatWebSocketHandler extends TextWebSocketHandler {
 
-  private static final Logger logger = LoggerFactory.getLogger(ChatWebSocketHandler.class);
+  private static final Logger logger = LoggerFactory.getLogger(CommunityChatWebSocketHandler.class);
 
   private final Map<String, Set<WebSocketSession>> rooms = new ConcurrentHashMap<>();
   private final Map<WebSocketSession, String> sessionRoom = new ConcurrentHashMap<>();
@@ -56,11 +56,11 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
   private final WsRedisPublisher wsRedisPublisher;
   private final ObjectMapper objectMapper;
 
-  public ChatWebSocketHandler(NewChatRoomService newChatRoomService,
-                              ChatMessageQueue chatMessageQueue,
-                              S3Service s3Service,
-                              UserRepository userRepository,
-                              WsRedisPublisher wsRedisPublisher) {
+  public CommunityChatWebSocketHandler(NewChatRoomService newChatRoomService,
+                                       ChatMessageQueue chatMessageQueue,
+                                       S3Service s3Service,
+                                       UserRepository userRepository,
+                                       WsRedisPublisher wsRedisPublisher) {
     this.newChatRoomService = newChatRoomService;
     this.chatMessageQueue = chatMessageQueue;
     this.s3Service = s3Service;
@@ -107,8 +107,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
       sendExistingMessages(session, actualRoom);
 
       logger.info("Connected: {} -> {}", email, resolvedRoomKey);
-    }
-    catch (Exception e) {
+    } catch (Exception e) {
       logger.error("Error establishing WebSocket connection", e);
       try {
         session.close(CloseStatus.SERVER_ERROR.withReason("Internal server error"));
@@ -116,17 +115,6 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
       }
     }
   }
-
-//  public void broadcastMessageToRoom(ChatMessage message) {
-//    try {
-//      Map<String, Object> payload = buildMessagePayload(message);
-//      payload.put("optimistic", false);
-//      broadcastToRoom(message.getRoomCode(), payload);
-//    }
-//    catch (Exception e) {
-//      logger.error("Error broadcasting message to room {}", message.getRoomCode(), e);
-//    }
-//  }
 
   private Map<String, String> parseQuery(String query) {
     Map<String, String> map = new HashMap<>();
@@ -166,8 +154,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         "roomCode", newChatRoom.getRoomCode(),
         "messages", formatted);
       session.sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
-    }
-    catch (IOException e) {
+    } catch (IOException e) {
       logger.error("Error sending chat history", e);
     }
   }
@@ -204,8 +191,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         case "DELETE" -> handleDeleteMessage(roomCode, senderEmail, clientPayload);
         default -> handleTextMessage(roomCode, senderEmail, clientPayload, session);
       }
-    }
-    catch (Exception e) {
+    } catch (Exception e) {
       logger.error("Error handling WebSocket message", e);
     }
   }
@@ -320,8 +306,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     try {
       Optional<User> sUser = userRepository.findByEmail(message.getSenderEmail());
       payload.put("senderUsername", sUser.map(User::getUsername).orElse(null));
-    }
-    catch (Exception ignored) {
+    } catch (Exception ignored) {
       payload.put("senderUsername", null);
     }
     return payload;
@@ -367,5 +352,4 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
       Instant.now().toEpochMilli());
     session.sendMessage(new TextMessage(objectMapper.writeValueAsString(sys)));
   }
-
 }

@@ -1,31 +1,24 @@
 package org.spacehub.configuration.webSocket;
 
+import org.spacehub.handler.CommunityChatWebSocketHandler;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
-import org.spacehub.handler.ChatWebSocketHandler;
 
 @Configuration
 @EnableWebSocket
 public class WebSocketConfig implements WebSocketConfigurer {
 
-  private final ChatWebSocketHandler chatWebSocketHandler;
+  private final CommunityChatWebSocketHandler chatWebSocketHandler;
 
-  public WebSocketConfig(ChatWebSocketHandler chatWebSocketHandler) {
+  public WebSocketConfig(CommunityChatWebSocketHandler chatWebSocketHandler) {
     this.chatWebSocketHandler = chatWebSocketHandler;
   }
 
   @Override
   public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
     registry.addHandler(chatWebSocketHandler, "/chat")
-
       .setAllowedOrigins("*");
-//            .setAllowedOrigins(
-//                    "https://spacehub.monu14.me",
-//                    "https://space-hub-frontend.vercel.app",
-//                    "https://www.spacehubx.me",
-//                    "https://audio-room-tawny.vercel.app"
-//      );
   }
 }

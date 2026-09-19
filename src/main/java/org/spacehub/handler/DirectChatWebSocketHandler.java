@@ -4,15 +4,16 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.spacehub.entities.DirectMessaging.Message;
 import org.spacehub.entities.User.User;
 import org.spacehub.repository.User.UserRepository;
-import org.spacehub.service.Friend.FriendService;
-import org.spacehub.service.Message.MessageQueueService;
-import org.spacehub.service.Interface.IMessageService;
 import org.spacehub.service.File.S3Service;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.spacehub.service.Friend.FriendService;
+import org.spacehub.service.Interface.IMessageService;
+import org.spacehub.service.Message.MessageQueueService;
+import org.spacehub.service.WebSocket.WsRedisPublisher;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
@@ -28,7 +29,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -37,13 +37,12 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-
-import org.spacehub.service.WebSocket.WsRedisPublisher;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Component
-public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
+public class DirectChatWebSocketHandler extends TextWebSocketHandler {
 
-  private static final Logger logger = LoggerFactory.getLogger(ChatWebSocketHandlerMessaging.class);
+  private static final Logger logger = LoggerFactory.getLogger(DirectChatWebSocketHandler.class);
 
   private final MessageQueueService messageQueueService;
   private final IMessageService messageService;
@@ -60,7 +59,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
   private final Map<String, String> usernameCache = new ConcurrentHashMap<>();
   private final WsRedisPublisher wsRedisPublisher;
 
-  public ChatWebSocketHandlerMessaging(
+  public DirectChatWebSocketHandler(
     MessageQueueService messageQueueService,
     IMessageService messageService,
     S3Service s3Service,
@@ -83,34 +82,44 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
     Map<String, String> params = parseQueryParams(session);
     String senderEmailRaw = params.get("senderEmail");
     String receiverEmailRaw = params.get("receiverEmail");
+
     if (senderEmailRaw == null || senderEmailRaw.isBlank()) {
-      try {
-        sendSystemMessage(session, "Missing senderEmail in connection URL");
-        session.close(CloseStatus.BAD_DATA);
-      } catch (IOException ignored) {
-      }
+      closeSessionSilently(session, CloseStatus.BAD_DATA, "Missing senderEmail in connection URL");
       return;
     }
+
     String senderEmail = normalizeEmail(senderEmailRaw);
     String receiverEmail = receiverEmailRaw == null ? null : normalizeEmail(receiverEmailRaw);
-    try {
-      if (userRepository.findByEmail(senderEmail).isEmpty()) {
-        sendSystemMessage(session, "Sender does not exist.");
-        try {
-          session.close(CloseStatus.BAD_DATA);
-        } catch (IOException ignored) {
-        }
-        return;
-      }
-    } catch (Exception e) {
-      logger.error("Error validating sender", e);
-      try {
-        sendSystemMessage(session, "Error validating sender — try again later.");
-        session.close(CloseStatus.SERVER_ERROR);
-      } catch (IOException ignored) {
-      }
+
+    if (!validateSender(session, senderEmail)) {
       return;
     }
+
+    initializeSession(session, senderEmail, receiverEmail, params);
+    loadUnreadMessages(session, senderEmail);
+
+    if (receiverEmail != null && !receiverEmail.isBlank()) {
+      initializeReceiver(session, senderEmail, receiverEmail);
+    }
+    logger.info("WS connected: {} (rooms: {})", senderEmail, activeUsers.keySet());
+  }
+
+  private boolean validateSender(WebSocketSession session, String senderEmail) {
+    try {
+      if (userRepository.findByEmail(senderEmail).isEmpty()) {
+        closeSessionSilently(session, CloseStatus.BAD_DATA, "Sender does not exist.");
+        return false;
+      }
+      return true;
+    } catch (Exception e) {
+      logger.error("Error validating sender", e);
+      closeSessionSilently(session, CloseStatus.SERVER_ERROR, "Error validating sender — try again later.");
+      return false;
+    }
+  }
+
+  private void initializeSession(WebSocketSession session, String senderEmail,
+                                 String receiverEmail, Map<String, String> params) {
     sessionMetadata.put(session, params);
     activeUsers.computeIfAbsent(senderEmail, k -> ConcurrentHashMap.newKeySet()).add(session);
     userSessions.put(session, senderEmail);
@@ -119,38 +128,45 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
       rooms.computeIfAbsent(chatKey, k -> ConcurrentHashMap.newKeySet()).add(session);
       sessionRoom.put(session, chatKey);
     }
+  }
+
+  private void loadUnreadMessages(WebSocketSession session, String senderEmail) {
     try {
       processUnreadMessages(session, senderEmail);
     } catch (Exception e) {
       logger.warn("Unable to load unread messages", e);
-      try {
-        sendSystemMessage(session, "Unable to load unread messages right now.");
-      } catch (IOException ignored) {
-      }
+      sendSystemMessageQuiet(session, "Unable to load unread messages right now.");
     }
-    if (receiverEmail != null && !receiverEmail.isBlank()) {
-      try {
-        if (userRepository.findByEmail(receiverEmail).isEmpty()) {
-          sendSystemMessage(session, "Receiver not found.");
-        } else if (!friendService.areFriends(senderEmail, receiverEmail)) {
-          sendSystemMessage(session, "You can only chat with friends.");
-        } else {
-          try {
-            processHistoryForReceiver(session, senderEmail, receiverEmail);
-          } catch (Exception e) {
-            logger.warn("Unable to load chat history", e);
-            sendSystemMessage(session, "Unable to load chat history right now.");
-          }
-        }
-      } catch (Exception e) {
-        logger.error("Error validating receiver", e);
-        try {
-          sendSystemMessage(session, "Unable to validate receiver at the moment.");
-        } catch (IOException ignored) {
-        }
+  }
+
+  private void initializeReceiver(WebSocketSession session, String senderEmail, String receiverEmail) {
+    try {
+      if (userRepository.findByEmail(receiverEmail).isEmpty()) {
+        sendSystemMessageQuiet(session, "Receiver not found.");
+      } else if (!friendService.areFriends(senderEmail, receiverEmail)) {
+        sendSystemMessageQuiet(session, "You can only chat with friends.");
+      } else {
+        processHistoryForReceiver(session, senderEmail, receiverEmail);
       }
+    } catch (Exception e) {
+      logger.error("Error validating receiver", e);
+      sendSystemMessageQuiet(session, "Unable to validate receiver at the moment.");
     }
-    logger.info("WS connected: {} (rooms: {})", senderEmail, activeUsers.keySet());
+  }
+
+  private void closeSessionSilently(WebSocketSession session, CloseStatus status, String reason) {
+    try {
+      sendSystemMessage(session, reason);
+      session.close(status);
+    } catch (IOException ignored) {
+    }
+  }
+
+  private void sendSystemMessageQuiet(WebSocketSession session, String message) {
+    try {
+      sendSystemMessage(session, message);
+    } catch (IOException ignored) {
+    }
   }
 
   private void processUnreadMessages(WebSocketSession session, String senderEmail) throws Exception {
@@ -160,16 +176,11 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
     }
     List<Map<String, Object>> formatted = new ArrayList<>();
     for (Message message : unread) {
-      try {
-        if (shouldHideForRequester(message, senderEmail)) {
-          continue;
-        }
+      if (!shouldHideForRequester(message, senderEmail)) {
         Map<String, Object> payload = buildPayload(message);
-        boolean pending = messageQueueService.isPending(message.getMessageUuid());
-        payload.put("optimistic", pending);
+        payload.put("optimistic", messageQueueService.isPending(message.getMessageUuid()));
         addPreviewIfFileQuiet(payload, message.getType(), message.getFileKey());
         formatted.add(payload);
-      } catch (Exception ignored) {
       }
     }
     formatted.sort(Comparator.comparingLong(m -> ((Number) m.get("timestamp")).longValue()));
@@ -205,16 +216,9 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
 
   private List<Map<String, Object>> mergeAndFormatMessages(List<Message> dbMessages, List<Message> pendingMessages) {
     Map<String, MessageEntry> byUuid = new LinkedHashMap<>();
-    for (Message m : dbMessages) {
-      if (m != null && m.getMessageUuid() != null) {
-        byUuid.put(m.getMessageUuid(), new MessageEntry(m, false));
-      }
-    }
-    for (Message m : pendingMessages) {
-      if (m != null && m.getMessageUuid() != null) {
-        byUuid.put(m.getMessageUuid(), new MessageEntry(m, true));
-      }
-    }
+    collectMessageEntries(byUuid, dbMessages, false);
+    collectMessageEntries(byUuid, pendingMessages, true);
+
     List<MessageEntry> entries = new ArrayList<>(byUuid.values());
     entries.sort((a, b) -> {
       long ta = a.msg.getTimestamp() == null ? 0L : a.msg.getTimestamp();
@@ -225,6 +229,21 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
       }
       return a.msg.getMessageUuid().compareTo(b.msg.getMessageUuid());
     });
+    return formatEntries(entries);
+  }
+
+  private void collectMessageEntries(Map<String, MessageEntry> map, List<Message> messages, boolean optimistic) {
+    if (messages == null) {
+      return;
+    }
+    for (Message m : messages) {
+      if (m != null && m.getMessageUuid() != null) {
+        map.put(m.getMessageUuid(), new MessageEntry(m, optimistic));
+      }
+    }
+  }
+
+  private List<Map<String, Object>> formatEntries(List<MessageEntry> entries) {
     List<Map<String, Object>> formatted = new ArrayList<>();
     for (MessageEntry e : entries) {
       try {
@@ -646,5 +665,4 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
     }
     return email.trim().toLowerCase(Locale.ROOT);
   }
-
 }

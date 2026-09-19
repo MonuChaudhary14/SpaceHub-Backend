@@ -1,8 +1,7 @@
-package org.spacehub.service.chatRoom;
+package org.spacehub.utils;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -12,6 +11,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 public class WriteBehindBuffer<T> {
 
@@ -107,7 +107,7 @@ public class WriteBehindBuffer<T> {
     return new ArrayList<>(queue);
   }
 
-  public boolean removeIf(java.util.function.Predicate<T> filter) {
+  public boolean removeIf(Predicate<T> filter) {
     boolean removed = queue.removeIf(filter);
     if (removed) {
       currentSize.set(queue.size());

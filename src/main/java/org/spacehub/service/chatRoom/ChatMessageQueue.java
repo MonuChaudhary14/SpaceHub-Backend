@@ -11,6 +11,7 @@ import org.spacehub.entities.ChatRoom.NewChatRoom;
 import org.spacehub.kafka.event.CommunityChatKafkaEvent;
 import org.spacehub.kafka.producer.ChatKafkaProducer;
 import org.spacehub.service.chatRoom.chatroomInterfaces.IChatMessageQueue;
+import org.spacehub.utils.WriteBehindBuffer;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 

@@ -1,6 +1,6 @@
 package org.spacehub.configuration.webSocket;
 
-import org.spacehub.handler.ChatWebSocketHandlerMessaging;
+import org.spacehub.handler.DirectChatWebSocketHandler;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
@@ -10,9 +10,9 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 @EnableWebSocket
 public class WebSocketConfigMessaging implements WebSocketConfigurer {
 
-  private final ChatWebSocketHandlerMessaging chatWebSocketHandler;
+  private final DirectChatWebSocketHandler chatWebSocketHandler;
 
-  public WebSocketConfigMessaging(ChatWebSocketHandlerMessaging chatWebSocketHandler) {
+  public WebSocketConfigMessaging(DirectChatWebSocketHandler chatWebSocketHandler) {
     this.chatWebSocketHandler = chatWebSocketHandler;
   }
 

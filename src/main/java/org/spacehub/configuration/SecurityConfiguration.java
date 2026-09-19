@@ -21,11 +21,11 @@ import java.util.List;
 @Configuration
 public class SecurityConfiguration {
 
-  private final Filters filter;
+  private final JwtAuthenticationFilter filter;
   private final AuthenticationProvider authenticationProvider;
   private final AuthenticationEntryPoint authenticationEntryPoint;
 
-  public SecurityConfiguration(Filters filter,
+  public SecurityConfiguration(JwtAuthenticationFilter filter,
                                AuthenticationProvider authenticationProvider,
                                AuthenticationEntryPoint authenticationEntryPoint) {
     this.filter = filter;

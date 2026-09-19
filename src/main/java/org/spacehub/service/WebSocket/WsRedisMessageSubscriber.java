@@ -4,8 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spacehub.DTO.WebSocket.WsRedisEnvelope;
-import org.spacehub.handler.ChatWebSocketHandler;
-import org.spacehub.handler.ChatWebSocketHandlerMessaging;
+import org.spacehub.handler.CommunityChatWebSocketHandler;
+import org.spacehub.handler.DirectChatWebSocketHandler;
 import org.spacehub.handler.NotificationWebSocketHandler;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.connection.Message;
@@ -20,18 +20,18 @@ public class WsRedisMessageSubscriber implements MessageListener {
 
   private static final Logger logger = LoggerFactory.getLogger(WsRedisMessageSubscriber.class);
 
-  private final ChatWebSocketHandler chatWebSocketHandler;
-  private final ChatWebSocketHandlerMessaging chatWebSocketHandlerMessaging;
+  private final CommunityChatWebSocketHandler communityChatWebSocketHandler;
+  private final DirectChatWebSocketHandler directChatWebSocketHandler;
   private final NotificationWebSocketHandler notificationWebSocketHandler;
   private final ObjectMapper objectMapper;
 
   public WsRedisMessageSubscriber(
-    @Lazy ChatWebSocketHandler chatWebSocketHandler,
-    @Lazy ChatWebSocketHandlerMessaging chatWebSocketHandlerMessaging,
+    @Lazy CommunityChatWebSocketHandler communityChatWebSocketHandler,
+    @Lazy DirectChatWebSocketHandler directChatWebSocketHandler,
     @Lazy NotificationWebSocketHandler notificationWebSocketHandler,
     ObjectMapper objectMapper) {
-    this.chatWebSocketHandler = chatWebSocketHandler;
-    this.chatWebSocketHandlerMessaging = chatWebSocketHandlerMessaging;
+    this.communityChatWebSocketHandler = communityChatWebSocketHandler;
+    this.directChatWebSocketHandler = directChatWebSocketHandler;
     this.notificationWebSocketHandler = notificationWebSocketHandler;
     this.objectMapper = objectMapper;
   }
@@ -64,13 +64,13 @@ public class WsRedisMessageSubscriber implements MessageListener {
 
   private void handleCommunityChat(WsRedisEnvelope envelope) {
     if (envelope.getTargetId() != null && envelope.getPayloadJson() != null) {
-      chatWebSocketHandler.broadcastToLocalRoom(envelope.getTargetId(), envelope.getPayloadJson());
+      communityChatWebSocketHandler.broadcastToLocalRoom(envelope.getTargetId(), envelope.getPayloadJson());
     }
   }
 
   private void handleDirectChat(WsRedisEnvelope envelope) {
     if (envelope.getPayloadJson() != null) {
-      chatWebSocketHandlerMessaging.broadcastToLocal(
+      directChatWebSocketHandler.broadcastToLocal(
         envelope.getTargetId(),
         envelope.getSenderEmail(),
         envelope.getReceiverEmail(),

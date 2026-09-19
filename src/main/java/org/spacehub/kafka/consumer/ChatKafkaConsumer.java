@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.spacehub.entities.ChatRoom.ChatMessage;
 import org.spacehub.entities.ChatRoom.NewChatRoom;
 import org.spacehub.entities.DirectMessaging.Message;
-import org.spacehub.handler.ChatWebSocketHandlerMessaging;
+import org.spacehub.handler.DirectChatWebSocketHandler;
 import org.spacehub.kafka.KafkaTopicConfig;
 import org.spacehub.kafka.event.CommunityChatKafkaEvent;
 import org.spacehub.kafka.event.DirectChatKafkaEvent;
@@ -37,11 +37,11 @@ public class ChatKafkaConsumer {
   private final NewChatRoomRepository newChatRoomRepository;
   private final ObjectMapper objectMapper;
 
-  private ChatWebSocketHandlerMessaging messagingHandler;
+  private DirectChatWebSocketHandler messagingHandler;
 
   @Autowired
   @Lazy
-  public void setMessagingHandler(ChatWebSocketHandlerMessaging handler) {
+  public void setMessagingHandler(DirectChatWebSocketHandler handler) {
     this.messagingHandler = handler;
   }
 

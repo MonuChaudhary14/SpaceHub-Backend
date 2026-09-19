@@ -12,7 +12,7 @@ import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
-public class AllInviteService {
+public class UnifiedInviteService {
 
   private final CommunityInviteService communityInviteService;
   private final LocalGroupInviteService localGroupInviteService;

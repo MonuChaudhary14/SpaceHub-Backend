@@ -10,11 +10,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableAsync
 @EnableScheduling
 @EnableCaching
-public class Homepage {
+public class SpaceHubApplication {
 
   public static void main(String[] args) {
-
-    SpringApplication.run(Homepage.class, args);
+    SpringApplication.run(SpaceHubApplication.class, args);
   }
 
 }

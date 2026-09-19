@@ -13,7 +13,6 @@ import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -21,12 +20,12 @@ import java.io.IOException;
 import java.util.function.Function;
 
 @Component
-public class Filters extends OncePerRequestFilter {
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
   private final UserNameService usernameService;
   private final UserService userService;
 
-  public Filters(UserNameService usernameService, UserService userService) {
+  public JwtAuthenticationFilter(UserNameService usernameService, UserService userService) {
     this.usernameService = usernameService;
     this.userService = userService;
   }
@@ -51,52 +50,67 @@ public class Filters extends OncePerRequestFilter {
     @NonNull HttpServletResponse response,
     @NonNull FilterChain filterChain) throws ServletException, IOException {
 
-    final String header = request.getHeader("Authorization");
-    String token = null;
-    String userEmail = null;
+    String token = extractToken(request);
+    String userEmail = extractEmailFromToken(token);
 
+    if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+      authenticateUser(token, userEmail, request);
+    }
+
+    filterChain.doFilter(request, response);
+  }
+
+  private String extractToken(HttpServletRequest request) {
+    final String header = request.getHeader("Authorization");
     if (header != null && header.startsWith("Bearer ")) {
-      token = header.substring(7);
-    } else if (request.getCookies() != null) {
+      return header.substring(7);
+    }
+    if (request.getCookies() != null) {
       for (Cookie cookie : request.getCookies()) {
         if ("accessToken".equals(cookie.getName())) {
-          token = cookie.getValue();
-          break;
+          return cookie.getValue();
         }
       }
     }
+    return null;
+  }
 
+  private String extractEmailFromToken(String token) {
+    if (token == null) {
+      return null;
+    }
     try {
-      if (token != null) {
-        userEmail = usernameService.extractUsername(token);
+      return usernameService.extractUsername(token);
+    } catch (Exception ignored) {
+      SecurityContextHolder.clearContext();
+      return null;
+    }
+  }
+
+  private void authenticateUser(String token, String userEmail, HttpServletRequest request) {
+    try {
+      UserDetails userDetails = userService.loadUserByUsername(userEmail);
+      User user = (User) userDetails;
+
+      if (isTokenValid(token, user)) {
+        UsernamePasswordAuthenticationToken authToken =
+          new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        SecurityContextHolder.getContext().setAuthentication(authToken);
       }
     } catch (Exception ignored) {
       SecurityContextHolder.clearContext();
     }
+  }
 
-    if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-      try {
-        UserDetails userDetails = userService.loadUserByUsername(userEmail);
-        User user = (User) userDetails;
-
-        Claims claims = usernameService.extractClaim(token, Function.identity());
-        Integer tokenVersionObj = (Integer) claims.get("passwordVersion");
-        int tokenVersion = tokenVersionObj != null ? tokenVersionObj : 0;
-        int userVersion = user.getPasswordVersion() != null ? user.getPasswordVersion() : 0;
-
-        if (usernameService.validToken(token, user) && tokenVersion == userVersion) {
-          UsernamePasswordAuthenticationToken authToken =
-            new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
-          authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-          SecurityContextHolder.getContext().setAuthentication(authToken);
-        }
-      } catch (UsernameNotFoundException ignored) {
-        SecurityContextHolder.clearContext();
-      } catch (Exception ignored) {
-        SecurityContextHolder.clearContext();
-      }
+  private boolean isTokenValid(String token, User user) {
+    if (!usernameService.validToken(token, user)) {
+      return false;
     }
-
-    filterChain.doFilter(request, response);
+    Claims claims = usernameService.extractClaim(token, Function.identity());
+    Integer tokenVersionObj = (Integer) claims.get("passwordVersion");
+    int tokenVersion = tokenVersionObj != null ? tokenVersionObj : 0;
+    int userVersion = user.getPasswordVersion() != null ? user.getPasswordVersion() : 0;
+    return tokenVersion == userVersion;
   }
 }
