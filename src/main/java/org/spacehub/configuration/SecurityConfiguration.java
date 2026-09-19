@@ -15,6 +15,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
 import java.util.List;
 
 @Configuration
@@ -47,8 +48,8 @@ public class SecurityConfiguration {
   }
 
   @Bean
-  public org.springframework.web.filter.CorsFilter corsFilter() {
-    return new org.springframework.web.filter.CorsFilter(corsConfigurationSource());
+  public CorsFilter corsFilter() {
+    return new CorsFilter(corsConfigurationSource());
   }
 
   @Bean

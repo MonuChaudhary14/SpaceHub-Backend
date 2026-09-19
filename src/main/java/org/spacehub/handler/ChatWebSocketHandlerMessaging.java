@@ -38,6 +38,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.spacehub.service.WebSocket.WsRedisPublisher;
+
 @Component
 public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
 
@@ -56,7 +58,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
   private final Map<String, Set<WebSocketSession>> activeUsers = new ConcurrentHashMap<>();
   private final Map<WebSocketSession, Map<String, String>> sessionMetadata = new ConcurrentHashMap<>();
   private final Map<String, String> usernameCache = new ConcurrentHashMap<>();
-  private final org.spacehub.service.WebSocket.WsRedisPublisher wsRedisPublisher;
+  private final WsRedisPublisher wsRedisPublisher;
 
   public ChatWebSocketHandlerMessaging(
     MessageQueueService messageQueueService,
@@ -64,7 +66,7 @@ public class ChatWebSocketHandlerMessaging extends TextWebSocketHandler {
     S3Service s3Service,
     UserRepository userRepository,
     FriendService friendService,
-    org.spacehub.service.WebSocket.WsRedisPublisher wsRedisPublisher) {
+    WsRedisPublisher wsRedisPublisher) {
     this.messageQueueService = messageQueueService;
     this.messageService = messageService;
     this.s3Service = s3Service;

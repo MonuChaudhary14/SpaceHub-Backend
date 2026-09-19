@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.spacehub.utils.SecurityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -94,7 +95,7 @@ public class VoiceRoomController {
     try {
       String userEmail = identity != null && !identity.isBlank()
         ? identity
-        : org.spacehub.utils.SecurityUtils.getCurrentUserEmail();
+        : SecurityUtils.getCurrentUserEmail();
 
       String token = liveKitTokenService.createToken(roomCode, userEmail, displayName != null ? displayName : userEmail);
 
@@ -126,7 +127,7 @@ public class VoiceRoomController {
     @RequestParam(required = false) String displayName) {
 
     try {
-      String userEmail = org.spacehub.utils.SecurityUtils.getCurrentUserEmail();
+      String userEmail = SecurityUtils.getCurrentUserEmail();
       if (userEmail == null || userEmail.isBlank()) {
         userEmail = displayName != null ? displayName : "guest";
       }

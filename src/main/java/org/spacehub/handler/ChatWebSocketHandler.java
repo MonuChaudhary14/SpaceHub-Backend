@@ -36,6 +36,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import org.spacehub.service.WebSocket.WsRedisPublisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,14 +53,14 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
   private final ChatMessageQueue chatMessageQueue;
   private final S3Service s3Service;
   private final UserRepository userRepository;
-  private final org.spacehub.service.WebSocket.WsRedisPublisher wsRedisPublisher;
+  private final WsRedisPublisher wsRedisPublisher;
   private final ObjectMapper objectMapper;
 
   public ChatWebSocketHandler(NewChatRoomService newChatRoomService,
                               ChatMessageQueue chatMessageQueue,
                               S3Service s3Service,
                               UserRepository userRepository,
-                              org.spacehub.service.WebSocket.WsRedisPublisher wsRedisPublisher) {
+                              WsRedisPublisher wsRedisPublisher) {
     this.newChatRoomService = newChatRoomService;
     this.chatMessageQueue = chatMessageQueue;
     this.s3Service = s3Service;

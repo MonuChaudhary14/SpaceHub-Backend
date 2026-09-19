@@ -7,6 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spacehub.entities.DirectMessaging.Message;
 import org.spacehub.handler.ChatWebSocketHandlerMessaging;
+import org.spacehub.kafka.event.DirectChatKafkaEvent;
+import org.spacehub.kafka.producer.ChatKafkaProducer;
 import org.spacehub.service.Interface.IMessageService;
 import org.spacehub.service.chatRoom.WriteBehindBuffer;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +29,7 @@ public class MessageQueueService {
   private static final int FLUSH_BATCH_SIZE = 50;
 
   private final IMessageService messageService;
-  private final org.spacehub.kafka.producer.ChatKafkaProducer chatKafkaProducer;
+  private final ChatKafkaProducer chatKafkaProducer;
   private ChatWebSocketHandlerMessaging messagingHandler;
   private WriteBehindBuffer<Message> writeBehindBuffer;
 
@@ -78,7 +80,7 @@ public class MessageQueueService {
     }
 
     try {
-      org.spacehub.kafka.event.DirectChatKafkaEvent event = org.spacehub.kafka.event.DirectChatKafkaEvent.builder()
+      DirectChatKafkaEvent event = DirectChatKafkaEvent.builder()
         .messageUuid(message.getMessageUuid())
         .senderEmail(message.getSenderEmail())
         .receiverEmail(message.getReceiverEmail())

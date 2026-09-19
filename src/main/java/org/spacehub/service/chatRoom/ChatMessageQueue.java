@@ -8,6 +8,8 @@ import org.slf4j.LoggerFactory;
 import org.spacehub.entities.ChatRoom.ChatMessage;
 import org.spacehub.entities.ChatRoom.ChatRoom;
 import org.spacehub.entities.ChatRoom.NewChatRoom;
+import org.spacehub.kafka.event.CommunityChatKafkaEvent;
+import org.spacehub.kafka.producer.ChatKafkaProducer;
 import org.spacehub.service.chatRoom.chatroomInterfaces.IChatMessageQueue;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -26,7 +28,7 @@ public class ChatMessageQueue implements IChatMessageQueue {
   private static final int FLUSH_BATCH_SIZE = 50;
 
   private final ChatMessageService chatMessageService;
-  private final org.spacehub.kafka.producer.ChatKafkaProducer chatKafkaProducer;
+  private final ChatKafkaProducer chatKafkaProducer;
   private WriteBehindBuffer<ChatMessage> writeBehindBuffer;
 
   @PostConstruct
@@ -48,7 +50,7 @@ public class ChatMessageQueue implements IChatMessageQueue {
     }
 
     try {
-      org.spacehub.kafka.event.CommunityChatKafkaEvent event = org.spacehub.kafka.event.CommunityChatKafkaEvent.builder()
+      CommunityChatKafkaEvent event = CommunityChatKafkaEvent.builder()
         .messageUuid(message.getMessageUuid())
         .senderEmail(message.getSenderEmail())
         .message(message.getMessage())

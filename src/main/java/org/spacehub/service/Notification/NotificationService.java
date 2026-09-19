@@ -17,6 +17,8 @@ import org.spacehub.utils.SecurityUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.spacehub.service.WebSocket.WsRedisPublisher;
+
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -35,7 +37,7 @@ public class NotificationService implements INotificationService {
   private final CommunityRepository communityRepository;
   private final NotificationWebSocketHandler notificationWebSocketHandler;
   private final NotificationMapper notificationMapper;
-  private final org.spacehub.service.WebSocket.WsRedisPublisher wsRedisPublisher;
+  private final WsRedisPublisher wsRedisPublisher;
 
   @Override
   public void createNotification(NotificationRequestDTO request) {
