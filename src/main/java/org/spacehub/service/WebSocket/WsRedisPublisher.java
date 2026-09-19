@@ -19,6 +19,7 @@ public class WsRedisPublisher {
   public static final String TOPIC_COMMUNITY_CHAT = "spacehub.ws.community-chat";
   public static final String TOPIC_DIRECT_CHAT = "spacehub.ws.direct-chat";
   public static final String TOPIC_NOTIFICATION = "spacehub.ws.notifications";
+  public static final String TOPIC_PRESENCE = "spacehub.ws.presence";
 
   @Getter
   private final String nodeId = UUID.randomUUID().toString();
@@ -41,6 +42,11 @@ public class WsRedisPublisher {
 
   public boolean publishNotification(String recipientEmail, Object notificationData) {
     return publish(TOPIC_NOTIFICATION, "NOTIFICATION", recipientEmail, null, null, notificationData);
+  }
+
+  public boolean publishPresenceDelta(String email, String status, Long communityId, Object payload) {
+    String targetId = communityId != null ? String.valueOf(communityId) : "global";
+    return publish(TOPIC_PRESENCE, "PRESENCE_DELTA", targetId, email, null, payload);
   }
 
   private boolean publish(String topic, String eventType, String targetId,

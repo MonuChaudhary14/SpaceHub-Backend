@@ -53,6 +53,8 @@ public class RedisConfig {
       new org.springframework.data.redis.listener.ChannelTopic(org.spacehub.service.WebSocket.WsRedisPublisher.TOPIC_DIRECT_CHAT));
     container.addMessageListener(subscriber,
       new org.springframework.data.redis.listener.ChannelTopic(org.spacehub.service.WebSocket.WsRedisPublisher.TOPIC_NOTIFICATION));
+    container.addMessageListener(subscriber,
+      new org.springframework.data.redis.listener.ChannelTopic(org.spacehub.service.WebSocket.WsRedisPublisher.TOPIC_PRESENCE));
     return container;
   }
 

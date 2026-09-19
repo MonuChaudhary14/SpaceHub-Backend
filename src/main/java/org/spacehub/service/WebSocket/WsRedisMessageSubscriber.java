@@ -57,6 +57,7 @@ public class WsRedisMessageSubscriber implements MessageListener {
       case "COMMUNITY_CHAT" -> handleCommunityChat(envelope);
       case "DIRECT_CHAT" -> handleDirectChat(envelope);
       case "NOTIFICATION" -> handleNotification(envelope);
+      case "PRESENCE_DELTA" -> handlePresenceDelta(envelope);
       default -> logger.debug("Unhandled WsRedis event type: {}", envelope.getEventType());
     }
   }
@@ -84,6 +85,12 @@ public class WsRedisMessageSubscriber implements MessageListener {
         envelope.getTargetId(),
         envelope.getPayloadJson()
       );
+    }
+  }
+
+  private void handlePresenceDelta(WsRedisEnvelope envelope) {
+    if (envelope.getPayloadJson() != null && envelope.getSenderEmail() != null) {
+      logger.debug("Received presence delta for user {}: {}", envelope.getSenderEmail(), envelope.getPayloadJson());
     }
   }
 
