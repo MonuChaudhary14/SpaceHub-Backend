@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
@@ -24,7 +25,7 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
 
   @Modifying
   @Query("UPDATE RefreshToken r SET r.isRevoked = true WHERE r.user.id = :userId")
-  void revokeAllUserTokens(@Param("userId") Long userId);
+  void revokeAllUserTokens(@Param("userId") UUID userId);
 
   void deleteAllByUser(User user);
 }
